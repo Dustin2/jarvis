@@ -1,7 +1,6 @@
 package dev.dux.organizer.projects
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -111,8 +110,7 @@ fun ProjectsScreen(vm: ProjectsViewModel, onOpen: (String) -> Unit, modifier: Mo
         }
         items(items, key = { it.project.id }) { (project, open) ->
             ListItem(
-                modifier = Modifier.clickable { onOpen(project.id) },
-                headlineContent = { Text(project.name, style = MaterialTheme.typography.titleMedium) },
+                onClick = { onOpen(project.id) },
                 supportingContent = {
                     Text(
                         open.firstOrNull()?.let { stringResource(R.string.next_label, it.title) } ?: stringResource(R.string.no_next_step),
@@ -121,7 +119,7 @@ fun ProjectsScreen(vm: ProjectsViewModel, onOpen: (String) -> Unit, modifier: Mo
                 },
                 overlineContent = if (project.status != ProjectStatus.ACTIVE) ({ Text(stringResource(project.status.label)) }) else null,
                 trailingContent = { Text(pluralStringResource(R.plurals.open_count, open.size, open.size)) },
-            )
+            ) { Text(project.name, style = MaterialTheme.typography.titleMedium) }
         }
     }
 
