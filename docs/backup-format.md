@@ -30,7 +30,8 @@ Un respaldo es un archivo JSON en UTF-8 que contiene **todos** los datos de la a
       "scheduledDate": null,
       "createdAt": "2026-10-25T17:05:00Z",
       "updatedAt": "2026-10-25T17:10:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "reminderAt": "2026-10-27T09:00"
     }
   ]
 }
@@ -51,8 +52,9 @@ Un respaldo es un archivo JSON en UTF-8 que contiene **todos** los datos de la a
 | `projectId` | texto o `null` | Debe ser el `id` de un proyecto del mismo archivo |
 | `dueDate`, `scheduledDate` | fecha o `null` | `AAAA-MM-DD`, sin hora ni zona horaria |
 | `createdAt`, `updatedAt`, `completedAt` | instante o `null` | ISO-8601 en UTC, p. ej. `2026-10-25T18:30:00Z` |
+| `reminderAt` | fecha y hora local o `null` | `AAAA-MM-DDTHH:MM`, **sin** zona: "las 9:00" donde estés. Se agregó después de la primera versión; los respaldos sin este campo siguen siendo válidos |
 
-`notes`, `colorKey`, `projectId`, las fechas y `completedAt` pueden ser `null` o no aparecer.
+`notes`, `colorKey`, `projectId`, las fechas, `completedAt` y `reminderAt` pueden ser `null` o no aparecer.
 
 ## Cómo restaura la app
 
@@ -60,4 +62,4 @@ Un respaldo es un archivo JSON en UTF-8 que contiene **todos** los datos de la a
 2. Guarda una copia de los datos actuales (`antes-de-restaurar.json`, interna de la app) para poder deshacer.
 3. Reemplaza todos los datos por los del archivo **en una sola transacción**: o se restaura todo, o nada.
 
-Restaurar **reemplaza** los datos, no los combina.
+Restaurar **reemplaza** los datos, no los combina. Después de restaurar, los recordatorios se vuelven a programar; los que ya pasaron avisan de inmediato.

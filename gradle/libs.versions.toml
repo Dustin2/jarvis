@@ -11,6 +11,8 @@ lifecycle = "2.11.0"
 navigation3 = "1.2.0"
 # Room 2.x y no 3.x: la app es solo Android y 2.x tiene más documentación y herramientas de migración.
 room = "2.8.5"
+# Navigation 3 trae 1.7.3, pero room-testing (pruebas de migración) necesita ≥ 1.8.1.
+kotlinxSerialization = "1.12.0"
 junit = "4.13.2"
 # Las versiones que trae Compose (espresso 3.5) fallan en Android 17.
 espresso = "3.7.0"
@@ -25,6 +27,7 @@ androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-
 androidx-lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "lifecycle" }
 androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "navigation3" }
 androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
+kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinxSerialization" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }

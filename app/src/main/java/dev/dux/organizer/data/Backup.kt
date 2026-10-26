@@ -5,8 +5,12 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 
-/** Formato documentado en docs/backup-format.md. Cambiarlo = subir [BACKUP_VERSION] y seguir leyendo las anteriores. */
+/**
+ * Formato documentado en docs/backup-format.md. Agregar un campo opcional no cambia la versión
+ * (los archivos viejos simplemente no lo traen); quitar o cambiar el significado de uno, sí.
+ */
 const val BACKUP_FORMAT = "dev.dux.organizer.backup"
 const val BACKUP_VERSION = 1
 
@@ -59,6 +63,7 @@ private fun Task.toJson() = JSONObject()
     .put("dueDate", dueDate?.toString() ?: JSONObject.NULL).put("scheduledDate", scheduledDate?.toString() ?: JSONObject.NULL)
     .put("createdAt", createdAt.toString()).put("updatedAt", updatedAt.toString())
     .put("completedAt", completedAt?.toString() ?: JSONObject.NULL)
+    .put("reminderAt", reminderAt?.toString() ?: JSONObject.NULL)
 
 private fun JSONObject.toProject(where: String) = Field(this, where).run {
     Project(
@@ -85,6 +90,7 @@ private fun JSONObject.toTask(where: String) = Field(this, where).run {
         createdAt = instant("createdAt"),
         updatedAt = instant("updatedAt"),
         completedAt = optionalInstant("completedAt"),
+        reminderAt = optionalDateTime("reminderAt"),
     )
 }
 
@@ -99,6 +105,7 @@ private class Field(private val o: JSONObject, private val where: String) {
     fun <E : Enum<E>> enum(name: String, values: List<E>): E =
         text(name).let { v -> values.firstOrNull { it.name == v } ?: fail(name, "no admite el valor \"$v\"") }
     fun optionalDate(name: String): LocalDate? = optionalText(name)?.let { parse(name) { LocalDate.parse(it) } }
+    fun optionalDateTime(name: String): LocalDateTime? = optionalText(name)?.let { parse(name) { LocalDateTime.parse(it) } }
     fun optionalInstant(name: String): Instant? = optionalText(name)?.let { parse(name) { Instant.parse(it) } }
     fun instant(name: String): Instant = optionalInstant(name) ?: fail(name, "es obligatorio")
 

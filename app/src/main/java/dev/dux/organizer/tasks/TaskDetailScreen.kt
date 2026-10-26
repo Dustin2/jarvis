@@ -1,7 +1,13 @@
 package dev.dux.organizer.tasks
 
+import android.Manifest
+import android.text.format.DateFormat
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -9,9 +15,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -19,39 +31,39 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.dux.organizer.R
 import dev.dux.organizer.data.Priority
+import dev.dux.organizer.data.Project
 import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TaskStatus
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import dev.dux.organizer.data.Project
+import dev.dux.organizer.ui.SPANISH
 import dev.dux.organizer.ui.label
 import dev.dux.organizer.ui.rememberToday
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 /** Los cambios se guardan al instante: no hay botón Guardar ni forma de perder una edición. */
 @Composable
@@ -129,6 +141,7 @@ private fun TaskForm(task: Task, vm: TaskDetailViewModel, modifier: Modifier) {
         DateField(R.string.scheduled_date, task.scheduledDate, vm::setScheduledDate)
         val projects by vm.projects.collectAsStateWithLifecycle()
         ProjectField(projects.orEmpty(), task.projectId, vm::setProject)
+        ReminderField(task.reminderAt, vm::setReminder)
     }
 }
 
@@ -143,31 +156,93 @@ private fun Field(title: Int, value: String, onClick: () -> Unit, menu: @Composa
     }
 }
 
-// DatePicker sigue marcado experimental, pero es el selector oficial de M3.
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DateField(title: Int, date: LocalDate?, onChange: (LocalDate?) -> Unit) {
     var picking by rememberSaveable { mutableStateOf(false) }
     val today by rememberToday()
     Field(title, date?.label(today) ?: stringResource(R.string.no_date), onClick = { picking = true })
-    if (!picking) return
+    if (picking) {
+        DatePickDialog(date ?: today, R.string.remove_date, canRemove = date != null, onDismiss = { picking = false }) {
+            picking = false
+            onChange(it)
+        }
+    }
+}
 
+/** [onResult] recibe la fecha elegida, o null si se pulsó "quitar". */
+// DatePicker sigue marcado experimental, pero es el selector oficial de M3.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DatePickDialog(initial: LocalDate, removeLabel: Int, canRemove: Boolean, onDismiss: () -> Unit, onResult: (LocalDate?) -> Unit) {
     // El DatePicker trabaja en milisegundos UTC a medianoche; convertir siempre en UTC evita el error de "un día antes".
-    val state = rememberDatePickerState(initialSelectedDateMillis = (date ?: today).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
+    val state = rememberDatePickerState(initialSelectedDateMillis = initial.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
     DatePickerDialog(
-        onDismissRequest = { picking = false },
+        onDismissRequest = onDismiss,
         confirmButton = {
             TextButton(onClick = {
-                picking = false
-                state.selectedDateMillis?.let { onChange(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
+                state.selectedDateMillis?.let { onResult(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
             }) { Text(stringResource(R.string.accept)) }
         },
         dismissButton = {
-            TextButton(onClick = { picking = false; onChange(null) }, enabled = date != null) {
-                Text(stringResource(R.string.remove_date))
-            }
+            TextButton(onClick = { onResult(null) }, enabled = canRemove) { Text(stringResource(removeLabel)) }
         },
     ) { DatePicker(state) }
+}
+
+/**
+ * Fecha y luego hora. Pide el permiso de notificaciones aquí, la primera vez que hace falta,
+ * y no al abrir la app.
+ */
+// TimePicker sigue marcado experimental, pero es el selector oficial de M3.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReminderField(at: LocalDateTime?, onChange: (LocalDateTime?) -> Unit) {
+    val context = LocalContext.current
+    val today by rememberToday()
+    var pickedDate by rememberSaveable { mutableStateOf<LocalDate?>(null) }
+    var pickingDate by rememberSaveable { mutableStateOf(false) }
+    var inPast by rememberSaveable { mutableStateOf(false) }
+    var notificationsOff by remember { mutableStateOf(!NotificationManagerCompat.from(context).areNotificationsEnabled()) }
+    val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        notificationsOff = !granted
+    }
+
+    // Mismo formato de 12 o 24 horas que eligió el usuario en el teléfono (y que usa el selector).
+    val timeFormat = remember { DateTimeFormatter.ofPattern(if (DateFormat.is24HourFormat(context)) "H:mm" else "h:mm a", SPANISH) }
+    val label = at?.let { "${it.toLocalDate().label(today)}, ${it.toLocalTime().format(timeFormat)}" } ?: stringResource(R.string.no_reminder)
+    Field(R.string.reminder, label, onClick = {
+        inPast = false
+        pickingDate = true
+        if (notificationsOff) askPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+    })
+    if (inPast) Text(stringResource(R.string.reminder_in_past), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+    if (at != null && notificationsOff) {
+        Text(stringResource(R.string.notifications_off), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+    }
+
+    if (pickingDate) {
+        DatePickDialog(at?.toLocalDate() ?: today, R.string.remove_reminder, canRemove = at != null, onDismiss = { pickingDate = false }) { date ->
+            pickingDate = false
+            if (date == null) onChange(null) else pickedDate = date
+        }
+    }
+    pickedDate?.let { date ->
+        val initial = at?.toLocalTime() ?: LocalTime.of(9, 0)
+        val state = rememberTimePickerState(initial.hour, initial.minute, is24Hour = DateFormat.is24HourFormat(context))
+        AlertDialog(
+            onDismissRequest = { pickedDate = null },
+            title = { Text(stringResource(R.string.pick_time)) },
+            text = { TimePicker(state) },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickedDate = null
+                    val chosen = date.atTime(state.hour, state.minute)
+                    if (chosen <= LocalDateTime.now()) inPast = true else onChange(chosen)
+                }) { Text(stringResource(R.string.accept)) }
+            },
+            dismissButton = { TextButton(onClick = { pickedDate = null }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
 }
 
 @Composable

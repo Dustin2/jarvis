@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDateTime
 
 @Dao
 interface TaskDao {
@@ -37,6 +38,13 @@ interface TaskDao {
 
     @Query("SELECT * FROM tasks ORDER BY createdAt")
     suspend fun getAll(): List<Task>
+
+    @Query("SELECT * FROM tasks WHERE reminderAt IS NOT NULL")
+    suspend fun withReminder(): List<Task>
+
+    /** Solo borra el recordatorio si sigue siendo el mismo: no pisa ediciones hechas mientras sonaba. */
+    @Query("UPDATE tasks SET reminderAt = NULL WHERE id = :id AND reminderAt = :at")
+    suspend fun clearReminder(id: String, at: LocalDateTime)
 
     @Insert
     suspend fun insert(task: Task)

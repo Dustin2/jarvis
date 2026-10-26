@@ -1,6 +1,7 @@
 package dev.dux.organizer.data
 
 import androidx.room.withTransaction
+import dev.dux.organizer.reminders.Reminders
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -14,6 +15,7 @@ class BackupRepository(
     private val db: AppDatabase,
     private val safetyDir: File,
     private val clock: Clock = Clock.systemUTC(),
+    private val reminders: Reminders? = null,
 ) {
     private val safetyFile get() = File(safetyDir, "antes-de-restaurar.json")
 
@@ -43,11 +45,15 @@ class BackupRepository(
 
     private suspend fun snapshot() = db.withTransaction { BackupData(db.projects().getAll(), db.tasks().getAll()) }
 
-    // Una sola transacción: si falla cualquier inserción, no se borra nada.
-    private suspend fun replaceAll(data: BackupData) = db.withTransaction {
-        db.tasks().deleteAll()
-        db.projects().deleteAll()
-        db.projects().insertAll(data.projects)
-        db.tasks().insertAll(data.tasks)
+    private suspend fun replaceAll(data: BackupData) {
+        // Una sola transacción: si falla cualquier inserción, no se borra nada.
+        db.withTransaction {
+            db.tasks().deleteAll()
+            db.projects().deleteAll()
+            db.projects().insertAll(data.projects)
+            db.tasks().insertAll(data.tasks)
+        }
+        // Las alarmas de tareas que ya no existen se descartan solas al sonar (no encuentran la tarea).
+        reminders?.syncAll()
     }
 }

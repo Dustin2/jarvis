@@ -13,6 +13,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 class BackupTest {
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -38,6 +39,7 @@ class BackupTest {
         tasks.setDueDate(full, LocalDate.of(2026, 10, 31))
         tasks.setScheduledDate(full, LocalDate.of(2026, 10, 28))
         tasks.setPriority(full, Priority.HIGH)
+        tasks.setReminder(full, LocalDateTime.of(2026, 10, 30, 9, 15))
         tasks.setStatus(full, TaskStatus.DONE)
     }
 
@@ -97,5 +99,12 @@ class BackupTest {
         assertEquals("Solo lo básico", task.title)
         assertEquals(null, task.dueDate)
         assertEquals(null, task.projectId)
+        assertEquals(null, task.reminderAt)
+    }
+
+    @Test fun reminderSurvivesTheRoundTrip() = runBlocking {
+        sampleData()
+        val task = decodeBackup(backups.export()).tasks.first { it.title == "Con todo" }
+        assertEquals(LocalDateTime.of(2026, 10, 30, 9, 15), task.reminderAt)
     }
 }

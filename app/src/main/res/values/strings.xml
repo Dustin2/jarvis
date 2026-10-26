@@ -87,4 +87,13 @@
     <string name="undo_done">Se recuperaron los datos anteriores</string>
     <string name="restore_failed">No se pudo restaurar. Tus datos no cambiaron.</string>
     <string name="invalid_backup">El archivo no es un respaldo válido. Tus datos no cambiaron.</string>
+
+    <string name="reminders_channel">Recordatorios</string>
+    <string name="reminder_default_text">Recordatorio de Jarvis</string>
+    <string name="reminder">Recordatorio</string>
+    <string name="no_reminder">Sin recordatorio</string>
+    <string name="remove_reminder">Quitar</string>
+    <string name="reminder_in_past">Elige una hora que todavía no haya pasado.</string>
+    <string name="notifications_off">Las notificaciones están desactivadas: el recordatorio no se mostrará. Actívalas en Ajustes del teléfono → Apps → Jarvis.</string>
+    <string name="pick_time">Elige la hora</string>
 </resources>

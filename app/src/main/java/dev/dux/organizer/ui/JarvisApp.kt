@@ -12,6 +12,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,9 +62,15 @@ enum class Tab(@StringRes val label: Int, @DrawableRes val icon: Int) {
 }
 
 @Composable
-fun JarvisApp() {
+fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}) {
     // El back stack se guarda solo (rotación, proceso muerto); por eso las claves son @Serializable.
     val backStack = rememberNavBackStack(Main)
+    LaunchedEffect(taskToOpen) {
+        if (taskToOpen != null) {
+            backStack.add(TaskDetail(taskToOpen))
+            onTaskOpened()
+        }
+    }
     val app = LocalContext.current.app
     val openTask: (String) -> Unit = { backStack.add(TaskDetail(it)) }
     NavDisplay(

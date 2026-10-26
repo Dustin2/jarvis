@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 /** null = todavía cargando (distinto de lista vacía). */
 private fun <T> Flow<T>.state(vm: ViewModel): StateFlow<T?> =
@@ -52,6 +53,7 @@ class TaskDetailViewModel(
     fun setDueDate(date: LocalDate?) = launch { repo.setDueDate(id, date) }
     fun setScheduledDate(date: LocalDate?) = launch { repo.setScheduledDate(id, date) }
     fun setProject(projectId: String?) = launch { repo.setProject(id, projectId) }
+    fun setReminder(at: LocalDateTime?) = launch { repo.setReminder(id, at) }
     fun delete(onDone: () -> Unit) {
         viewModelScope.launch { repo.delete(id); onDone() }
     }

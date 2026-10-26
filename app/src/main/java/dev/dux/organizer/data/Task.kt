@@ -6,6 +6,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.UUID
 
 enum class TaskStatus { INBOX, TODO, DONE, CANCELLED }
@@ -38,6 +39,11 @@ data class Task(
     val createdAt: Instant,
     val updatedAt: Instant,
     val completedAt: Instant? = null,
+    /**
+     * Hora de reloj local ("las 9:00"), no un instante: si cambias de zona horaria, sigue sonando a las 9:00.
+     * Se borra al sonar; un solo recordatorio por tarea (versión 2 del esquema).
+     */
+    val reminderAt: LocalDateTime? = null,
 )
 
 /** Cambia el estado manteniendo [Task.completedAt] coherente: solo existe mientras la tarea está hecha. */

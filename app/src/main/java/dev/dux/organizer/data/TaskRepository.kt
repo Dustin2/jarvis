@@ -1,13 +1,20 @@
 package dev.dux.organizer.data
 
+import dev.dux.organizer.reminders.Reminders
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.Clock
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 /** Única puerta de escritura de tareas: aquí viven las reglas (validación, fechas, estados). */
-class TaskRepository(private val dao: TaskDao, private val clock: Clock = Clock.systemUTC()) {
+/** [reminders] es null en las pruebas de datos: ahí no se programan alarmas reales. */
+class TaskRepository(
+    private val dao: TaskDao,
+    private val clock: Clock = Clock.systemUTC(),
+    private val reminders: Reminders? = null,
+) {
 
     val inbox: Flow<List<Task>> = dao.observeInbox()
     val pending: Flow<List<Task>> = dao.observeByStatus(listOf(TaskStatus.TODO))
@@ -44,9 +51,14 @@ class TaskRepository(private val dao: TaskDao, private val clock: Clock = Clock.
 
     suspend fun setProject(id: String, projectId: String?) = edit(id) { it.copy(projectId = projectId) }
 
+    suspend fun setReminder(id: String, at: LocalDateTime?) = edit(id) { it.copy(reminderAt = at) }
+
     suspend fun setNotes(id: String, notes: String) = edit(id) { it.copy(notes = notes.ifBlank { null }) }
 
-    suspend fun delete(id: String) = dao.delete(id)
+    suspend fun delete(id: String) {
+        dao.delete(id)
+        reminders?.cancel(id)
+    }
 
     // Leer-modificar-escribir en serie: al escribir rápido en el detalle, dos ediciones no deben pisarse.
     private val writeLock = Mutex()
@@ -54,6 +66,10 @@ class TaskRepository(private val dao: TaskDao, private val clock: Clock = Clock.
     private suspend fun edit(id: String, change: (Task) -> Task) = writeLock.withLock {
         val current = dao.get(id) ?: return@withLock
         val changed = change(current)
-        if (changed != current) dao.update(changed.copy(updatedAt = clock.instant()))
+        if (changed == current) return@withLock
+        val saved = changed.copy(updatedAt = clock.instant())
+        dao.update(saved)
+        // Completar, cancelar o cambiar la hora decide si la alarma sigue; el resto de campos no le importa.
+        if (saved.reminderAt != current.reminderAt || saved.status != current.status) reminders?.sync(saved)
     }
 }
