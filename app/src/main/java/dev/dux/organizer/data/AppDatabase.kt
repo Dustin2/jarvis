@@ -11,6 +11,7 @@ import androidx.room.TypeConverters
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun tasks(): TaskDao
+    abstract fun projects(): ProjectDao
 
     companion object {
         fun create(context: Context): AppDatabase =

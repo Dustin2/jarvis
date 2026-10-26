@@ -20,6 +20,15 @@ interface TaskDao {
     )
     fun observeByStatus(statuses: List<TaskStatus>): Flow<List<Task>>
 
+    // Abiertas primero, luego terminadas; dentro de cada grupo, el mismo orden que la lista de tareas.
+    @Query(
+        """
+        SELECT * FROM tasks WHERE projectId = :projectId
+        ORDER BY status IN ('DONE', 'CANCELLED'), priority DESC, dueDate IS NULL, dueDate, createdAt
+        """
+    )
+    fun observeByProject(projectId: String): Flow<List<Task>>
+
     @Query("SELECT * FROM tasks WHERE id = :id")
     fun observe(id: String): Flow<Task?>
 

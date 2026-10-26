@@ -35,6 +35,23 @@ import dev.dux.organizer.R
 import dev.dux.organizer.data.Priority
 import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TaskStatus
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import dev.dux.organizer.data.Project
+import dev.dux.organizer.ui.label
+import dev.dux.organizer.ui.rememberToday
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 
 /** Los cambios se guardan al instante: no hay botón Guardar ni forma de perder una edición. */
 @Composable
@@ -108,6 +125,66 @@ private fun TaskForm(task: Task, vm: TaskDetailViewModel, modifier: Modifier) {
         )
         Choice(R.string.status, TaskStatus.entries, task.status, { it.label }, vm::setStatus)
         Choice(R.string.priority, Priority.entries, task.priority, { it.label }, vm::setPriority)
+        DateField(R.string.due_date, task.dueDate, vm::setDueDate)
+        DateField(R.string.scheduled_date, task.scheduledDate, vm::setScheduledDate)
+        val projects by vm.projects.collectAsStateWithLifecycle()
+        ProjectField(projects.orEmpty(), task.projectId, vm::setProject)
+    }
+}
+
+@Composable
+private fun Field(title: Int, value: String, onClick: () -> Unit, menu: @Composable () -> Unit = {}) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(stringResource(title), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+        Box {
+            OutlinedButton(onClick = onClick) { Text(value) }
+            menu()
+        }
+    }
+}
+
+// DatePicker sigue marcado experimental, pero es el selector oficial de M3.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DateField(title: Int, date: LocalDate?, onChange: (LocalDate?) -> Unit) {
+    var picking by rememberSaveable { mutableStateOf(false) }
+    val today by rememberToday()
+    Field(title, date?.label(today) ?: stringResource(R.string.no_date), onClick = { picking = true })
+    if (!picking) return
+
+    // El DatePicker trabaja en milisegundos UTC a medianoche; convertir siempre en UTC evita el error de "un día antes".
+    val state = rememberDatePickerState(initialSelectedDateMillis = (date ?: today).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
+    DatePickerDialog(
+        onDismissRequest = { picking = false },
+        confirmButton = {
+            TextButton(onClick = {
+                picking = false
+                state.selectedDateMillis?.let { onChange(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
+            }) { Text(stringResource(R.string.accept)) }
+        },
+        dismissButton = {
+            TextButton(onClick = { picking = false; onChange(null) }, enabled = date != null) {
+                Text(stringResource(R.string.remove_date))
+            }
+        },
+    ) { DatePicker(state) }
+}
+
+@Composable
+private fun ProjectField(projects: List<Project>, selectedId: String?, onSelect: (String?) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    val name = when (selectedId) {
+        null -> stringResource(R.string.no_project)
+        // Un proyecto archivado no aparece en la lista, pero la tarea sigue ligada a él.
+        else -> projects.find { it.id == selectedId }?.name ?: stringResource(R.string.project_status_archived)
+    }
+    Field(R.string.project, name, onClick = { open = true }) {
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(text = { Text(stringResource(R.string.no_project)) }, onClick = { open = false; onSelect(null) })
+            projects.forEach { project ->
+                DropdownMenuItem(text = { Text(project.name) }, onClick = { open = false; onSelect(project.id) })
+            }
+        }
     }
 }
 

@@ -4,15 +4,20 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.Clock
+import java.time.LocalDate
 
 /** Única puerta de escritura de tareas: aquí viven las reglas (validación, fechas, estados). */
 class TaskRepository(private val dao: TaskDao, private val clock: Clock = Clock.systemUTC()) {
 
     val inbox: Flow<List<Task>> = dao.observeInbox()
     val pending: Flow<List<Task>> = dao.observeByStatus(listOf(TaskStatus.TODO))
+    /** Bandeja + pendientes: lo que "Mi día" y los proyectos consideran abierto. */
+    val open: Flow<List<Task>> = dao.observeByStatus(listOf(TaskStatus.INBOX, TaskStatus.TODO))
     val finished: Flow<List<Task>> = dao.observeByStatus(listOf(TaskStatus.DONE, TaskStatus.CANCELLED))
 
     fun observe(id: String): Flow<Task?> = dao.observe(id)
+
+    fun observeByProject(projectId: String): Flow<List<Task>> = dao.observeByProject(projectId)
 
     /** Captura rápida a la Bandeja. Devuelve false si el título no es válido. */
     suspend fun capture(title: String, notes: String = ""): Boolean {
@@ -32,6 +37,12 @@ class TaskRepository(private val dao: TaskDao, private val clock: Clock = Clock.
         edit(id) { it.copy(title = clean) }
         return true
     }
+
+    suspend fun setDueDate(id: String, date: LocalDate?) = edit(id) { it.copy(dueDate = date) }
+
+    suspend fun setScheduledDate(id: String, date: LocalDate?) = edit(id) { it.copy(scheduledDate = date) }
+
+    suspend fun setProject(id: String, projectId: String?) = edit(id) { it.copy(projectId = projectId) }
 
     suspend fun setNotes(id: String, notes: String) = edit(id) { it.copy(notes = notes.ifBlank { null }) }
 

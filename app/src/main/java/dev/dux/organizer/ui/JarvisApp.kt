@@ -2,13 +2,9 @@ package dev.dux.organizer.ui
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ShortNavigationBarItem
@@ -26,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
@@ -42,12 +37,18 @@ import dev.dux.organizer.tasks.TaskDetailScreen
 import dev.dux.organizer.tasks.TaskDetailViewModel
 import dev.dux.organizer.tasks.TaskListViewModel
 import dev.dux.organizer.tasks.TasksScreen
+import dev.dux.organizer.projects.ProjectDetailScreen
+import dev.dux.organizer.projects.ProjectDetailViewModel
+import dev.dux.organizer.projects.ProjectsScreen
+import dev.dux.organizer.projects.ProjectsViewModel
 import dev.dux.organizer.today.TodayScreen
+import dev.dux.organizer.today.TodayViewModel
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
 @Serializable data object Main : NavKey
 @Serializable data class TaskDetail(val id: String) : NavKey
+@Serializable data class ProjectDetail(val id: String) : NavKey
 
 enum class Tab(@StringRes val label: Int, @DrawableRes val icon: Int) {
     Today(R.string.tab_today, R.drawable.ic_today),
@@ -60,7 +61,8 @@ enum class Tab(@StringRes val label: Int, @DrawableRes val icon: Int) {
 fun JarvisApp() {
     // El back stack se guarda solo (rotación, proceso muerto); por eso las claves son @Serializable.
     val backStack = rememberNavBackStack(Main)
-    val repo = LocalContext.current.app.tasks
+    val app = LocalContext.current.app
+    val openTask: (String) -> Unit = { backStack.add(TaskDetail(it)) }
     NavDisplay(
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },
@@ -71,17 +73,36 @@ fun JarvisApp() {
         ),
         entryProvider = entryProvider {
             entry<Main> {
-                MainScreen(viewModel { TaskListViewModel(repo) }, onOpenTask = { backStack.add(TaskDetail(it)) })
+                MainScreen(
+                    tasksVm = viewModel { TaskListViewModel(app.tasks) },
+                    todayVm = viewModel { TodayViewModel(app.tasks, app.projects) },
+                    projectsVm = viewModel { ProjectsViewModel(app.projects, app.tasks) },
+                    onOpenTask = openTask,
+                    onOpenProject = { backStack.add(ProjectDetail(it)) },
+                )
             }
             entry<TaskDetail> { key ->
-                TaskDetailScreen(viewModel { TaskDetailViewModel(key.id, repo) }, onBack = { backStack.removeLastOrNull() })
+                TaskDetailScreen(viewModel { TaskDetailViewModel(key.id, app.tasks, app.projects) }, onBack = { backStack.removeLastOrNull() })
+            }
+            entry<ProjectDetail> { key ->
+                ProjectDetailScreen(
+                    viewModel { ProjectDetailViewModel(key.id, app.projects, app.tasks) },
+                    onOpenTask = openTask,
+                    onBack = { backStack.removeLastOrNull() },
+                )
             }
         },
     )
 }
 
 @Composable
-private fun MainScreen(vm: TaskListViewModel, onOpenTask: (String) -> Unit) {
+private fun MainScreen(
+    tasksVm: TaskListViewModel,
+    todayVm: TodayViewModel,
+    projectsVm: ProjectsViewModel,
+    onOpenTask: (String) -> Unit,
+    onOpenProject: (String) -> Unit,
+) {
     var tab by rememberSaveable { mutableStateOf(Tab.Today) }
     var capturing by rememberSaveable { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
@@ -112,10 +133,10 @@ private fun MainScreen(vm: TaskListViewModel, onOpenTask: (String) -> Unit) {
     ) { padding ->
         val modifier = Modifier.padding(padding)
         when (tab) {
-            Tab.Today -> TodayScreen(modifier)
-            Tab.Inbox -> InboxScreen(vm, onOpenTask, modifier)
-            Tab.Tasks -> TasksScreen(vm, onOpenTask, modifier)
-            Tab.Projects -> EmptyTab(R.string.tab_projects, R.string.empty_projects, modifier)
+            Tab.Today -> TodayScreen(todayVm, onOpenTask, modifier)
+            Tab.Inbox -> InboxScreen(tasksVm, onOpenTask, modifier)
+            Tab.Tasks -> TasksScreen(tasksVm, onOpenTask, modifier)
+            Tab.Projects -> ProjectsScreen(projectsVm, onOpenProject, modifier)
         }
     }
 
@@ -123,28 +144,13 @@ private fun MainScreen(vm: TaskListViewModel, onOpenTask: (String) -> Unit) {
         CaptureSheet(
             onDismiss = { capturing = false },
             onSave = { title, notes ->
-                vm.capture(title, notes) { saved ->
+                tasksVm.capture(title, notes) { saved ->
                     if (saved) {
                         capturing = false
                         scope.launch { snackbar.showSnackbar(savedMessage) }
                     }
                 }
             },
-        )
-    }
-}
-
-@Composable
-private fun EmptyTab(@StringRes title: Int, @StringRes message: Int, modifier: Modifier) {
-    Column(
-        modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(stringResource(title), style = MaterialTheme.typography.displaySmall)
-        Text(
-            stringResource(message),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

@@ -5,10 +5,9 @@
     <string name="tab_tasks">Tareas</string>
     <string name="tab_projects">Proyectos</string>
     <string name="next_step">Siguiente paso</string>
-    <string name="empty_today">Nada pendiente por ahora</string>
+    <string name="empty_today">Nada pendiente para hoy</string>
     <string name="empty_inbox">Aquí caerá todo lo que captures rápido.</string>
     <string name="empty_tasks">Todavía no hay tareas.</string>
-    <string name="empty_projects">Todavía no hay proyectos.</string>
 
     <string name="capture">Capturar</string>
     <string name="capture_title">¿Qué tienes pendiente?</string>
@@ -38,4 +37,38 @@
     <string name="priority_low">Baja</string>
     <string name="priority_medium">Media</string>
     <string name="priority_high">Alta</string>
+
+    <string name="today">Hoy</string>
+    <string name="tomorrow">Mañana</string>
+    <string name="yesterday">Ayer</string>
+    <string name="due_date">Fecha límite</string>
+    <string name="scheduled_date">Programada para</string>
+    <string name="due_label">Vence %1$s</string>
+    <string name="scheduled_label">Para %1$s</string>
+    <string name="no_date">Sin fecha</string>
+    <string name="remove_date">Quitar fecha</string>
+    <string name="accept">Aceptar</string>
+    <string name="project">Proyecto</string>
+    <string name="no_project">Ninguno</string>
+    <string name="overdue">Vencidas</string>
+    <string name="upcoming">Próximos 7 días</string>
+    <plurals name="open_count">
+        <item quantity="one">%1$d abierta</item>
+        <item quantity="other">%1$d abiertas</item>
+    </plurals>
+    <plurals name="overdue_count">
+        <item quantity="one">%1$d vencida</item>
+        <item quantity="other">%1$d vencidas</item>
+    </plurals>
+    <string name="new_project">Nuevo proyecto</string>
+    <string name="project_name">Nombre del proyecto</string>
+    <string name="create">Crear</string>
+    <string name="next_label">Siguiente: %1$s</string>
+    <string name="no_next_step">Sin siguiente paso definido</string>
+    <string name="project_status_active">Activo</string>
+    <string name="project_status_paused">Pausado</string>
+    <string name="project_status_done">Hecho</string>
+    <string name="project_status_archived">Archivado</string>
+    <string name="project_tasks">Tareas del proyecto</string>
+    <string name="empty_project_tasks">Asigna tareas a este proyecto desde su detalle.</string>
 </resources>

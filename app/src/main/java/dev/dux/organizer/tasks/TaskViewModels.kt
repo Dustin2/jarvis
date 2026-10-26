@@ -3,6 +3,7 @@ package dev.dux.organizer.tasks
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.dux.organizer.data.Priority
+import dev.dux.organizer.data.ProjectRepository
 import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TaskRepository
 import dev.dux.organizer.data.TaskStatus
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 /** null = todavía cargando (distinto de lista vacía). */
 private fun <T> Flow<T>.state(vm: ViewModel): StateFlow<T?> =
@@ -30,7 +32,13 @@ class TaskListViewModel(private val repo: TaskRepository) : ViewModel() {
     }
 }
 
-class TaskDetailViewModel(private val id: String, private val repo: TaskRepository) : ViewModel() {
+class TaskDetailViewModel(
+    private val id: String,
+    private val repo: TaskRepository,
+    projectRepo: ProjectRepository,
+) : ViewModel() {
+    val projects = projectRepo.visible.state(this)
+
     /** Emite null también si la tarea fue borrada. */
     val task: StateFlow<Task?> = repo.observe(id).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
@@ -41,6 +49,9 @@ class TaskDetailViewModel(private val id: String, private val repo: TaskReposito
     fun setNotes(notes: String) = launch { repo.setNotes(id, notes) }
     fun setStatus(status: TaskStatus) = launch { repo.setStatus(id, status) }
     fun setPriority(priority: Priority) = launch { repo.setPriority(id, priority) }
+    fun setDueDate(date: LocalDate?) = launch { repo.setDueDate(id, date) }
+    fun setScheduledDate(date: LocalDate?) = launch { repo.setScheduledDate(id, date) }
+    fun setProject(projectId: String?) = launch { repo.setProject(id, projectId) }
     fun delete(onDone: () -> Unit) {
         viewModelScope.launch { repo.delete(id); onDone() }
     }
