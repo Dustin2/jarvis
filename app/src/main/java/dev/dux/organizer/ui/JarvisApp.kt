@@ -41,6 +41,8 @@ import dev.dux.organizer.projects.ProjectDetailScreen
 import dev.dux.organizer.projects.ProjectDetailViewModel
 import dev.dux.organizer.projects.ProjectsScreen
 import dev.dux.organizer.projects.ProjectsViewModel
+import dev.dux.organizer.settings.SettingsScreen
+import dev.dux.organizer.settings.SettingsViewModel
 import dev.dux.organizer.today.TodayScreen
 import dev.dux.organizer.today.TodayViewModel
 import kotlinx.coroutines.launch
@@ -49,6 +51,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object Main : NavKey
 @Serializable data class TaskDetail(val id: String) : NavKey
 @Serializable data class ProjectDetail(val id: String) : NavKey
+@Serializable data object Settings : NavKey
 
 enum class Tab(@StringRes val label: Int, @DrawableRes val icon: Int) {
     Today(R.string.tab_today, R.drawable.ic_today),
@@ -79,10 +82,14 @@ fun JarvisApp() {
                     projectsVm = viewModel { ProjectsViewModel(app.projects, app.tasks) },
                     onOpenTask = openTask,
                     onOpenProject = { backStack.add(ProjectDetail(it)) },
+                    onOpenSettings = { backStack.add(Settings) },
                 )
             }
             entry<TaskDetail> { key ->
                 TaskDetailScreen(viewModel { TaskDetailViewModel(key.id, app.tasks, app.projects) }, onBack = { backStack.removeLastOrNull() })
+            }
+            entry<Settings> {
+                SettingsScreen(viewModel { SettingsViewModel(app.backups, app.contentResolver) }, onBack = { backStack.removeLastOrNull() })
             }
             entry<ProjectDetail> { key ->
                 ProjectDetailScreen(
@@ -102,6 +109,7 @@ private fun MainScreen(
     projectsVm: ProjectsViewModel,
     onOpenTask: (String) -> Unit,
     onOpenProject: (String) -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     var tab by rememberSaveable { mutableStateOf(Tab.Today) }
     var capturing by rememberSaveable { mutableStateOf(false) }
@@ -133,7 +141,7 @@ private fun MainScreen(
     ) { padding ->
         val modifier = Modifier.padding(padding)
         when (tab) {
-            Tab.Today -> TodayScreen(todayVm, onOpenTask, modifier)
+            Tab.Today -> TodayScreen(todayVm, onOpenTask, onOpenSettings, modifier)
             Tab.Inbox -> InboxScreen(tasksVm, onOpenTask, modifier)
             Tab.Tasks -> TasksScreen(tasksVm, onOpenTask, modifier)
             Tab.Projects -> ProjectsScreen(projectsVm, onOpenProject, modifier)

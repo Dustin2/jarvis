@@ -11,6 +11,7 @@ App Android personal de organización. Kotlin + Jetpack Compose + Material 3 Exp
 - Nunca subir bases de datos, respaldos ni datos personales al repo.
 - Material 3 1.5.0 está en beta a propósito (Expressive). Avisar antes de usar APIs con `@ExperimentalMaterial3ExpressiveApi`.
 - Textos de la UI en español, en `res/values/strings.xml`.
+- Mensajes de commit en inglés.
 
 ## Comandos
 

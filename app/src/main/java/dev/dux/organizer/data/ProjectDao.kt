@@ -18,6 +18,12 @@ interface ProjectDao {
     @Query("SELECT * FROM projects WHERE id = :id")
     suspend fun get(id: String): Project?
 
+    @Query("SELECT * FROM projects ORDER BY sortOrder")
+    suspend fun getAll(): List<Project>
+
+    @Query("DELETE FROM projects")
+    suspend fun deleteAll()
+
     @Query("SELECT COUNT(*) FROM projects")
     suspend fun count(): Int
 

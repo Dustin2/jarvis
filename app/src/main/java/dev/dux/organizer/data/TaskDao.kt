@@ -35,8 +35,17 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE id = :id")
     suspend fun get(id: String): Task?
 
+    @Query("SELECT * FROM tasks ORDER BY createdAt")
+    suspend fun getAll(): List<Task>
+
     @Insert
     suspend fun insert(task: Task)
+
+    @Insert
+    suspend fun insertAll(tasks: List<Task>)
+
+    @Query("DELETE FROM tasks")
+    suspend fun deleteAll()
 
     @Update
     suspend fun update(task: Task)

@@ -71,4 +71,20 @@
     <string name="project_status_archived">Archivado</string>
     <string name="project_tasks">Tareas del proyecto</string>
     <string name="empty_project_tasks">Asigna tareas a este proyecto desde su detalle.</string>
+
+    <string name="settings">Ajustes</string>
+    <string name="backup">Respaldo</string>
+    <string name="backup_explanation">Tus datos solo viven en este teléfono. Exporta un respaldo de vez en cuando y guárdalo fuera del teléfono (computadora, nube o USB).</string>
+    <string name="export_backup">Exportar respaldo</string>
+    <string name="restore_backup">Restaurar desde un respaldo</string>
+    <string name="undo_restore">Deshacer la última restauración</string>
+    <string name="restore">Restaurar</string>
+    <string name="restore_confirm_title">¿Reemplazar todos tus datos?</string>
+    <string name="restore_confirm_body">Contenido del respaldo — tareas: %1$d, proyectos: %2$d. Tus datos actuales se reemplazarán por completo. Podrás deshacerlo desde esta pantalla.</string>
+    <string name="export_done">Respaldo guardado</string>
+    <string name="export_failed">No se pudo guardar el respaldo</string>
+    <string name="restore_done">Datos restaurados</string>
+    <string name="undo_done">Se recuperaron los datos anteriores</string>
+    <string name="restore_failed">No se pudo restaurar. Tus datos no cambiaron.</string>
+    <string name="invalid_backup">El archivo no es un respaldo válido. Tus datos no cambiaron.</string>
 </resources>
