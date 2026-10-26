@@ -1,0 +1,17 @@
+.gradle/
+.kotlin/
+build/
+local.properties
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+# Nunca subir datos reales ni respaldos personales
+*.db
+*.db-shm
+*.db-wal
+*.jks
+*.keystore
+backups/
+.claude/agent-memory-local/
