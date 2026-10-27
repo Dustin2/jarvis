@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.dux.organizer.R
 import dev.dux.organizer.data.TaskStatus
+import dev.dux.organizer.ui.asHeading
 
 @Composable
 fun InboxScreen(vm: TaskListViewModel, onOpen: (String) -> Unit, modifier: Modifier = Modifier) {
@@ -78,7 +79,7 @@ private fun LazyListScope.header(@StringRes title: Int) = item {
     Text(
         stringResource(title),
         style = MaterialTheme.typography.displaySmall,
-        modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp).asHeading(),
     )
 }
 

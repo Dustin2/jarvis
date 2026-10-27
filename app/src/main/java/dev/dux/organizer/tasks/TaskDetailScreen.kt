@@ -7,7 +7,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -26,9 +27,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -46,6 +44,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationManagerCompat
@@ -55,6 +55,7 @@ import dev.dux.organizer.data.Priority
 import dev.dux.organizer.data.Project
 import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TaskStatus
+import dev.dux.organizer.ui.Choice
 import dev.dux.organizer.ui.SPANISH
 import dev.dux.organizer.ui.label
 import dev.dux.organizer.ui.rememberToday
@@ -145,12 +146,22 @@ private fun TaskForm(task: Task, vm: TaskDetailViewModel, modifier: Modifier) {
     }
 }
 
+/**
+ * Etiqueta y botón en una línea; con letra grande el botón baja a la siguiente en vez de partir la etiqueta.
+ * El botón se anuncia con su campo ("Fecha límite: Sin fecha"), no solo con su valor.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Field(title: Int, value: String, onClick: () -> Unit, menu: @Composable () -> Unit = {}) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(stringResource(title), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+    val label = stringResource(title)
+    FlowRow(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(end = 12.dp))
         Box {
-            OutlinedButton(onClick = onClick) { Text(value) }
+            OutlinedButton(onClick = onClick, modifier = Modifier.semantics { contentDescription = "$label: $value" }) { Text(value) }
             menu()
         }
     }
@@ -258,23 +269,6 @@ private fun ProjectField(projects: List<Project>, selectedId: String?, onSelect:
             DropdownMenuItem(text = { Text(stringResource(R.string.no_project)) }, onClick = { open = false; onSelect(null) })
             projects.forEach { project ->
                 DropdownMenuItem(text = { Text(project.name) }, onClick = { open = false; onSelect(project.id) })
-            }
-        }
-    }
-}
-
-@Composable
-private fun <T> Choice(title: Int, options: List<T>, selected: T, label: (T) -> Int, onSelect: (T) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(stringResource(title), style = MaterialTheme.typography.titleSmall)
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            options.forEachIndexed { index, option ->
-                SegmentedButton(
-                    selected = option == selected,
-                    onClick = { onSelect(option) },
-                    shape = SegmentedButtonDefaults.itemShape(index, options.size),
-                    label = { Text(stringResource(label(option)), maxLines = 1) },
-                )
             }
         }
     }

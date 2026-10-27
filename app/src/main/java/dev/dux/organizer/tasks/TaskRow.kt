@@ -57,7 +57,8 @@ fun TaskRow(
         ) ({ Supporting(task, projectName) }) else null,
         leadingContent = onToggleDone?.let { toggle ->
             {
-                val description = stringResource(R.string.mark_done)
+                // Con el nombre de la tarea: TalkBack lee la casilla aparte y "Completar" solo no dice cuál.
+                val description = stringResource(R.string.complete_task, task.title)
                 Checkbox(
                     checked = task.status == TaskStatus.DONE,
                     onCheckedChange = { toggle() },

@@ -19,9 +19,6 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -52,6 +49,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import dev.dux.organizer.ui.Choice
+import dev.dux.organizer.ui.asHeading
 
 /** Un proyecto con sus tareas abiertas (ya ordenadas: la primera es el siguiente paso). */
 data class ProjectSummary(val project: Project, val open: List<Task>)
@@ -102,7 +101,7 @@ fun ProjectsScreen(vm: ProjectsViewModel, onOpen: (String) -> Unit, modifier: Mo
     LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
         item {
             Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, top = 16.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.tab_projects), style = MaterialTheme.typography.displaySmall, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.tab_projects), style = MaterialTheme.typography.displaySmall, modifier = Modifier.weight(1f).asHeading())
                 IconButton(onClick = { creating = true }) {
                     Icon(painterResource(R.drawable.ic_add), stringResource(R.string.new_project))
                 }
@@ -179,7 +178,7 @@ fun ProjectDetailScreen(vm: ProjectDetailViewModel, onOpenTask: (String) -> Unit
                 Text(
                     stringResource(R.string.project_tasks),
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 4.dp),
+                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 4.dp).asHeading(),
                 )
             }
             if (list.isEmpty()) {
@@ -214,16 +213,6 @@ private fun ProjectHeader(project: Project, vm: ProjectDetailViewModel) {
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        Text(stringResource(R.string.status), style = MaterialTheme.typography.titleSmall)
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            ProjectStatus.entries.forEachIndexed { index, status ->
-                SegmentedButton(
-                    selected = status == project.status,
-                    onClick = { vm.setStatus(status) },
-                    shape = SegmentedButtonDefaults.itemShape(index, ProjectStatus.entries.size),
-                    label = { Text(stringResource(status.label), maxLines = 1) },
-                )
-            }
-        }
+        Choice(R.string.status, ProjectStatus.entries, project.status, { it.label }, vm::setStatus)
     }
 }
