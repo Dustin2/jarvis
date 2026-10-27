@@ -58,6 +58,7 @@ import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TaskStatus
 import dev.dux.organizer.ui.Choice
 import dev.dux.organizer.ui.SPANISH
+import dev.dux.organizer.ui.SavedIndicator
 import dev.dux.organizer.ui.label
 import dev.dux.organizer.ui.rememberToday
 import java.time.Instant
@@ -76,7 +77,7 @@ fun TaskDetailScreen(vm: TaskDetailViewModel, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {},
+                title = { SavedIndicator(task?.updatedAt) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.back))

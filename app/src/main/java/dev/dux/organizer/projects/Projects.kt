@@ -50,6 +50,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import dev.dux.organizer.ui.Choice
+import dev.dux.organizer.ui.SavedIndicator
 import dev.dux.organizer.ui.asHeading
 
 /** A project with its open tasks (already sorted: the first one is the next step). */
@@ -163,7 +164,7 @@ fun ProjectDetailScreen(vm: ProjectDetailViewModel, onOpenTask: (String) -> Unit
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {},
+                title = { SavedIndicator(project?.updatedAt) },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.back)) }
                 },
