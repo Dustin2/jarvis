@@ -25,7 +25,7 @@ Rules:
 
 ## Structure
 
-- Single `:app` module, packages by feature: `today/`, `inbox/`, `tasks/`, `projects/`, `shopping/`, `reminders/`, `settings/`. Shared code in `data/` (entities, DAOs, repositories, backup) and `ui/` (theme and reusable components).
+- Single `:app` module, packages by feature: `today/`, `inbox/`, `tasks/`, `projects/`, `shopping/`, `finances/`, `reminders/`, `settings/`. Shared code in `data/` (entities, DAOs, repositories, backup) and `ui/` (theme and reusable components).
 - A new feature gets its own package; its entities, DAO and repository go in `data/`.
 - Manual dependency injection: `JarvisApplication` creates the database and repositories once; screens get them through `viewModel { … }` in `ui/JarvisApp.kt`.
 - Concrete repositories (no interfaces) and UUID primary keys, so data created on two devices never collides once sync exists.
@@ -37,7 +37,7 @@ Each of these solves a real problem Jarvis does not have yet. Adding it earlier 
 | Piece | Add it when | Today |
 |---|---|---|
 | Gradle modules (`:core:data`, `:feature:*`) | Incremental builds get slow, or several people work in parallel and step on each other | One module, builds in seconds |
-| Hilt | Wiring dependencies by hand in `JarvisApplication` becomes long or error-prone (roughly 10+ dependencies, or scoped ones) | 5 repositories |
+| Hilt | Wiring dependencies by hand in `JarvisApplication` becomes long or error-prone (roughly 10+ dependencies, or scoped ones) | 6 repositories |
 | Use cases (domain layer) | The same logic is needed by several ViewModels and does not belong to a single repository | Logic fits in repositories |
 | Repository interfaces | There is a second implementation: sync with a server/Ubuntu, or a fake that tests really need | Device tests use in-memory Room |
 | DataStore | There are user preferences to store | None yet |
