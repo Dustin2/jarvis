@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Density
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
@@ -46,6 +47,9 @@ import dev.dux.organizer.projects.ProjectDetailViewModel
 import dev.dux.organizer.projects.ProjectsScreen
 import dev.dux.organizer.projects.ProjectsViewModel
 import dev.dux.organizer.settings.SettingsScreen
+import dev.dux.organizer.shopping.AddItemSheet
+import dev.dux.organizer.shopping.ShoppingScreen
+import dev.dux.organizer.shopping.ShoppingViewModel
 import dev.dux.organizer.settings.SettingsViewModel
 import dev.dux.organizer.today.TodayScreen
 import dev.dux.organizer.today.TodayViewModel
@@ -62,6 +66,7 @@ enum class Tab(@StringRes val label: Int, @DrawableRes val icon: Int) {
     Inbox(R.string.tab_inbox, R.drawable.ic_inbox),
     Tasks(R.string.tab_tasks, R.drawable.ic_tasks),
     Projects(R.string.tab_projects, R.drawable.ic_projects),
+    Shopping(R.string.tab_shopping, R.drawable.ic_shopping),
 }
 
 @Composable
@@ -90,6 +95,7 @@ fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}) {
                     tasksVm = viewModel { TaskListViewModel(app.tasks) },
                     todayVm = viewModel { TodayViewModel(app.tasks, app.projects) },
                     projectsVm = viewModel { ProjectsViewModel(app.projects, app.tasks) },
+                    shoppingVm = viewModel { ShoppingViewModel(app.shopping) },
                     onOpenTask = openTask,
                     onOpenProject = { backStack.add(ProjectDetail(it)) },
                     onOpenSettings = { backStack.add(Settings) },
@@ -117,12 +123,15 @@ private fun MainScreen(
     tasksVm: TaskListViewModel,
     todayVm: TodayViewModel,
     projectsVm: ProjectsViewModel,
+    shoppingVm: ShoppingViewModel,
     onOpenTask: (String) -> Unit,
     onOpenProject: (String) -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     var tab by rememberSaveable { mutableStateOf(Tab.Today) }
     var capturing by rememberSaveable { mutableStateOf(false) }
+    var addingItem by rememberSaveable { mutableStateOf(false) }
+    val shopping by shoppingVm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val savedMessage = stringResource(R.string.saved_to_inbox)
@@ -130,11 +139,15 @@ private fun MainScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { capturing = true },
-                icon = { Icon(painterResource(R.drawable.ic_add), contentDescription = null) },
-                text = { Text(stringResource(R.string.capture)) },
-            )
+            // In Compras the button adds items to the open list; everywhere else it captures a task.
+            val shoppingTab = tab == Tab.Shopping
+            if (!shoppingTab || shopping?.current != null) {
+                ExtendedFloatingActionButton(
+                    onClick = { if (shoppingTab) addingItem = true else capturing = true },
+                    icon = { Icon(painterResource(R.drawable.ic_add), contentDescription = null) },
+                    text = { Text(stringResource(if (shoppingTab) R.string.add_item else R.string.capture)) },
+                )
+            }
         },
         bottomBar = {
             ShortNavigationBar {
@@ -155,6 +168,7 @@ private fun MainScreen(
             Tab.Inbox -> InboxScreen(tasksVm, onOpenTask, modifier)
             Tab.Tasks -> TasksScreen(tasksVm, onOpenTask, modifier)
             Tab.Projects -> ProjectsScreen(projectsVm, onOpenProject, modifier)
+            Tab.Shopping -> ShoppingScreen(shoppingVm, modifier)
         }
     }
 
@@ -171,10 +185,15 @@ private fun MainScreen(
             },
         )
     }
+
+    val list = shopping?.current
+    if (addingItem && list != null) {
+        AddItemSheet(list.name, onDismiss = { addingItem = false }, onAdd = shoppingVm::add)
+    }
 }
 
 /**
- * At 200 % font size, four labels do not fit the phone width: they broke ("Proyecto / s")
+ * At 200 % font size, five labels do not fit the phone width: they broke ("Proyecto / s")
  * or overlapped. Only these labels grow up to 130 %; the rest of the app follows the system font size.
  */
 @Composable

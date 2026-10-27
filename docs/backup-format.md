@@ -35,6 +35,27 @@ A backup is a UTF-8 JSON file with **all** of the app's data. It can be read and
       "recurrence": "FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=27;X-TIME=09:00",
       "seriesId": "1b2e…"
     }
+  ],
+  "shoppingLists": [
+    {
+      "id": "5a7d…",
+      "name": "Súper",
+      "sortOrder": 0,
+      "createdAt": "2026-10-27T17:00:00Z",
+      "updatedAt": "2026-10-27T17:00:00Z"
+    }
+  ],
+  "shoppingItems": [
+    {
+      "id": "9c41…",
+      "listId": "5a7d…",
+      "name": "Tortillas",
+      "quantity": "2 kg",
+      "checked": false,
+      "sortOrder": 0,
+      "createdAt": "2026-10-27T17:05:00Z",
+      "updatedAt": "2026-10-27T17:05:00Z"
+    }
   ]
 }
 ```
@@ -56,9 +77,14 @@ A backup is a UTF-8 JSON file with **all** of the app's data. It can be read and
 | `createdAt`, `updatedAt`, `completedAt` | instant or `null` | ISO-8601 in UTC, e.g. `2026-10-25T18:30:00Z` |
 | `recurrence` | text or `null` | Repeat rule, an iCalendar RRULE subset (see `docs/design/recurring-tasks.md`). Added in schema v3 |
 | `seriesId` | text or `null` | Links the occurrences of a recurring task. Added in schema v3 |
+| `listId` | text | Must be the `id` of a shopping list in the same file |
+| `quantity` | text or `null` | Free text, up to 40 characters |
+| `checked` | `true` / `false` | The item is in the cart |
 | `reminderAt` | local date-time or `null` | `YYYY-MM-DDTHH:MM`, **without** a zone: "9:00" wherever you are. Added after the first version; backups without it are still valid |
 
-`notes`, `colorKey`, `projectId`, the dates, `completedAt`, `reminderAt`, `recurrence` and `seriesId` may be `null` or missing.
+`notes`, `colorKey`, `projectId`, the dates, `completedAt`, `reminderAt`, `recurrence`, `seriesId` and `quantity` may be `null` or missing.
+
+`shoppingLists` and `shoppingItems` (schema v4) may be missing: older backups restore with no shopping lists, and the next app start creates "Súper" again.
 
 ## How the app restores
 
