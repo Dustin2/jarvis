@@ -21,8 +21,19 @@ android {
     }
 
     buildTypes {
+        debug {
+            // App aparte ("Jarvis Dev") junto a la real: las pruebas de dispositivo la instalan y desinstalan
+            // en el teléfono sin tocar la app ni los datos reales (dev.dux.organizer).
+            applicationIdSuffix = ".debug"
+        }
         release {
-            isMinifyEnabled = false
+            // R8 quita código sin usar y optimiza: Compose en debug es notablemente más lento.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            // shortcut: firmado con la llave de debug para poder instalarlo encima de la versión debug sin perder datos.
+            // Si algún día se publica o se comparte el APK, crear una llave propia (y respaldarla).
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
