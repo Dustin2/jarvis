@@ -21,7 +21,7 @@ class BackupRepository(
 
     val canUndoRestore: Boolean get() = safetyFile.exists()
 
-    // Read inside a transaction: projects and tasks form a consistent snapshot.
+    // Read inside a transaction: all tables form a consistent snapshot.
     suspend fun export(): String = encodeBackup(snapshot(), clock.instant())
 
     /** Replaces all data. Saves the current data first so it can be undone. */
@@ -43,15 +43,20 @@ class BackupRepository(
         withContext(Dispatchers.IO) { safetyFile.delete() }
     }
 
-    private suspend fun snapshot() = db.withTransaction { BackupData(db.projects().getAll(), db.tasks().getAll()) }
+    private suspend fun snapshot() = db.withTransaction {
+        BackupData(db.projects().getAll(), db.tasks().getAll(), db.shopping().getAllLists(), db.shopping().getAllItems())
+    }
 
     private suspend fun replaceAll(data: BackupData) {
         // A single transaction: if any insert fails, nothing is deleted.
         db.withTransaction {
             db.tasks().deleteAll()
             db.projects().deleteAll()
+            db.shopping().deleteAllLists() // its items go with them (ON DELETE CASCADE)
             db.projects().insertAll(data.projects)
             db.tasks().insertAll(data.tasks)
+            db.shopping().insertLists(data.shoppingLists)
+            db.shopping().insertItems(data.shoppingItems)
         }
         // Alarms of tasks that no longer exist discard themselves when they fire (the task is not found).
         reminders?.syncAll()

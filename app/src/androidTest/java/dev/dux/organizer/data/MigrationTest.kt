@@ -67,4 +67,23 @@ class MigrationTest {
         assertNull(task.recurrence)
         assertNull(task.seriesId)
     }
+
+    @Test fun v3ToV4KeepsTasksAndAddsEmptyShoppingTables() {
+        helper.createDatabase(dbName, 3).apply {
+            execSQL(
+                "INSERT INTO tasks (id, title, notes, status, priority, projectId, dueDate, scheduledDate, createdAt, updatedAt, completedAt, reminderAt, recurrence, seriesId) " +
+                    "VALUES ('t1', 'Se repite', NULL, 'TODO', 0, NULL, NULL, ${LocalDate.of(2026, 11, 1).toEpochDay()}, 0, 0, NULL, NULL, 'FREQ=DAILY;INTERVAL=1', 't1')"
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(dbName, 4, true).close()
+
+        val db = Room.databaseBuilder(context, AppDatabase::class.java, dbName).build()
+        val task = runBlocking { db.tasks().get("t1") }!!
+        val lists = runBlocking { db.shopping().getAllLists() }
+        db.close()
+        assertEquals(Recurrence(Frequency.DAILY), task.recurrence)
+        assertEquals(emptyList<ShoppingList>(), lists)
+    }
 }

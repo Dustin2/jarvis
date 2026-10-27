@@ -14,18 +14,25 @@ import java.time.LocalDateTime
 const val BACKUP_FORMAT = "dev.dux.organizer.backup"
 const val BACKUP_VERSION = 1
 
-data class BackupData(val projects: List<Project>, val tasks: List<Task>)
+data class BackupData(
+    val projects: List<Project>,
+    val tasks: List<Task>,
+    val shoppingLists: List<ShoppingList> = emptyList(),
+    val shoppingItems: List<ShoppingItem> = emptyList(),
+)
 
 /** The message is meant to be shown to the user as is (in Spanish). */
 class InvalidBackupException(message: String) : Exception(message)
 
-// org.json ships with Android: two tables do not justify adding a serialization library.
+// org.json ships with Android: four tables do not justify adding a serialization library.
 fun encodeBackup(data: BackupData, exportedAt: Instant): String = JSONObject()
     .put("format", BACKUP_FORMAT)
     .put("version", BACKUP_VERSION)
     .put("exportedAt", exportedAt.toString())
     .put("projects", JSONArray(data.projects.map { it.toJson() }))
     .put("tasks", JSONArray(data.tasks.map { it.toJson() }))
+    .put("shoppingLists", JSONArray(data.shoppingLists.map { it.toJson() }))
+    .put("shoppingItems", JSONArray(data.shoppingItems.map { it.toJson() }))
     .toString(2)
 
 /** Validates the whole file before returning anything: if something fails, throws [InvalidBackupException]. */
@@ -42,6 +49,9 @@ fun decodeBackup(text: String): BackupData {
 
     val projects = root.list("projects") { i, o -> o.toProject("Proyecto ${i + 1}") }
     val tasks = root.list("tasks") { i, o -> o.toTask("Tarea ${i + 1}") }
+    // Optional: backups from before the shopping lists do not have them.
+    val shoppingLists = root.list("shoppingLists", required = false) { i, o -> o.toShoppingList("Lista de compras ${i + 1}") }
+    val shoppingItems = root.list("shoppingItems", required = false) { i, o -> o.toShoppingItem("Artículo ${i + 1}") }
 
     projects.map { it.id }.firstDuplicate()?.let { throw InvalidBackupException("Hay dos proyectos con el id $it.") }
     tasks.map { it.id }.firstDuplicate()?.let { throw InvalidBackupException("Hay dos tareas con el id $it.") }
@@ -49,7 +59,13 @@ fun decodeBackup(text: String): BackupData {
     tasks.firstOrNull { it.projectId != null && it.projectId !in projectIds }?.let {
         throw InvalidBackupException("La tarea \"${it.title}\" apunta a un proyecto que no está en el respaldo.")
     }
-    return BackupData(projects, tasks)
+    shoppingLists.map { it.id }.firstDuplicate()?.let { throw InvalidBackupException("Hay dos listas de compras con el id $it.") }
+    shoppingItems.map { it.id }.firstDuplicate()?.let { throw InvalidBackupException("Hay dos artículos con el id $it.") }
+    val listIds = shoppingLists.mapTo(HashSet()) { it.id }
+    shoppingItems.firstOrNull { it.listId !in listIds }?.let {
+        throw InvalidBackupException("El artículo \"${it.name}\" apunta a una lista que no está en el respaldo.")
+    }
+    return BackupData(projects, tasks, shoppingLists, shoppingItems)
 }
 
 private fun Project.toJson() = JSONObject()
@@ -66,6 +82,15 @@ private fun Task.toJson() = JSONObject()
     .put("reminderAt", reminderAt?.toString() ?: JSONObject.NULL)
     .put("recurrence", recurrence?.format() ?: JSONObject.NULL)
     .put("seriesId", seriesId ?: JSONObject.NULL)
+
+private fun ShoppingList.toJson() = JSONObject()
+    .put("id", id).put("name", name).put("sortOrder", sortOrder)
+    .put("createdAt", createdAt.toString()).put("updatedAt", updatedAt.toString())
+
+private fun ShoppingItem.toJson() = JSONObject()
+    .put("id", id).put("listId", listId).put("name", name).put("quantity", quantity ?: JSONObject.NULL)
+    .put("checked", checked).put("sortOrder", sortOrder)
+    .put("createdAt", createdAt.toString()).put("updatedAt", updatedAt.toString())
 
 private fun JSONObject.toProject(where: String) = Field(this, where).run {
     Project(
@@ -98,14 +123,34 @@ private fun JSONObject.toTask(where: String) = Field(this, where).run {
     )
 }
 
+private fun JSONObject.toShoppingList(where: String) = Field(this, where).run {
+    ShoppingList(id = text("id"), name = title("name"), sortOrder = int("sortOrder"), createdAt = instant("createdAt"), updatedAt = instant("updatedAt"))
+}
+
+private fun JSONObject.toShoppingItem(where: String) = Field(this, where).run {
+    ShoppingItem(
+        id = text("id"),
+        listId = text("listId"),
+        name = title("name"),
+        quantity = optionalText("quantity")?.trim()?.ifEmpty { null }?.also {
+            if (it.length > ShoppingRepository.MAX_QUANTITY_LENGTH) fail("quantity", "debe tener máximo ${ShoppingRepository.MAX_QUANTITY_LENGTH} caracteres")
+        },
+        checked = boolean("checked"),
+        sortOrder = int("sortOrder"),
+        createdAt = instant("createdAt"),
+        updatedAt = instant("updatedAt"),
+    )
+}
+
 /** Field reading with messages that say exactly what failed and where. */
 private class Field(private val o: JSONObject, private val where: String) {
-    private fun fail(name: String, problem: String): Nothing = throw InvalidBackupException("$where: el campo \"$name\" $problem.")
+    fun fail(name: String, problem: String): Nothing = throw InvalidBackupException("$where: el campo \"$name\" $problem.")
 
     fun optionalText(name: String): String? = if (o.isNull(name)) null else o.opt(name) as? String ?: fail(name, "debe ser texto")
     fun text(name: String): String = optionalText(name)?.takeIf { it.isNotBlank() } ?: fail(name, "es obligatorio")
     fun title(name: String): String = cleanTitle(text(name)) ?: fail(name, "debe tener de 1 a $MAX_TITLE_LENGTH caracteres")
     fun int(name: String): Int = (o.opt(name) as? Number)?.toInt() ?: fail(name, "debe ser un número")
+    fun boolean(name: String): Boolean = o.opt(name) as? Boolean ?: fail(name, "debe ser true o false")
     fun <E : Enum<E>> enum(name: String, values: List<E>): E =
         text(name).let { v -> values.firstOrNull { it.name == v } ?: fail(name, "no admite el valor \"$v\"") }
     fun optionalDate(name: String): LocalDate? = optionalText(name)?.let { parse(name) { LocalDate.parse(it) } }
@@ -119,7 +164,8 @@ private class Field(private val o: JSONObject, private val where: String) {
         try { block() } catch (e: Exception) { fail(name, "no tiene un formato de fecha válido") }
 }
 
-private fun <T> JSONObject.list(name: String, read: (Int, JSONObject) -> T): List<T> {
+private fun <T> JSONObject.list(name: String, required: Boolean = true, read: (Int, JSONObject) -> T): List<T> {
+    if (!required && !has(name)) return emptyList()
     val array = optJSONArray(name) ?: throw InvalidBackupException("Falta la lista \"$name\".")
     return List(array.length()) { i ->
         read(i, array.optJSONObject(i) ?: throw InvalidBackupException("La lista \"$name\" tiene un elemento inválido."))
