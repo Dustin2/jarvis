@@ -26,7 +26,7 @@
     <string name="status">Estado</string>
     <string name="priority">Prioridad</string>
     <string name="show_finished">Terminadas (%1$d)</string>
-    <string name="mark_done">Marcar como hecha</string>
+    <string name="complete_task">Completar «%1$s»</string>
 
     <string name="status_inbox">Bandeja</string>
     <string name="status_todo">Pendiente</string>

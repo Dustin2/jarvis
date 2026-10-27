@@ -44,6 +44,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
+import dev.dux.organizer.ui.asHeading
 
 /** [detail] es un texto ya en español (p. ej. por qué un respaldo es inválido). */
 data class Message(@StringRes val text: Int, val detail: String? = null)
@@ -154,7 +155,7 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
             Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(stringResource(R.string.backup), style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.backup), style = MaterialTheme.typography.titleLarge, modifier = Modifier.asHeading())
             Text(stringResource(R.string.backup_explanation), color = MaterialTheme.colorScheme.onSurfaceVariant)
             Button(
                 onClick = { exportLauncher.launch("jarvis-respaldo-${LocalDate.now()}.json") },
