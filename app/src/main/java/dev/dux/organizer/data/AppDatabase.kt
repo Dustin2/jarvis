@@ -8,11 +8,12 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
 // Every schema change bumps the version and adds a tested migration. Never fallbackToDestructiveMigration.
-// v2: tasks.reminderAt. It only adds a nullable column, so Room's auto-migration is enough.
+// v2: tasks.reminderAt. v3: tasks.recurrence and tasks.seriesId.
+// Both only add nullable columns, so Room's auto-migrations are enough.
 @Database(
     entities = [Task::class, Project::class],
-    version = 2,
-    autoMigrations = [AutoMigration(from = 1, to = 2)],
+    version = 3,
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3)],
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

@@ -53,7 +53,7 @@ fun TaskRow(
         // null when there is nothing to show: the row stays single-line.
         supportingContent = if (
             task.priority != Priority.NONE || task.dueDate != null || task.scheduledDate != null ||
-            projectName != null || task.notes != null
+            projectName != null || task.notes != null || task.recurrence != null
         ) ({ Supporting(task, projectName) }) else null,
         leadingContent = onToggleDone?.let { toggle ->
             {
@@ -85,6 +85,7 @@ private fun Supporting(task: Task, projectName: String?) {
         if (task.priority != Priority.NONE) add(stringResource(task.priority.label))
         task.dueDate?.let { add(stringResource(R.string.due_label, it.label(today))) }
             ?: task.scheduledDate?.let { add(stringResource(R.string.scheduled_label, it.label(today))) }
+        if (task.recurrence != null) add(stringResource(R.string.repeats))
         projectName?.let { add(it) }
         task.notes?.let { add(it) }
     }

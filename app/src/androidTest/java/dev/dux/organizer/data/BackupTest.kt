@@ -40,6 +40,7 @@ class BackupTest {
         tasks.setScheduledDate(full, LocalDate.of(2026, 10, 28))
         tasks.setPriority(full, Priority.HIGH)
         tasks.setReminder(full, LocalDateTime.of(2026, 10, 30, 9, 15))
+        tasks.setRecurrence(full, Recurrence(Frequency.MONTHLY, monthDay = 31))
         tasks.setStatus(full, TaskStatus.DONE)
     }
 
@@ -82,6 +83,7 @@ class BackupTest {
             "missing project" to broken { task(this).put("projectId", "no-existe") },
             "duplicate id" to broken { getJSONArray("tasks").put(JSONObject(task(this).toString())) },
             "missing list" to broken { remove("projects") },
+            "invalid rule" to broken { task(this).put("recurrence", "FREQ=YEARLY") },
         )
         cases.forEach { (case, text) ->
             val error = assertThrows(case, InvalidBackupException::class.java) { decodeBackup(text) }
@@ -106,5 +108,7 @@ class BackupTest {
         sampleData()
         val task = decodeBackup(backups.export()).tasks.first { it.title == "Con todo" }
         assertEquals(LocalDateTime.of(2026, 10, 30, 9, 15), task.reminderAt)
+        assertEquals(Recurrence(Frequency.MONTHLY, monthDay = 31, reminderTime = java.time.LocalTime.of(9, 15)), task.recurrence)
+        assertEquals(task.id, task.seriesId)
     }
 }

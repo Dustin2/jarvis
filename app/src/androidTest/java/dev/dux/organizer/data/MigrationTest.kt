@@ -46,4 +46,25 @@ class MigrationTest {
         assertEquals(LocalDate.of(2026, 11, 1), task.dueDate)
         assertNull(task.reminderAt)
     }
+
+    @Test fun v2ToV3KeepsDataAndAddsEmptyRecurrence() {
+        helper.createDatabase(dbName, 2).apply {
+            execSQL("INSERT INTO projects VALUES ('p1', 'Pro-Hielo', NULL, 'ACTIVE', 0, 0, 0)")
+            execSQL(
+                "INSERT INTO tasks (id, title, notes, status, priority, projectId, dueDate, scheduledDate, createdAt, updatedAt, completedAt, reminderAt) " +
+                    "VALUES ('t1', 'Con recordatorio', NULL, 'TODO', 2, 'p1', NULL, NULL, 0, 0, NULL, '2026-11-01T09:00')"
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(dbName, 3, true).close()
+
+        val db = Room.databaseBuilder(context, AppDatabase::class.java, dbName).build()
+        val task = runBlocking { db.tasks().get("t1") }!!
+        db.close()
+        assertEquals("Con recordatorio", task.title)
+        assertEquals(java.time.LocalDateTime.of(2026, 11, 1, 9, 0), task.reminderAt)
+        assertNull(task.recurrence)
+        assertNull(task.seriesId)
+    }
 }

@@ -64,6 +64,8 @@ private fun Task.toJson() = JSONObject()
     .put("createdAt", createdAt.toString()).put("updatedAt", updatedAt.toString())
     .put("completedAt", completedAt?.toString() ?: JSONObject.NULL)
     .put("reminderAt", reminderAt?.toString() ?: JSONObject.NULL)
+    .put("recurrence", recurrence?.format() ?: JSONObject.NULL)
+    .put("seriesId", seriesId ?: JSONObject.NULL)
 
 private fun JSONObject.toProject(where: String) = Field(this, where).run {
     Project(
@@ -91,6 +93,8 @@ private fun JSONObject.toTask(where: String) = Field(this, where).run {
         updatedAt = instant("updatedAt"),
         completedAt = optionalInstant("completedAt"),
         reminderAt = optionalDateTime("reminderAt"),
+        recurrence = optionalRecurrence("recurrence"),
+        seriesId = optionalText("seriesId"),
     )
 }
 
@@ -106,6 +110,8 @@ private class Field(private val o: JSONObject, private val where: String) {
         text(name).let { v -> values.firstOrNull { it.name == v } ?: fail(name, "no admite el valor \"$v\"") }
     fun optionalDate(name: String): LocalDate? = optionalText(name)?.let { parse(name) { LocalDate.parse(it) } }
     fun optionalDateTime(name: String): LocalDateTime? = optionalText(name)?.let { parse(name) { LocalDateTime.parse(it) } }
+    fun optionalRecurrence(name: String): Recurrence? =
+        optionalText(name)?.let { Recurrence.parse(it) ?: fail(name, "no es una regla de repetición válida") }
     fun optionalInstant(name: String): Instant? = optionalText(name)?.let { parse(name) { Instant.parse(it) } }
     fun instant(name: String): Instant = optionalInstant(name) ?: fail(name, "es obligatorio")
 

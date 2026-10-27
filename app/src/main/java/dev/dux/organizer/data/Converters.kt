@@ -20,6 +20,10 @@ class Converters {
     @TypeConverter fun fromDateTime(value: LocalDateTime?): String? = value?.toString()
     @TypeConverter fun toDateTime(value: String?): LocalDateTime? = value?.let(LocalDateTime::parse)
 
+    // shortcut: an unreadable rule becomes null (stops repeating) instead of crashing; only the app writes it.
+    @TypeConverter fun fromRecurrence(value: Recurrence?): String? = value?.format()
+    @TypeConverter fun toRecurrence(value: String?): Recurrence? = value?.let(Recurrence::parse)
+
     @TypeConverter fun fromPriority(value: Priority): Int = value.level
     @TypeConverter fun toPriority(value: Int): Priority = Priority.entries.first { it.level == value }
 }

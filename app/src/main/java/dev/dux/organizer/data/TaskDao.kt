@@ -3,6 +3,7 @@ package dev.dux.organizer.data
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDateTime
@@ -54,6 +55,21 @@ interface TaskDao {
 
     @Query("DELETE FROM tasks")
     suspend fun deleteAll()
+
+    @Query("SELECT COUNT(*) FROM tasks WHERE seriesId = :seriesId AND id != :exceptId AND status IN ('INBOX', 'TODO')")
+    suspend fun countOpenInSeries(seriesId: String, exceptId: String): Int
+
+    /**
+     * Saves a finished occurrence and inserts the next one, in one transaction, only if the series has no
+     * other open occurrence: never two open tasks for the same rule. Returns whether [next] was inserted.
+     */
+    @Transaction
+    suspend fun finishOccurrence(finished: Task, next: Task): Boolean {
+        update(finished)
+        if (countOpenInSeries(next.seriesId!!, finished.id) > 0) return false
+        insert(next)
+        return true
+    }
 
     @Update
     suspend fun update(task: Task)

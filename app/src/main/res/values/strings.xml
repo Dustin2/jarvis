@@ -96,4 +96,41 @@
     <string name="reminder_in_past">Elige una hora que todavía no haya pasado.</string>
     <string name="notifications_off">Las notificaciones están desactivadas: el recordatorio no se mostrará. Actívalas en Ajustes del teléfono → Apps → Jarvis.</string>
     <string name="pick_time">Elige la hora</string>
+
+    <string name="repeat">Repetir</string>
+    <string name="repeat_never">No se repite</string>
+    <string name="frequency">Frecuencia</string>
+    <string name="repeats">Se repite</string>
+    <string name="frequency_never">Nunca</string>
+    <string name="frequency_daily">Diario</string>
+    <string name="frequency_weekly">Semanal</string>
+    <string name="frequency_monthly">Mensual</string>
+    <string name="every">Cada</string>
+    <string name="month_day">Día del mes</string>
+    <string name="decrease">Menos</string>
+    <string name="increase">Más</string>
+    <plurals name="unit_days">
+        <item quantity="one">día</item>
+        <item quantity="other">días</item>
+    </plurals>
+    <plurals name="unit_weeks">
+        <item quantity="one">semana</item>
+        <item quantity="other">semanas</item>
+    </plurals>
+    <plurals name="unit_months">
+        <item quantity="one">mes</item>
+        <item quantity="other">meses</item>
+    </plurals>
+    <plurals name="repeat_daily">
+        <item quantity="one">Cada día</item>
+        <item quantity="other">Cada %1$d días</item>
+    </plurals>
+    <plurals name="repeat_weekly">
+        <item quantity="one">Cada semana: %2$s</item>
+        <item quantity="other">Cada %1$d semanas: %2$s</item>
+    </plurals>
+    <plurals name="repeat_monthly">
+        <item quantity="one">Cada mes, el día %2$d</item>
+        <item quantity="other">Cada %1$d meses, el día %2$d</item>
+    </plurals>
 </resources>
