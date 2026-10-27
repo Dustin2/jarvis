@@ -28,7 +28,7 @@ class BackupTest {
         dir.deleteRecursively()
     }
 
-    /** Un proyecto y dos tareas con todos los tipos de campo llenos (fechas, nulos, proyecto). */
+    /** One project and two tasks covering every kind of field (dates, nulls, project). */
     private suspend fun sampleData(prefix: String = "") {
         projects.create("${prefix}Pro-Hielo")
         val projectId = projects.visible.first().first().id
@@ -73,19 +73,19 @@ class BackupTest {
         fun task(o: JSONObject) = o.getJSONArray("tasks").getJSONObject(0)
 
         val cases = mapOf(
-            "no es json" to "hola",
-            "otro formato" to broken { put("format", "otra.app") },
-            "versión nueva" to broken { put("version", BACKUP_VERSION + 1) },
-            "enum inválido" to broken { task(this).put("status", "ARCHIVADA") },
-            "fecha inválida" to broken { task(this).put("dueDate", "31/10/2026") },
-            "título vacío" to broken { task(this).put("title", "   ") },
-            "proyecto inexistente" to broken { task(this).put("projectId", "no-existe") },
-            "id duplicado" to broken { getJSONArray("tasks").put(JSONObject(task(this).toString())) },
-            "falta lista" to broken { remove("projects") },
+            "not json" to "hola",
+            "other format" to broken { put("format", "otra.app") },
+            "newer version" to broken { put("version", BACKUP_VERSION + 1) },
+            "invalid enum" to broken { task(this).put("status", "ARCHIVADA") },
+            "invalid date" to broken { task(this).put("dueDate", "31/10/2026") },
+            "blank title" to broken { task(this).put("title", "   ") },
+            "missing project" to broken { task(this).put("projectId", "no-existe") },
+            "duplicate id" to broken { getJSONArray("tasks").put(JSONObject(task(this).toString())) },
+            "missing list" to broken { remove("projects") },
         )
         cases.forEach { (case, text) ->
             val error = assertThrows(case, InvalidBackupException::class.java) { decodeBackup(text) }
-            assertTrue("$case: sin mensaje", !error.message.isNullOrBlank())
+            assertTrue("$case: no message", !error.message.isNullOrBlank())
         }
     }
 

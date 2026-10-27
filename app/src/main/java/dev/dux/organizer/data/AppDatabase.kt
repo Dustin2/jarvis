@@ -7,8 +7,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-// Cada cambio de esquema sube la versión y agrega una migración probada. Nunca fallbackToDestructiveMigration.
-// v2: tasks.reminderAt. Solo agrega una columna nullable, así que la migración automática de Room basta.
+// Every schema change bumps the version and adds a tested migration. Never fallbackToDestructiveMigration.
+// v2: tasks.reminderAt. It only adds a nullable column, so Room's auto-migration is enough.
 @Database(
     entities = [Task::class, Project::class],
     version = 2,

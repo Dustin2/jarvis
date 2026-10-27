@@ -46,16 +46,16 @@ import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import dev.dux.organizer.ui.asHeading
 
-/** [detail] es un texto ya en español (p. ej. por qué un respaldo es inválido). */
+/** [detail] is already user-facing Spanish text (e.g. why a backup is invalid). */
 data class Message(@StringRes val text: Int, val detail: String? = null)
 
-// Un respaldo real pesa kilobytes; el límite evita quedarse sin memoria si se elige un archivo equivocado.
+// A real backup is a few kilobytes; the limit avoids running out of memory if the wrong file is picked.
 private const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
 
 class SettingsViewModel(private val backups: BackupRepository, private val resolver: ContentResolver) : ViewModel() {
     var message by mutableStateOf<Message?>(null)
         private set
-    /** Respaldo ya validado, esperando que el usuario confirme el reemplazo. */
+    /** Already validated backup, waiting for the user to confirm the replacement. */
     var pendingRestore by mutableStateOf<BackupData?>(null)
         private set
     var canUndo by mutableStateOf(backups.canUndoRestore)
@@ -66,7 +66,7 @@ class SettingsViewModel(private val backups: BackupRepository, private val resol
     fun export(uri: Uri) = run(R.string.export_failed) {
         val json = backups.export()
         withContext(Dispatchers.IO) {
-            // "wt" trunca: con "w" algunos proveedores dejan basura al final si el archivo ya existía.
+            // "wt" truncates: with "w" some providers leave garbage at the end if the file already existed.
             resolver.openOutputStream(uri, "wt")?.use { it.write(json.toByteArray()) } ?: error("sin acceso al archivo")
         }
         message = Message(R.string.export_done)
@@ -127,7 +127,7 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         uri?.let(vm::export)
     }
-    // Algunos gestores de archivos no reconocen .json y lo reportan como binario o texto.
+    // Some file managers do not recognize .json and report it as binary or text.
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let(vm::read)
     }

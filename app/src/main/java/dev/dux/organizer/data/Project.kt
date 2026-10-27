@@ -7,7 +7,7 @@ import java.util.UUID
 
 enum class ProjectStatus { ACTIVE, PAUSED, DONE, ARCHIVED }
 
-// La tabla existe desde la versión 1 porque Task la referencia; la UI de proyectos llega en el Hito 3.
+// The table exists since version 1 because Task references it; the projects UI arrived in milestone 3.
 @Entity(tableName = "projects")
 data class Project(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),

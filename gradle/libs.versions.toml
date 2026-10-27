@@ -3,18 +3,18 @@ agp = "9.4.1"
 kotlin = "2.4.21"
 ksp = "2.3.12"
 composeBom = "2026.09.00"
-# Beta a propósito: las APIs de Material 3 Expressive solo están en la línea 1.5.0.
+# Beta on purpose: the Material 3 Expressive APIs are only in the 1.5.0 line.
 material3 = "1.5.0-beta02"
 activityCompose = "1.13.0"
 coreKtx = "1.19.1"
 lifecycle = "2.11.0"
 navigation3 = "1.2.0"
-# Room 2.x y no 3.x: la app es solo Android y 2.x tiene más documentación y herramientas de migración.
+# Room 2.x, not 3.x: the app is Android-only and 2.x has more documentation and migration tooling.
 room = "2.8.5"
-# Navigation 3 trae 1.7.3, pero room-testing (pruebas de migración) necesita ≥ 1.8.1.
+# Navigation 3 brings 1.7.3, but room-testing (migration tests) needs >= 1.8.1.
 kotlinxSerialization = "1.12.0"
 junit = "4.13.2"
-# Las versiones que trae Compose (espresso 3.5) fallan en Android 17.
+# The versions Compose brings (espresso 3.5) fail on Android 17.
 espresso = "3.7.0"
 testRunner = "1.7.0"
 testExtJunit = "1.3.0"

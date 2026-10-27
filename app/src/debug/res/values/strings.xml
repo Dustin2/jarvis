@@ -1,4 +1,4 @@
 <resources>
-    <!-- Distingue la versión de pruebas de la app real en el cajón de apps. -->
+    <!-- Tells the test build apart from the real app in the app drawer. -->
     <string name="app_name">Jarvis Dev</string>
 </resources>

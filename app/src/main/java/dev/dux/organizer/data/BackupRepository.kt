@@ -8,8 +8,8 @@ import java.io.File
 import java.time.Clock
 
 /**
- * Exporta e importa todos los datos. Trabaja con texto: leer y escribir el archivo elegido por el usuario
- * es trabajo de la pantalla (Storage Access Framework), así esto se prueba sin archivos externos.
+ * Exports and imports all data. Works with text: reading and writing the file the user picks
+ * is the screen's job (Storage Access Framework), so this can be tested without external files.
  */
 class BackupRepository(
     private val db: AppDatabase,
@@ -17,27 +17,27 @@ class BackupRepository(
     private val clock: Clock = Clock.systemUTC(),
     private val reminders: Reminders? = null,
 ) {
-    private val safetyFile get() = File(safetyDir, "antes-de-restaurar.json")
+    private val safetyFile get() = File(safetyDir, "before-restore.json")
 
     val canUndoRestore: Boolean get() = safetyFile.exists()
 
-    // Lectura dentro de una transacción: proyectos y tareas forman una foto coherente.
+    // Read inside a transaction: projects and tasks form a consistent snapshot.
     suspend fun export(): String = encodeBackup(snapshot(), clock.instant())
 
-    /** Reemplaza todos los datos. Antes guarda los actuales para poder deshacer. */
+    /** Replaces all data. Saves the current data first so it can be undone. */
     suspend fun restore(data: BackupData) {
         val current = export()
         withContext(Dispatchers.IO) {
             safetyDir.mkdirs()
-            // Primero a un temporal y luego renombrar: si algo falla a medias, la copia anterior sigue intacta.
-            val tmp = File(safetyDir, "antes-de-restaurar.tmp")
+            // Write to a temp file, then rename: if something fails halfway, the previous copy stays intact.
+            val tmp = File(safetyDir, "before-restore.tmp")
             tmp.writeText(current)
             if (!tmp.renameTo(safetyFile)) error("No se pudo guardar la copia de seguridad previa")
         }
         replaceAll(data)
     }
 
-    /** Vuelve a los datos que había antes de la última restauración. */
+    /** Goes back to the data from before the last restore. */
     suspend fun undoRestore() {
         replaceAll(decodeBackup(withContext(Dispatchers.IO) { safetyFile.readText() }))
         withContext(Dispatchers.IO) { safetyFile.delete() }
@@ -46,14 +46,14 @@ class BackupRepository(
     private suspend fun snapshot() = db.withTransaction { BackupData(db.projects().getAll(), db.tasks().getAll()) }
 
     private suspend fun replaceAll(data: BackupData) {
-        // Una sola transacción: si falla cualquier inserción, no se borra nada.
+        // A single transaction: if any insert fails, nothing is deleted.
         db.withTransaction {
             db.tasks().deleteAll()
             db.projects().deleteAll()
             db.projects().insertAll(data.projects)
             db.tasks().insertAll(data.tasks)
         }
-        // Las alarmas de tareas que ya no existen se descartan solas al sonar (no encuentran la tarea).
+        // Alarms of tasks that no longer exist discard themselves when they fire (the task is not found).
         reminders?.syncAll()
     }
 }

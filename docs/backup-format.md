@@ -1,6 +1,6 @@
-# Formato del respaldo de Jarvis (versión 1)
+# Jarvis backup format (version 1)
 
-Un respaldo es un archivo JSON en UTF-8 que contiene **todos** los datos de la app. Se puede leer y editar a mano, pero si se edita, debe seguir estas reglas o la app lo rechazará sin tocar los datos actuales.
+A backup is a UTF-8 JSON file with **all** of the app's data. It can be read and edited by hand, but an edited file must follow these rules or the app rejects it without touching the current data.
 
 ```json
 {
@@ -37,29 +37,31 @@ Un respaldo es un archivo JSON en UTF-8 que contiene **todos** los datos de la a
 }
 ```
 
-## Campos
+## Fields
 
-| Campo | Tipo | Reglas |
+| Field | Type | Rules |
 |---|---|---|
-| `format` | texto | Siempre `dev.dux.organizer.backup` |
-| `version` | entero | Versión del formato. La app acepta su versión y anteriores; rechaza versiones más nuevas |
-| `exportedAt` | instante | Solo informativo |
-| `id` | texto | Único dentro de su lista (UUID) |
-| `name` / `title` | texto | 1–200 caracteres, sin contar espacios al inicio o al final |
-| `status` (proyecto) | texto | `ACTIVE`, `PAUSED`, `DONE`, `ARCHIVED` |
-| `status` (tarea) | texto | `INBOX`, `TODO`, `DONE`, `CANCELLED` |
-| `priority` | texto | `NONE`, `LOW`, `MEDIUM`, `HIGH` |
-| `projectId` | texto o `null` | Debe ser el `id` de un proyecto del mismo archivo |
-| `dueDate`, `scheduledDate` | fecha o `null` | `AAAA-MM-DD`, sin hora ni zona horaria |
-| `createdAt`, `updatedAt`, `completedAt` | instante o `null` | ISO-8601 en UTC, p. ej. `2026-10-25T18:30:00Z` |
-| `reminderAt` | fecha y hora local o `null` | `AAAA-MM-DDTHH:MM`, **sin** zona: "las 9:00" donde estés. Se agregó después de la primera versión; los respaldos sin este campo siguen siendo válidos |
+| `format` | text | Always `dev.dux.organizer.backup` |
+| `version` | integer | Format version. The app accepts its own version and older ones; it rejects newer versions |
+| `exportedAt` | instant | Informational only |
+| `id` | text | Unique within its list (UUID) |
+| `name` / `title` | text | 1–200 characters, not counting leading or trailing spaces |
+| `status` (project) | text | `ACTIVE`, `PAUSED`, `DONE`, `ARCHIVED` |
+| `status` (task) | text | `INBOX`, `TODO`, `DONE`, `CANCELLED` |
+| `priority` | text | `NONE`, `LOW`, `MEDIUM`, `HIGH` |
+| `projectId` | text or `null` | Must be the `id` of a project in the same file |
+| `dueDate`, `scheduledDate` | date or `null` | `YYYY-MM-DD`, no time or time zone |
+| `createdAt`, `updatedAt`, `completedAt` | instant or `null` | ISO-8601 in UTC, e.g. `2026-10-25T18:30:00Z` |
+| `reminderAt` | local date-time or `null` | `YYYY-MM-DDTHH:MM`, **without** a zone: "9:00" wherever you are. Added after the first version; backups without it are still valid |
 
-`notes`, `colorKey`, `projectId`, las fechas, `completedAt` y `reminderAt` pueden ser `null` o no aparecer.
+`notes`, `colorKey`, `projectId`, the dates, `completedAt` and `reminderAt` may be `null` or missing.
 
-## Cómo restaura la app
+## How the app restores
 
-1. Lee y valida el archivo **completo**. Si algo falla, muestra el motivo y **no cambia nada**.
-2. Guarda una copia de los datos actuales (`antes-de-restaurar.json`, interna de la app) para poder deshacer.
-3. Reemplaza todos los datos por los del archivo **en una sola transacción**: o se restaura todo, o nada.
+1. It reads and validates the **whole** file. If anything fails, it shows the reason and **changes nothing**.
+2. It saves a copy of the current data (`before-restore.json`, internal to the app) so the restore can be undone.
+3. It replaces all data with the file's data **in a single transaction**: either everything is restored or nothing is.
 
-Restaurar **reemplaza** los datos, no los combina. Después de restaurar, los recordatorios se vuelven a programar; los que ya pasaron avisan de inmediato.
+Restoring **replaces** the data; it does not merge. After a restore, reminders are rescheduled; those already in the past notify immediately.
+
+Validation messages are shown to the user, so they are in Spanish.

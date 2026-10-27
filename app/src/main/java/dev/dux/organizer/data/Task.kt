@@ -11,7 +11,7 @@ import java.util.UUID
 
 enum class TaskStatus { INBOX, TODO, DONE, CANCELLED }
 
-/** [level] se guarda en la base para poder ordenar por prioridad en SQL. */
+/** [level] is stored so SQL can sort by priority. */
 enum class Priority(val level: Int) { NONE(0), LOW(1), MEDIUM(2), HIGH(3) }
 
 @Entity(
@@ -27,7 +27,7 @@ enum class Priority(val level: Int) { NONE(0), LOW(1), MEDIUM(2), HIGH(3) }
     indices = [Index("projectId"), Index("status")],
 )
 data class Task(
-    // UUID y no autoincremento: dos dispositivos pueden crear tareas sin chocar al sincronizar.
+    // UUID, not autoincrement: two devices can create tasks without colliding when syncing.
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val title: String,
     val notes: String? = null,
@@ -40,13 +40,13 @@ data class Task(
     val updatedAt: Instant,
     val completedAt: Instant? = null,
     /**
-     * Hora de reloj local ("las 9:00"), no un instante: si cambias de zona horaria, sigue sonando a las 9:00.
-     * Se borra al sonar; un solo recordatorio por tarea (versión 2 del esquema).
+     * Local wall-clock time ("9:00"), not an instant: after a time zone change it still rings at 9:00.
+     * Cleared when it fires; one reminder per task (schema version 2).
      */
     val reminderAt: LocalDateTime? = null,
 )
 
-/** Cambia el estado manteniendo [Task.completedAt] coherente: solo existe mientras la tarea está hecha. */
+/** Changes the status keeping [Task.completedAt] consistent: it only exists while the task is done. */
 fun Task.withStatus(status: TaskStatus, now: Instant): Task = copy(
     status = status,
     updatedAt = now,
@@ -55,5 +55,5 @@ fun Task.withStatus(status: TaskStatus, now: Instant): Task = copy(
 
 const val MAX_TITLE_LENGTH = 200
 
-/** Devuelve el título listo para guardar, o null si no es válido. */
+/** Returns the title ready to save, or null if it is not valid. */
 fun cleanTitle(raw: String): String? = raw.trim().takeIf { it.isNotEmpty() && it.length <= MAX_TITLE_LENGTH }

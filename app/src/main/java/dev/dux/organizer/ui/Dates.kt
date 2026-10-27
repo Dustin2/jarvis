@@ -14,11 +14,11 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-// La app solo tiene textos en español; las fechas no deben seguir el idioma del sistema.
+// The app's texts are Spanish only; dates must not follow the system language.
 val SPANISH: Locale = Locale.forLanguageTag("es-MX")
 private val shortDate = DateTimeFormatter.ofPattern("EEE d MMM", SPANISH)
 
-/** "Hoy", "Mañana", "Ayer" o "lun 27 oct". */
+/** "Hoy", "Mañana", "Ayer" or "lun 27 oct". */
 @Composable
 fun LocalDate.label(today: LocalDate): String = when (this) {
     today -> stringResource(R.string.today)
@@ -27,7 +27,7 @@ fun LocalDate.label(today: LocalDate): String = when (this) {
     else -> format(shortDate)
 }
 
-/** La fecha de hoy, que se actualiza sola a medianoche aunque la app siga abierta. */
+/** Today's date, which updates itself at midnight even if the app stays open. */
 @Composable
 fun rememberToday(): State<LocalDate> {
     val today = remember { mutableStateOf(LocalDate.now()) }

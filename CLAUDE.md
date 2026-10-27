@@ -1,32 +1,37 @@
 # Jarvis
 
-App Android personal de organización. Kotlin + Jetpack Compose + Material 3 Expressive. Local-first: Room es la fuente de verdad. Sin backend, sin IA, sin dependencias de pago.
+Personal organization app for Android. Kotlin + Jetpack Compose + Material 3 Expressive. Local-first: Room is the source of truth. No backend, no AI, no paid dependencies.
 
-## Reglas
+## Language
 
-- Trabajo por hitos: no empezar un hito ni un cambio sustancial sin aprobación del usuario. Explicar decisiones (el usuario está aprendiendo).
-- Antes de fijar versiones, consultar maven-metadata de Google/Maven Central o la documentación oficial; nunca de memoria.
-- No agregar dependencias, capas, interfaces ni abstracciones sin una necesidad concreta. Un solo módulo `:app`, paquetes por función (`today/`, `inbox/`, `tasks/`, `projects/`, `data/`, `ui/theme/`).
-- Room: `exportSchema = true`, migraciones versionadas, nunca `fallbackToDestructiveMigration`.
-- Nunca subir bases de datos, respaldos ni datos personales al repo.
-- Material 3 1.5.0 está en beta a propósito (Expressive). Avisar antes de usar APIs con `@ExperimentalMaterial3ExpressiveApi`.
-- Textos de la UI en español, en `res/values/strings.xml`.
-- Git: seguir `docs/conventions/git.md` (mismo flujo que Pro-Hielo). `main` ← `develop` ← `feature/*`, `fix/*`, `docs/*`, `chore/*`; nunca commitear a `main`; una PR por tarea hacia `develop`; commits `type(scope): description` en inglés.
+- Everything in the repository is in English: code, comments, docs, commit messages and pull requests.
+- The only Spanish text is what the user sees in the app: `res/values/strings.xml` (and user-facing messages such as backup validation errors).
+- Talk to the user in Spanish.
 
-## Comandos
+## Rules
+
+- Work in milestones: do not start a milestone or a substantial change without the user's approval. Explain decisions (the user is learning).
+- Before pinning versions, check Google / Maven Central `maven-metadata.xml` or the official docs; never from memory.
+- Do not add dependencies, layers, interfaces or abstractions without a concrete need. Single `:app` module, packages by feature (`today/`, `inbox/`, `tasks/`, `projects/`, `reminders/`, `settings/`, `data/`, `ui/`).
+- Room: `exportSchema = true`, versioned migrations, never `fallbackToDestructiveMigration`.
+- Never commit databases, backups or personal data.
+- Material 3 1.5.0 is a beta on purpose (Expressive). Say so before using APIs marked `@ExperimentalMaterial3ExpressiveApi`.
+- Git: follow `docs/conventions/git.md` (same workflow as Pro-Hielo). `main` ← `develop` ← `feature/*`, `fix/*`, `docs/*`, `chore/*`; never commit to `main`; one PR per task into `develop`; commits `type(scope): description`.
+
+## Commands
 
 ```bash
-./gradlew :app:assembleDebug              # compilar
-ANDROID_SERIAL=<device-serial> ./gradlew :app:installRelease  # instalar en el S25 (versión optimizada)
-./gradlew :app:installDebug               # versión de depuración (más lenta)
+./gradlew :app:assembleDebug              # build
+ANDROID_SERIAL=<device-serial> ./gradlew :app:installRelease  # install on the S25 (optimized build)
+./gradlew :app:installDebug               # debug build ("Jarvis Dev", slower)
 ./gradlew :app:lintDebug                  # lint
-ANDROID_SERIAL=<device-serial> ./gradlew :app:connectedDebugAndroidTest  # pruebas en el S25 (contra "Jarvis Dev")
+ANDROID_SERIAL=<device-serial> ./gradlew :app:connectedDebugAndroidTest  # device tests on the S25 (against "Jarvis Dev")
 ```
 
-Las pruebas se hacen en el S25 conectado, no en emuladores. La variante debug es otra app (`dev.dux.organizer.debug`, "Jarvis Dev"): `connectedDebugAndroidTest` la instala y la desinstala al terminar sin tocar la app real (`dev.dux.organizer`) ni sus datos. Nunca correr pruebas ni comandos que desinstalen o limpien `dev.dux.organizer`.
+Test on the connected S25, not on emulators. The debug variant is a separate app (`dev.dux.organizer.debug`, "Jarvis Dev"): `connectedDebugAndroidTest` installs it and uninstalls it at the end without touching the real app (`dev.dux.organizer`) or its data. Never run tests or commands that uninstall or clear `dev.dux.organizer`. Do not interact with the phone's screen while the user may be using it.
 
-Siempre indicar `ANDROID_SERIAL` cuando hay más de un dispositivo conectado: `installDebug` sin él instala en todos.
+Always set `ANDROID_SERIAL` when more than one device is connected: `installDebug` without it installs on all of them.
 
-La versión release se firma con la llave de debug (`~/.android/debug.keystore`) para poder actualizar encima de la de debug sin perder datos. Si esa llave se pierde, no se puede actualizar la app sin desinstalarla: respaldarla, y tener siempre un export JSON reciente.
+The release build is signed with the debug key (`~/.android/debug.keystore`) so it installs over the debug build without losing data. If that key is lost, the app cannot be updated without uninstalling it: keep a backup of it and a recent JSON export.
 
-Usar el `adb` del SDK (`~/Android/Sdk/platform-tools/adb`), no `/usr/bin/adb`.
+Use the SDK's `adb` (`~/Android/Sdk/platform-tools/adb`), not `/usr/bin/adb`.

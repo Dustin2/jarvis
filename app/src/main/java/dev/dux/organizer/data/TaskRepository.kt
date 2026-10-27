@@ -8,8 +8,10 @@ import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-/** Única puerta de escritura de tareas: aquí viven las reglas (validación, fechas, estados). */
-/** [reminders] es null en las pruebas de datos: ahí no se programan alarmas reales. */
+/**
+ * The only way tasks are written: the rules (validation, dates, statuses) live here.
+ * [reminders] is null in data tests: no real alarms are scheduled there.
+ */
 class TaskRepository(
     private val dao: TaskDao,
     private val clock: Clock = Clock.systemUTC(),
@@ -18,7 +20,7 @@ class TaskRepository(
 
     val inbox: Flow<List<Task>> = dao.observeInbox()
     val pending: Flow<List<Task>> = dao.observeByStatus(listOf(TaskStatus.TODO))
-    /** Bandeja + pendientes: lo que "Mi día" y los proyectos consideran abierto. */
+    /** Inbox + to-do: what "Mi día" and the projects consider open. */
     val open: Flow<List<Task>> = dao.observeByStatus(listOf(TaskStatus.INBOX, TaskStatus.TODO))
     val finished: Flow<List<Task>> = dao.observeByStatus(listOf(TaskStatus.DONE, TaskStatus.CANCELLED))
 
@@ -26,7 +28,7 @@ class TaskRepository(
 
     fun observeByProject(projectId: String): Flow<List<Task>> = dao.observeByProject(projectId)
 
-    /** Captura rápida a la Bandeja. Devuelve false si el título no es válido. */
+    /** Quick capture to the Inbox. Returns false if the title is not valid. */
     suspend fun capture(title: String, notes: String = ""): Boolean {
         val clean = cleanTitle(title) ?: return false
         val now = clock.instant()
@@ -38,7 +40,7 @@ class TaskRepository(
 
     suspend fun setPriority(id: String, priority: Priority) = edit(id) { it.copy(priority = priority) }
 
-    /** Devuelve false (y no guarda) si el título no es válido. */
+    /** Returns false (and saves nothing) if the title is not valid. */
     suspend fun rename(id: String, title: String): Boolean {
         val clean = cleanTitle(title) ?: return false
         edit(id) { it.copy(title = clean) }
@@ -60,7 +62,7 @@ class TaskRepository(
         reminders?.cancel(id)
     }
 
-    // Leer-modificar-escribir en serie: al escribir rápido en el detalle, dos ediciones no deben pisarse.
+    // Serialized read-modify-write: typing fast in the detail screen must not let two edits overwrite each other.
     private val writeLock = Mutex()
 
     private suspend fun edit(id: String, change: (Task) -> Task) = writeLock.withLock {
@@ -69,7 +71,7 @@ class TaskRepository(
         if (changed == current) return@withLock
         val saved = changed.copy(updatedAt = clock.instant())
         dao.update(saved)
-        // Completar, cancelar o cambiar la hora decide si la alarma sigue; el resto de campos no le importa.
+        // Completing, cancelling or changing the time decides whether the alarm stays; other fields do not matter to it.
         if (saved.reminderAt != current.reminderAt || saved.status != current.status) reminders?.sync(saved)
     }
 }

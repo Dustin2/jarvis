@@ -6,8 +6,8 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 /**
- * Instantes en milisegundos UTC; fechas sin hora como día epoch (no dependen de la zona horaria).
- * Los demás enums usan el conversor por nombre que trae Room.
+ * Instants as UTC milliseconds; dates without time as epoch days (independent of the time zone).
+ * Other enums use Room's built-in by-name converter.
  */
 class Converters {
     @TypeConverter fun fromInstant(value: Instant?): Long? = value?.toEpochMilli()
@@ -16,7 +16,7 @@ class Converters {
     @TypeConverter fun fromDate(value: LocalDate?): Long? = value?.toEpochDay()
     @TypeConverter fun toDate(value: Long?): LocalDate? = value?.let(LocalDate::ofEpochDay)
 
-    // Texto ISO ("2026-10-26T09:00"): una hora local no tiene equivalente en milisegundos sin zona.
+    // ISO text ("2026-10-26T09:00"): a local time has no millisecond equivalent without a zone.
     @TypeConverter fun fromDateTime(value: LocalDateTime?): String? = value?.toString()
     @TypeConverter fun toDateTime(value: String?): LocalDateTime? = value?.let(LocalDateTime::parse)
 

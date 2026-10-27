@@ -11,7 +11,7 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import java.io.File
 
-/** Inyección de dependencias manual: un único lugar donde se crean la base y los repositorios. */
+/** Manual dependency injection: the single place where the database and repositories are created. */
 class JarvisApplication : Application() {
     val database by lazy { AppDatabase.create(this) }
     val reminders by lazy { Reminders(this, database.tasks()) }
@@ -24,7 +24,7 @@ class JarvisApplication : Application() {
         reminders.createChannel()
         MainScope().launch {
             projects.seedIfEmpty()
-            // Forzar el cierre de la app borra sus alarmas sin avisar; al abrirla se reponen (y se avisa lo atrasado).
+            // Force-stopping the app silently clears its alarms; opening it restores them (and notifies missed ones).
             reminders.syncAll()
         }
     }

@@ -5,20 +5,20 @@ import dev.dux.organizer.data.TaskStatus
 import java.time.LocalDateTime
 
 sealed interface ReminderAction {
-    /** No debe haber alarma: sin recordatorio, tarea terminada o borrada. */
+    /** There should be no alarm: no reminder, or the task is finished or deleted. */
     data object Cancel : ReminderAction
     data class Schedule(val at: LocalDateTime) : ReminderAction
-    /** Ya es la hora (o se pasó mientras el teléfono estaba apagado): avisar ahora. */
+    /** It is time (or it passed while the phone was off): notify now. */
     data object NotifyNow : ReminderAction
 }
 
-/** Margen para no reprogramar una alarma que Android disparó unos segundos antes de tiempo. */
+/** Margin so an alarm Android fired a few seconds early is not rescheduled. */
 private const val TOLERANCE_SECONDS = 30L
 
 /**
- * Única regla de recordatorios. Se aplica al editar, al sonar la alarma y al reprogramar todo
- * (reinicio, cambio de hora): como siempre se decide desde el estado actual de la tarea,
- * una alarma vieja nunca avisa de algo que ya no aplica.
+ * The single reminder rule. Applied on edit, when the alarm fires and when rescheduling everything
+ * (reboot, time change): since it always decides from the task's current state,
+ * a stale alarm never notifies about something that no longer applies.
  */
 fun reminderAction(task: Task?, now: LocalDateTime): ReminderAction {
     val at = task?.reminderAt
