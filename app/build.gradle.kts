@@ -15,14 +15,25 @@ android {
         // 33: necesario para USE_EXACT_ALARM y POST_NOTIFICATIONS (Hito 4).
         minSdk = 33
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            // App aparte ("Jarvis Dev") junto a la real: las pruebas de dispositivo la instalan y desinstalan
+            // en el teléfono sin tocar la app ni los datos reales (dev.dux.organizer).
+            applicationIdSuffix = ".debug"
+        }
         release {
-            isMinifyEnabled = false
+            // R8 quita código sin usar y optimiza: Compose en debug es notablemente más lento.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            // shortcut: firmado con la llave de debug para poder instalarlo encima de la versión debug sin perder datos.
+            // Si algún día se publica o se comparte el APK, crear una llave propia (y respaldarla).
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 

@@ -12,6 +12,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,8 +22,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Density
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
@@ -140,7 +143,7 @@ private fun MainScreen(
                         selected = it == tab,
                         onClick = { tab = it },
                         icon = { Icon(painterResource(it.icon), contentDescription = null) },
-                        label = { Text(stringResource(it.label)) },
+                        label = { NavLabel(stringResource(it.label)) },
                     )
                 }
             }
@@ -167,5 +170,17 @@ private fun MainScreen(
                 }
             },
         )
+    }
+}
+
+/**
+ * Con letra al 200 %, cuatro etiquetas no caben en el ancho del teléfono: se partían ("Proyecto / s")
+ * o se encimaban. Solo estas etiquetas crecen hasta 130 %; el resto de la app sigue la letra del sistema.
+ */
+@Composable
+private fun NavLabel(text: String) {
+    val density = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f))) {
+        Text(text, maxLines = 1)
     }
 }

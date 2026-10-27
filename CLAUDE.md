@@ -11,17 +11,22 @@ App Android personal de organización. Kotlin + Jetpack Compose + Material 3 Exp
 - Nunca subir bases de datos, respaldos ni datos personales al repo.
 - Material 3 1.5.0 está en beta a propósito (Expressive). Avisar antes de usar APIs con `@ExperimentalMaterial3ExpressiveApi`.
 - Textos de la UI en español, en `res/values/strings.xml`.
-- Mensajes de commit en inglés.
+- Git: seguir `docs/conventions/git.md` (mismo flujo que Pro-Hielo). `main` ← `develop` ← `feature/*`, `fix/*`, `docs/*`, `chore/*`; nunca commitear a `main`; una PR por tarea hacia `develop`; commits `type(scope): description` en inglés.
 
 ## Comandos
 
 ```bash
 ./gradlew :app:assembleDebug              # compilar
-./gradlew :app:installDebug               # instalar en el S25 conectado
+ANDROID_SERIAL=<device-serial> ./gradlew :app:installRelease  # instalar en el S25 (versión optimizada)
+./gradlew :app:installDebug               # versión de depuración (más lenta)
 ./gradlew :app:lintDebug                  # lint
-./gradlew :app:connectedDebugAndroidTest  # pruebas en dispositivo
+ANDROID_SERIAL=<device-serial> ./gradlew :app:connectedDebugAndroidTest  # pruebas en el S25 (contra "Jarvis Dev")
 ```
 
-⚠️ `connectedDebugAndroidTest` **desinstala la app al terminar y borra sus datos**. Cuando el usuario ya tenga datos reales en el S25, correr esas pruebas en el emulador (`Medium_Phone`) y no en el teléfono.
+Las pruebas se hacen en el S25 conectado, no en emuladores. La variante debug es otra app (`dev.dux.organizer.debug`, "Jarvis Dev"): `connectedDebugAndroidTest` la instala y la desinstala al terminar sin tocar la app real (`dev.dux.organizer`) ni sus datos. Nunca correr pruebas ni comandos que desinstalen o limpien `dev.dux.organizer`.
+
+Siempre indicar `ANDROID_SERIAL` cuando hay más de un dispositivo conectado: `installDebug` sin él instala en todos.
+
+La versión release se firma con la llave de debug (`~/.android/debug.keystore`) para poder actualizar encima de la de debug sin perder datos. Si esa llave se pierde, no se puede actualizar la app sin desinstalarla: respaldarla, y tener siempre un export JSON reciente.
 
 Usar el `adb` del SDK (`~/Android/Sdk/platform-tools/adb`), no `/usr/bin/adb`.
