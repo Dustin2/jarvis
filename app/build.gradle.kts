@@ -22,7 +22,13 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8 quita código sin usar y optimiza: Compose en debug es notablemente más lento.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            // shortcut: firmado con la llave de debug para poder instalarlo encima de la versión debug sin perder datos.
+            // Si algún día se publica o se comparte el APK, crear una llave propia (y respaldarla).
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 

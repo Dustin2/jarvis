@@ -17,11 +17,16 @@ App Android personal de organización. Kotlin + Jetpack Compose + Material 3 Exp
 
 ```bash
 ./gradlew :app:assembleDebug              # compilar
-./gradlew :app:installDebug               # instalar en el S25 conectado
+ANDROID_SERIAL=<device-serial> ./gradlew :app:installRelease  # instalar en el S25 (versión optimizada)
+./gradlew :app:installDebug               # versión de depuración (más lenta)
 ./gradlew :app:lintDebug                  # lint
 ./gradlew :app:connectedDebugAndroidTest  # pruebas en dispositivo
 ```
 
 ⚠️ `connectedDebugAndroidTest` **desinstala la app al terminar y borra sus datos**. Cuando el usuario ya tenga datos reales en el S25, correr esas pruebas en el emulador (`Medium_Phone`) y no en el teléfono.
+
+Siempre indicar `ANDROID_SERIAL` cuando hay más de un dispositivo conectado: `installDebug` sin él instala en todos.
+
+La versión release se firma con la llave de debug (`~/.android/debug.keystore`) para poder actualizar encima de la de debug sin perder datos. Si esa llave se pierde, no se puede actualizar la app sin desinstalarla: respaldarla, y tener siempre un export JSON reciente.
 
 Usar el `adb` del SDK (`~/Android/Sdk/platform-tools/adb`), no `/usr/bin/adb`.
