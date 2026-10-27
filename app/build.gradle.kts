@@ -21,6 +21,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            // App aparte ("Jarvis Dev") junto a la real: las pruebas de dispositivo la instalan y desinstalan
+            // en el teléfono sin tocar la app ni los datos reales (dev.dux.organizer).
+            applicationIdSuffix = ".debug"
+        }
         release {
             // R8 quita código sin usar y optimiza: Compose en debug es notablemente más lento.
             isMinifyEnabled = true

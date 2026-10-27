@@ -1,0 +1,4 @@
+<resources>
+    <!-- Distingue la versión de pruebas de la app real en el cajón de apps. -->
+    <string name="app_name">Jarvis Dev</string>
+</resources>
