@@ -19,12 +19,16 @@ data class BackupData(
     val tasks: List<Task>,
     val shoppingLists: List<ShoppingList> = emptyList(),
     val shoppingItems: List<ShoppingItem> = emptyList(),
+    val categories: List<Category> = emptyList(),
+    val movements: List<Movement> = emptyList(),
+    val debts: List<Debt> = emptyList(),
+    val debtPayments: List<DebtPayment> = emptyList(),
 )
 
 /** The message is meant to be shown to the user as is (in Spanish). */
 class InvalidBackupException(message: String) : Exception(message)
 
-// org.json ships with Android: four tables do not justify adding a serialization library.
+// org.json ships with Android: a handful of tables does not justify adding a serialization library.
 fun encodeBackup(data: BackupData, exportedAt: Instant): String = JSONObject()
     .put("format", BACKUP_FORMAT)
     .put("version", BACKUP_VERSION)
@@ -33,6 +37,10 @@ fun encodeBackup(data: BackupData, exportedAt: Instant): String = JSONObject()
     .put("tasks", JSONArray(data.tasks.map { it.toJson() }))
     .put("shoppingLists", JSONArray(data.shoppingLists.map { it.toJson() }))
     .put("shoppingItems", JSONArray(data.shoppingItems.map { it.toJson() }))
+    .put("categories", JSONArray(data.categories.map { it.toJson() }))
+    .put("movements", JSONArray(data.movements.map { it.toJson() }))
+    .put("debts", JSONArray(data.debts.map { it.toJson() }))
+    .put("debtPayments", JSONArray(data.debtPayments.map { it.toJson() }))
     .toString(2)
 
 /** Validates the whole file before returning anything: if something fails, throws [InvalidBackupException]. */
@@ -52,6 +60,11 @@ fun decodeBackup(text: String): BackupData {
     // Optional: backups from before the shopping lists do not have them.
     val shoppingLists = root.list("shoppingLists", required = false) { i, o -> o.toShoppingList("Lista de compras ${i + 1}") }
     val shoppingItems = root.list("shoppingItems", required = false) { i, o -> o.toShoppingItem("Artículo ${i + 1}") }
+    // Optional too: backups from before the finances.
+    val categories = root.list("categories", required = false) { i, o -> o.toCategory("Categoría ${i + 1}") }
+    val movements = root.list("movements", required = false) { i, o -> o.toMovement("Movimiento ${i + 1}") }
+    val debts = root.list("debts", required = false) { i, o -> o.toDebt("Deuda ${i + 1}") }
+    val debtPayments = root.list("debtPayments", required = false) { i, o -> o.toDebtPayment("Abono ${i + 1}") }
 
     projects.map { it.id }.firstDuplicate()?.let { throw InvalidBackupException("Hay dos proyectos con el id $it.") }
     tasks.map { it.id }.firstDuplicate()?.let { throw InvalidBackupException("Hay dos tareas con el id $it.") }
@@ -65,7 +78,20 @@ fun decodeBackup(text: String): BackupData {
     shoppingItems.firstOrNull { it.listId !in listIds }?.let {
         throw InvalidBackupException("El artículo \"${it.name}\" apunta a una lista que no está en el respaldo.")
     }
-    return BackupData(projects, tasks, shoppingLists, shoppingItems)
+
+    categories.map { it.id }.firstDuplicate()?.let { throw InvalidBackupException("Hay dos categorías con el id $it.") }
+    movements.map { it.id }.firstDuplicate()?.let { throw InvalidBackupException("Hay dos movimientos con el id $it.") }
+    debts.map { it.id }.firstDuplicate()?.let { throw InvalidBackupException("Hay dos deudas con el id $it.") }
+    debtPayments.map { it.id }.firstDuplicate()?.let { throw InvalidBackupException("Hay dos abonos con el id $it.") }
+    val categoryKinds = categories.associate { it.id to it.kind }
+    movements.firstOrNull { categoryKinds[it.categoryId] != it.kind }?.let {
+        throw InvalidBackupException("Un movimiento del ${it.date} apunta a una categoría que no está en el respaldo o es de otro tipo.")
+    }
+    val debtIds = debts.mapTo(HashSet()) { it.id }
+    debtPayments.firstOrNull { it.debtId !in debtIds }?.let {
+        throw InvalidBackupException("Un abono del ${it.date} apunta a una deuda que no está en el respaldo.")
+    }
+    return BackupData(projects, tasks, shoppingLists, shoppingItems, categories, movements, debts, debtPayments)
 }
 
 private fun Project.toJson() = JSONObject()
@@ -91,6 +117,27 @@ private fun ShoppingItem.toJson() = JSONObject()
     .put("id", id).put("listId", listId).put("name", name).put("quantity", quantity ?: JSONObject.NULL)
     .put("checked", checked).put("sortOrder", sortOrder)
     .put("createdAt", createdAt.toString()).put("updatedAt", updatedAt.toString())
+
+private fun Category.toJson() = JSONObject()
+    .put("id", id).put("name", name).put("kind", kind.name)
+    .put("monthlyBudgetCents", monthlyBudgetCents ?: JSONObject.NULL)
+    .put("sortOrder", sortOrder).put("archived", archived)
+    .put("createdAt", createdAt.toString()).put("updatedAt", updatedAt.toString())
+
+private fun Movement.toJson() = JSONObject()
+    .put("id", id).put("kind", kind.name).put("amountCents", amountCents).put("categoryId", categoryId)
+    .put("date", date.toString()).put("note", note ?: JSONObject.NULL)
+    .put("createdAt", createdAt.toString()).put("updatedAt", updatedAt.toString())
+
+private fun Debt.toJson() = JSONObject()
+    .put("id", id).put("person", person).put("direction", direction.name).put("amountCents", amountCents)
+    .put("dueDate", dueDate?.toString() ?: JSONObject.NULL).put("note", note ?: JSONObject.NULL)
+    .put("settledAt", settledAt?.toString() ?: JSONObject.NULL)
+    .put("createdAt", createdAt.toString()).put("updatedAt", updatedAt.toString())
+
+private fun DebtPayment.toJson() = JSONObject()
+    .put("id", id).put("debtId", debtId).put("amountCents", amountCents)
+    .put("date", date.toString()).put("createdAt", createdAt.toString())
 
 private fun JSONObject.toProject(where: String) = Field(this, where).run {
     Project(
@@ -142,6 +189,53 @@ private fun JSONObject.toShoppingItem(where: String) = Field(this, where).run {
     )
 }
 
+private fun JSONObject.toCategory(where: String) = Field(this, where).run {
+    val kind = enum("kind", MoneyKind.entries)
+    Category(
+        id = text("id"),
+        name = title("name"),
+        kind = kind,
+        monthlyBudgetCents = optionalAmount("monthlyBudgetCents")?.also {
+            if (kind != MoneyKind.EXPENSE) fail("monthlyBudgetCents", "solo aplica a categorías de gasto")
+        },
+        sortOrder = int("sortOrder"),
+        archived = boolean("archived"),
+        createdAt = instant("createdAt"),
+        updatedAt = instant("updatedAt"),
+    )
+}
+
+private fun JSONObject.toMovement(where: String) = Field(this, where).run {
+    Movement(
+        id = text("id"),
+        kind = enum("kind", MoneyKind.entries),
+        amountCents = amount("amountCents"),
+        categoryId = text("categoryId"),
+        date = date("date"),
+        note = optionalText("note"),
+        createdAt = instant("createdAt"),
+        updatedAt = instant("updatedAt"),
+    )
+}
+
+private fun JSONObject.toDebt(where: String) = Field(this, where).run {
+    Debt(
+        id = text("id"),
+        person = title("person"),
+        direction = enum("direction", DebtDirection.entries),
+        amountCents = amount("amountCents"),
+        dueDate = optionalDate("dueDate"),
+        note = optionalText("note"),
+        settledAt = optionalInstant("settledAt"),
+        createdAt = instant("createdAt"),
+        updatedAt = instant("updatedAt"),
+    )
+}
+
+private fun JSONObject.toDebtPayment(where: String) = Field(this, where).run {
+    DebtPayment(id = text("id"), debtId = text("debtId"), amountCents = amount("amountCents"), date = date("date"), createdAt = instant("createdAt"))
+}
+
 /** Field reading with messages that say exactly what failed and where. */
 private class Field(private val o: JSONObject, private val where: String) {
     fun fail(name: String, problem: String): Nothing = throw InvalidBackupException("$where: el campo \"$name\" $problem.")
@@ -150,6 +244,10 @@ private class Field(private val o: JSONObject, private val where: String) {
     fun text(name: String): String = optionalText(name)?.takeIf { it.isNotBlank() } ?: fail(name, "es obligatorio")
     fun title(name: String): String = cleanTitle(text(name)) ?: fail(name, "debe tener de 1 a $MAX_TITLE_LENGTH caracteres")
     fun int(name: String): Int = (o.opt(name) as? Number)?.toInt() ?: fail(name, "debe ser un número")
+    fun optionalAmount(name: String): Long? = if (o.isNull(name)) null else amount(name)
+    fun amount(name: String): Long = (o.opt(name) as? Number)?.toLong()?.takeIf { it in 1..MAX_AMOUNT_CENTS && (o.opt(name) !is Double) }
+        ?: fail(name, "debe ser un número entero de centavos mayor que 0")
+    fun date(name: String): LocalDate = optionalDate(name) ?: fail(name, "es obligatorio")
     fun boolean(name: String): Boolean = o.opt(name) as? Boolean ?: fail(name, "debe ser true o false")
     fun <E : Enum<E>> enum(name: String, values: List<E>): E =
         text(name).let { v -> values.firstOrNull { it.name == v } ?: fail(name, "no admite el valor \"$v\"") }

@@ -30,7 +30,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import dev.dux.organizer.R
+import dev.dux.organizer.data.FinanceRepository
 import dev.dux.organizer.data.ProjectRepository
+import dev.dux.organizer.data.formatMoney
+import dev.dux.organizer.finances.BudgetProgress
+import dev.dux.organizer.finances.MonthSummary
+import dev.dux.organizer.finances.monthSummary
 import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TaskRepository
 import dev.dux.organizer.data.TaskStatus
@@ -41,13 +46,18 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import dev.dux.organizer.ui.asHeading
 
-class TodayViewModel(private val tasks: TaskRepository, projects: ProjectRepository) : ViewModel() {
+class TodayViewModel(private val tasks: TaskRepository, projects: ProjectRepository, finance: FinanceRepository) : ViewModel() {
     /** Open tasks + project name by id. null = loading. */
     val state = combine(tasks.open, projects.visible) { open, list -> open to list.associate { it.id to it.name } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    // shortcut: the month is fixed when the screen opens; if the app stays open past month end it shows the old one until reopened.
+    val month = combine(finance.categories, finance.movements(YearMonth.now())) { categories, movements -> monthSummary(categories, movements) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun complete(id: String) {
@@ -56,8 +66,9 @@ class TodayViewModel(private val tasks: TaskRepository, projects: ProjectReposit
 }
 
 @Composable
-fun TodayScreen(vm: TodayViewModel, onOpen: (String) -> Unit, onOpenSettings: () -> Unit, modifier: Modifier = Modifier) {
+fun TodayScreen(vm: TodayViewModel, onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onOpenFinances: () -> Unit, modifier: Modifier = Modifier) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val month by vm.month.collectAsStateWithLifecycle()
     val today by rememberToday()
     val (open, projectNames) = state ?: return
     val plan = remember(open, today) { planDay(open, today) }
@@ -88,6 +99,7 @@ fun TodayScreen(vm: TodayViewModel, onOpen: (String) -> Unit, onOpenSettings: ()
             }
         }
         item { NextStepCard(plan.nextStep, onOpen) }
+        month?.let { item { MonthCard(it, onOpenFinances) } }
         section(R.string.overdue, plan.overdue, row)
         section(R.string.today, plan.today, row)
         section(R.string.upcoming, plan.upcoming, row)
@@ -106,6 +118,19 @@ private fun NextStepCard(task: Task?, onOpen: (String) -> Unit) {
     val modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
     if (task == null) Card(modifier, colors = colors) { content() }
     else Card(onClick = { onOpen(task.id) }, modifier = modifier, colors = colors) { content() }
+}
+
+/** The month's spending at a glance; opens Finanzas. */
+@Composable
+private fun MonthCard(summary: MonthSummary, onClick: () -> Unit) {
+    Card(onClick = onClick, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(stringResource(R.string.month_spending) + " · " + stringResource(R.string.finances), style = MaterialTheme.typography.labelLarge)
+            val budget = summary.budgetCents
+            if (budget == null) Text(stringResource(R.string.month_spent, formatMoney(summary.expenseCents)), style = MaterialTheme.typography.titleLarge)
+            else BudgetProgress(summary.expenseCents, budget)
+        }
+    }
 }
 
 private fun LazyListScope.section(@StringRes title: Int, tasks: List<Task>, row: @Composable (Task) -> Unit) {

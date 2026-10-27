@@ -24,22 +24,28 @@ import dev.dux.organizer.R
  * Pick one option out of several. Chips wrap to the next line when they do not fit:
  * with large fonts, segmented buttons cut the text ("Pendi", "Canc").
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun <T> Choice(@StringRes title: Int, options: List<T>, selected: T, label: (T) -> Int, onSelect: (T) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(stringResource(title), style = MaterialTheme.typography.titleSmall, modifier = Modifier.asHeading())
-        FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            options.forEach { option ->
-                val isSelected = option == selected
-                FilterChip(
-                    selected = isSelected,
-                    onClick = { onSelect(option) },
-                    label = { Text(stringResource(label(option))) },
-                    // The check mark shows the selection without relying on color alone.
-                    leadingIcon = if (isSelected) ({ Icon(painterResource(R.drawable.ic_check), contentDescription = null, Modifier.size(FilterChipDefaults.IconSize)) }) else null,
-                )
-            }
+        ChoiceChips(options, selected, { stringResource(label(it)) }, onSelect)
+    }
+}
+
+/** The chips alone, for options whose names are data (categories, lists). */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun <T> ChoiceChips(options: List<T>, selected: T?, label: @Composable (T) -> String, onSelect: (T) -> Unit) {
+    FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        options.forEach { option ->
+            val isSelected = option == selected
+            FilterChip(
+                selected = isSelected,
+                onClick = { onSelect(option) },
+                label = { Text(label(option)) },
+                // The check mark shows the selection without relying on color alone.
+                leadingIcon = if (isSelected) ({ Icon(painterResource(R.drawable.ic_check), contentDescription = null, Modifier.size(FilterChipDefaults.IconSize)) }) else null,
+            )
         }
     }
 }

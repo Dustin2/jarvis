@@ -23,13 +23,14 @@ class BackupTest {
     private val projects = ProjectRepository(db.projects())
     private val tasks = TaskRepository(db.tasks())
     private val shopping = ShoppingRepository(db.shopping())
+    private val finance = FinanceRepository(db.finance())
 
     @After fun tearDown() {
         db.close()
         dir.deleteRecursively()
     }
 
-    /** One project, two tasks and a shopping list covering every kind of field (dates, nulls, project). */
+    /** One project, two tasks, a shopping list and finances covering every kind of field (dates, nulls, project). */
     private suspend fun sampleData(prefix: String = "") {
         projects.create("${prefix}Pro-Hielo")
         val projectId = projects.visible.first().first().id
@@ -47,6 +48,13 @@ class BackupTest {
         shopping.addItem(listId, "${prefix}Leche")
         shopping.addItem(listId, "${prefix}Tortillas", "2 kg")
         shopping.setChecked(db.shopping().getAllItems().first().id, true)
+        finance.createCategory("${prefix}Comida", MoneyKind.EXPENSE, 300_000)
+        finance.createCategory("${prefix}Sueldo", MoneyKind.INCOME, null)
+        val categories = db.finance().getAllCategories()
+        finance.addMovement(8550, categories.first { it.kind == MoneyKind.EXPENSE }.id, LocalDate.of(2026, 10, 27), "${prefix}tacos")
+        finance.addMovement(1_500_000, categories.first { it.kind == MoneyKind.INCOME }.id, LocalDate.of(2026, 10, 15))
+        finance.addDebt("${prefix}Juan", DebtDirection.OWED_TO_ME, 100_000, LocalDate.of(2026, 11, 30), "préstamo")
+        finance.addPayment(db.finance().getAllDebts().single().id, 40_000, LocalDate.of(2026, 10, 27))
     }
 
     @Test fun exportThenDecodeGivesTheSameData() = runBlocking {
@@ -56,24 +64,32 @@ class BackupTest {
         assertEquals(db.tasks().getAll(), decoded.tasks)
         assertEquals(db.shopping().getAllLists(), decoded.shoppingLists)
         assertEquals(db.shopping().getAllItems(), decoded.shoppingItems)
+        assertEquals(db.finance().getAllCategories(), decoded.categories)
+        assertEquals(db.finance().getAllMovements(), decoded.movements)
+        assertEquals(db.finance().getAllDebts(), decoded.debts)
+        assertEquals(db.finance().getAllPayments(), decoded.debtPayments)
     }
 
     @Test fun restoreReplacesEverythingAndUndoBringsItBack() = runBlocking {
         sampleData("A-")
         val fileA = backups.export()
-        db.tasks().deleteAll(); db.projects().deleteAll(); db.shopping().deleteAllLists()
+        db.tasks().deleteAll(); db.projects().deleteAll(); db.shopping().deleteAllLists(); db.finance().deleteAll()
         sampleData("B-")
         val before = db.tasks().getAll()
         val itemsBefore = db.shopping().getAllItems()
+        val movementsBefore = db.finance().getAllMovements()
 
         backups.restore(decodeBackup(fileA))
         assertTrue(db.tasks().getAll().all { it.title.startsWith("A-") })
         assertTrue(db.shopping().getAllItems().all { it.name.startsWith("A-") })
+        assertTrue(db.finance().getAllMovements().all { it.note == null || it.note!!.startsWith("A-") })
+        assertEquals("A-Juan", db.finance().getAllDebts().single().person)
         assertTrue(backups.canUndoRestore)
 
         backups.undoRestore()
         assertEquals(before, db.tasks().getAll())
         assertEquals(itemsBefore, db.shopping().getAllItems())
+        assertEquals(movementsBefore, db.finance().getAllMovements())
         assertFalse(backups.canUndoRestore)
     }
 
@@ -96,6 +112,15 @@ class BackupTest {
             "invalid rule" to broken { task(this).put("recurrence", "FREQ=YEARLY") },
             "missing shopping list" to broken { getJSONArray("shoppingItems").getJSONObject(0).put("listId", "no-existe") },
             "checked not boolean" to broken { getJSONArray("shoppingItems").getJSONObject(0).put("checked", "sí") },
+            "amount with decimals" to broken { getJSONArray("movements").getJSONObject(0).put("amountCents", 85.5) },
+            "negative amount" to broken { getJSONArray("movements").getJSONObject(0).put("amountCents", -100) },
+            "missing category" to broken { getJSONArray("movements").getJSONObject(0).put("categoryId", "no-existe") },
+            "kind mismatch" to broken {
+                val m = getJSONArray("movements").getJSONObject(0)
+                m.put("kind", if (m.getString("kind") == "INCOME") "EXPENSE" else "INCOME")
+            },
+            "income budget" to broken { getJSONArray("categories").getJSONObject(1).put("monthlyBudgetCents", 100) },
+            "missing debt" to broken { getJSONArray("debtPayments").getJSONObject(0).put("debtId", "no-existe") },
         )
         cases.forEach { (case, text) ->
             val error = assertThrows(case, InvalidBackupException::class.java) { decodeBackup(text) }
@@ -115,6 +140,7 @@ class BackupTest {
         assertEquals(null, task.projectId)
         assertEquals(null, task.reminderAt)
         assertEquals(emptyList<ShoppingList>(), decodeBackup(minimal).shoppingLists)
+        assertEquals(emptyList<Movement>(), decodeBackup(minimal).movements)
     }
 
     @Test fun reminderSurvivesTheRoundTrip() = runBlocking {
