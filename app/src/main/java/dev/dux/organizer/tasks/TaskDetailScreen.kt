@@ -5,10 +5,7 @@ import android.text.format.DateFormat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -16,22 +13,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,13 +37,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.dux.organizer.R
+import dev.dux.organizer.ui.DatePickDialog
+import dev.dux.organizer.ui.Field
 import dev.dux.organizer.data.Priority
 import dev.dux.organizer.data.Project
 import dev.dux.organizer.data.Recurrence
@@ -61,11 +54,9 @@ import dev.dux.organizer.ui.SPANISH
 import dev.dux.organizer.ui.SavedIndicator
 import dev.dux.organizer.ui.label
 import dev.dux.organizer.ui.rememberToday
-import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 /** Changes save instantly: there is no Save button and no way to lose an edit. */
@@ -149,27 +140,6 @@ private fun TaskForm(task: Task, vm: TaskDetailViewModel, modifier: Modifier) {
     }
 }
 
-/**
- * Label and button on one line; with large fonts the button moves down instead of breaking the label.
- * The button is announced with its field ("Fecha límite: Sin fecha"), not only its value.
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun Field(title: Int, value: String, onClick: () -> Unit, menu: @Composable () -> Unit = {}) {
-    val label = stringResource(title)
-    FlowRow(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        itemVerticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(end = 12.dp))
-        Box {
-            OutlinedButton(onClick = onClick, modifier = Modifier.semantics { contentDescription = "$label: $value" }) { Text(value) }
-            menu()
-        }
-    }
-}
-
 @Composable
 private fun RepeatField(task: Task, onChange: (Recurrence?) -> Unit) {
     var editing by rememberSaveable { mutableStateOf(false) }
@@ -195,26 +165,6 @@ private fun DateField(title: Int, date: LocalDate?, onChange: (LocalDate?) -> Un
             onChange(it)
         }
     }
-}
-
-/** [onResult] receives the chosen date, or null if "remove" was pressed. */
-// DatePicker is still marked experimental, but it is the official M3 picker.
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DatePickDialog(initial: LocalDate, removeLabel: Int, canRemove: Boolean, onDismiss: () -> Unit, onResult: (LocalDate?) -> Unit) {
-    // DatePicker works in UTC milliseconds at midnight; always converting in UTC avoids the "one day earlier" bug.
-    val state = rememberDatePickerState(initialSelectedDateMillis = initial.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                state.selectedDateMillis?.let { onResult(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
-            }) { Text(stringResource(R.string.accept)) }
-        },
-        dismissButton = {
-            TextButton(onClick = { onResult(null) }, enabled = canRemove) { Text(stringResource(removeLabel)) }
-        },
-    ) { DatePicker(state) }
 }
 
 /**

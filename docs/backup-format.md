@@ -56,6 +56,52 @@ A backup is a UTF-8 JSON file with **all** of the app's data. It can be read and
       "createdAt": "2026-10-27T17:05:00Z",
       "updatedAt": "2026-10-27T17:05:00Z"
     }
+  ],
+  "categories": [
+    {
+      "id": "c1…",
+      "name": "Comida",
+      "kind": "EXPENSE",
+      "monthlyBudgetCents": 300000,
+      "sortOrder": 0,
+      "archived": false,
+      "createdAt": "2026-10-27T17:00:00Z",
+      "updatedAt": "2026-10-27T17:00:00Z"
+    }
+  ],
+  "movements": [
+    {
+      "id": "m1…",
+      "kind": "EXPENSE",
+      "amountCents": 8550,
+      "categoryId": "c1…",
+      "date": "2026-10-27",
+      "note": "Tacos",
+      "createdAt": "2026-10-27T18:00:00Z",
+      "updatedAt": "2026-10-27T18:00:00Z"
+    }
+  ],
+  "debts": [
+    {
+      "id": "d1…",
+      "person": "Juan",
+      "direction": "OWED_TO_ME",
+      "amountCents": 50000,
+      "dueDate": "2026-11-30",
+      "note": null,
+      "settledAt": null,
+      "createdAt": "2026-10-27T18:10:00Z",
+      "updatedAt": "2026-10-27T18:10:00Z"
+    }
+  ],
+  "debtPayments": [
+    {
+      "id": "p1…",
+      "debtId": "d1…",
+      "amountCents": 20000,
+      "date": "2026-10-27",
+      "createdAt": "2026-10-27T18:15:00Z"
+    }
   ]
 }
 ```
@@ -80,9 +126,17 @@ A backup is a UTF-8 JSON file with **all** of the app's data. It can be read and
 | `listId` | text | Must be the `id` of a shopping list in the same file |
 | `quantity` | text or `null` | Free text, up to 40 characters |
 | `checked` | `true` / `false` | The item is in the cart |
+| `kind` | text | `EXPENSE` or `INCOME`. A movement's kind must match its category's |
+| `amountCents`, `monthlyBudgetCents` | integer | Cents, no decimals: `8550` = $85.50. From 1 to 9999999999. Budgets only on `EXPENSE` categories |
+| `categoryId` | text | Must be the `id` of a category in the same file |
+| `direction` | text | `I_OWE` or `OWED_TO_ME` |
+| `debtId` | text | Must be the `id` of a debt in the same file |
+| `archived` | `true` / `false` | Archived category: hidden when registering, kept for past movements |
 | `reminderAt` | local date-time or `null` | `YYYY-MM-DDTHH:MM`, **without** a zone: "9:00" wherever you are. Added after the first version; backups without it are still valid |
 
 `notes`, `colorKey`, `projectId`, the dates, `completedAt`, `reminderAt`, `recurrence`, `seriesId` and `quantity` may be `null` or missing.
+
+`categories`, `movements`, `debts` and `debtPayments` (schema v5) may be missing too: older backups restore with no finances, and the next app start creates the initial categories again. `monthlyBudgetCents`, `dueDate`, `settledAt` and the notes may be `null`.
 
 `shoppingLists` and `shoppingItems` (schema v4) may be missing: older backups restore with no shopping lists, and the next app start creates "Súper" again.
 

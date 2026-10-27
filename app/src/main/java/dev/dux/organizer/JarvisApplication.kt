@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import dev.dux.organizer.data.AppDatabase
 import dev.dux.organizer.data.BackupRepository
+import dev.dux.organizer.data.FinanceRepository
 import dev.dux.organizer.data.ProjectRepository
 import dev.dux.organizer.data.ShoppingRepository
 import dev.dux.organizer.data.TaskRepository
@@ -19,6 +20,7 @@ class JarvisApplication : Application() {
     val tasks by lazy { TaskRepository(database.tasks(), reminders = reminders) }
     val projects by lazy { ProjectRepository(database.projects()) }
     val shopping by lazy { ShoppingRepository(database.shopping()) }
+    val finance by lazy { FinanceRepository(database.finance()) }
     val backups by lazy { BackupRepository(database, File(filesDir, "backups"), reminders = reminders) }
 
     override fun onCreate() {
@@ -27,6 +29,7 @@ class JarvisApplication : Application() {
         MainScope().launch {
             projects.seedIfEmpty()
             shopping.seedIfEmpty()
+            finance.seedIfEmpty()
             // Force-stopping the app silently clears its alarms; opening it restores them (and notifies missed ones).
             reminders.syncAll()
         }

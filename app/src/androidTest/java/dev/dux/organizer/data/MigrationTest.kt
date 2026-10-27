@@ -86,4 +86,21 @@ class MigrationTest {
         assertEquals(Recurrence(Frequency.DAILY), task.recurrence)
         assertEquals(emptyList<ShoppingList>(), lists)
     }
+
+    @Test fun v4ToV5KeepsShoppingAndAddsEmptyFinanceTables() {
+        helper.createDatabase(dbName, 4).apply {
+            execSQL("INSERT INTO shopping_lists (id, name, sortOrder, createdAt, updatedAt) VALUES ('l1', 'Súper', 0, 0, 0)")
+            execSQL("INSERT INTO shopping_items (id, listId, name, quantity, checked, sortOrder, createdAt, updatedAt) VALUES ('i1', 'l1', 'Leche', '2', 1, 0, 0, 0)")
+            close()
+        }
+
+        helper.runMigrationsAndValidate(dbName, 5, true).close()
+
+        val db = Room.databaseBuilder(context, AppDatabase::class.java, dbName).build()
+        val items = runBlocking { db.shopping().getAllItems() }
+        val categories = runBlocking { db.finance().getAllCategories() }
+        db.close()
+        assertEquals(listOf(ShoppingItem(id = "i1", listId = "l1", name = "Leche", quantity = "2", checked = true, createdAt = java.time.Instant.EPOCH, updatedAt = java.time.Instant.EPOCH)), items)
+        assertEquals(emptyList<Category>(), categories)
+    }
 }

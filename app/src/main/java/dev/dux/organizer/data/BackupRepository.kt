@@ -44,7 +44,11 @@ class BackupRepository(
     }
 
     private suspend fun snapshot() = db.withTransaction {
-        BackupData(db.projects().getAll(), db.tasks().getAll(), db.shopping().getAllLists(), db.shopping().getAllItems())
+        val finance = db.finance()
+        BackupData(
+            db.projects().getAll(), db.tasks().getAll(), db.shopping().getAllLists(), db.shopping().getAllItems(),
+            finance.getAllCategories(), finance.getAllMovements(), finance.getAllDebts(), finance.getAllPayments(),
+        )
     }
 
     private suspend fun replaceAll(data: BackupData) {
@@ -53,10 +57,15 @@ class BackupRepository(
             db.tasks().deleteAll()
             db.projects().deleteAll()
             db.shopping().deleteAllLists() // its items go with them (ON DELETE CASCADE)
+            db.finance().deleteAll()
             db.projects().insertAll(data.projects)
             db.tasks().insertAll(data.tasks)
             db.shopping().insertLists(data.shoppingLists)
             db.shopping().insertItems(data.shoppingItems)
+            db.finance().insertCategories(data.categories)
+            db.finance().insertMovements(data.movements)
+            db.finance().insertDebts(data.debts)
+            db.finance().insertPayments(data.debtPayments)
         }
         // Alarms of tasks that no longer exist discard themselves when they fire (the task is not found).
         reminders?.syncAll()

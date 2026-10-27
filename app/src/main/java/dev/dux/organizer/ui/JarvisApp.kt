@@ -36,6 +36,10 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import dev.dux.organizer.R
 import dev.dux.organizer.app
+import dev.dux.organizer.finances.DebtDetailScreen
+import dev.dux.organizer.finances.DebtDetailViewModel
+import dev.dux.organizer.finances.FinancesScreen
+import dev.dux.organizer.finances.FinancesViewModel
 import dev.dux.organizer.inbox.CaptureSheet
 import dev.dux.organizer.tasks.InboxScreen
 import dev.dux.organizer.tasks.TaskDetailScreen
@@ -60,6 +64,8 @@ import kotlinx.serialization.Serializable
 @Serializable data class TaskDetail(val id: String) : NavKey
 @Serializable data class ProjectDetail(val id: String) : NavKey
 @Serializable data object Settings : NavKey
+@Serializable data object Finances : NavKey
+@Serializable data class DebtDetail(val id: String) : NavKey
 
 enum class Tab(@StringRes val label: Int, @DrawableRes val icon: Int) {
     Today(R.string.tab_today, R.drawable.ic_today),
@@ -93,12 +99,13 @@ fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}) {
             entry<Main> {
                 MainScreen(
                     tasksVm = viewModel { TaskListViewModel(app.tasks) },
-                    todayVm = viewModel { TodayViewModel(app.tasks, app.projects) },
+                    todayVm = viewModel { TodayViewModel(app.tasks, app.projects, app.finance) },
                     projectsVm = viewModel { ProjectsViewModel(app.projects, app.tasks) },
                     shoppingVm = viewModel { ShoppingViewModel(app.shopping) },
                     onOpenTask = openTask,
                     onOpenProject = { backStack.add(ProjectDetail(it)) },
                     onOpenSettings = { backStack.add(Settings) },
+                    onOpenFinances = { backStack.add(Finances) },
                 )
             }
             entry<TaskDetail> { key ->
@@ -106,6 +113,16 @@ fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}) {
             }
             entry<Settings> {
                 SettingsScreen(viewModel { SettingsViewModel(app.backups, app.contentResolver) }, onBack = { backStack.removeLastOrNull() })
+            }
+            entry<Finances> {
+                FinancesScreen(
+                    viewModel { FinancesViewModel(app.finance) },
+                    onOpenDebt = { backStack.add(DebtDetail(it)) },
+                    onBack = { backStack.removeLastOrNull() },
+                )
+            }
+            entry<DebtDetail> { key ->
+                DebtDetailScreen(viewModel { DebtDetailViewModel(key.id, app.finance) }, onBack = { backStack.removeLastOrNull() })
             }
             entry<ProjectDetail> { key ->
                 ProjectDetailScreen(
@@ -127,6 +144,7 @@ private fun MainScreen(
     onOpenTask: (String) -> Unit,
     onOpenProject: (String) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenFinances: () -> Unit,
 ) {
     var tab by rememberSaveable { mutableStateOf(Tab.Today) }
     var capturing by rememberSaveable { mutableStateOf(false) }
@@ -164,7 +182,7 @@ private fun MainScreen(
     ) { padding ->
         val modifier = Modifier.padding(padding)
         when (tab) {
-            Tab.Today -> TodayScreen(todayVm, onOpenTask, onOpenSettings, modifier)
+            Tab.Today -> TodayScreen(todayVm, onOpenTask, onOpenSettings, onOpenFinances, modifier)
             Tab.Inbox -> InboxScreen(tasksVm, onOpenTask, modifier)
             Tab.Tasks -> TasksScreen(tasksVm, onOpenTask, modifier)
             Tab.Projects -> ProjectsScreen(projectsVm, onOpenProject, modifier)
