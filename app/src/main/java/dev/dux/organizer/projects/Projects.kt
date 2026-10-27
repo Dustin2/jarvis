@@ -52,7 +52,7 @@ import kotlinx.coroutines.launch
 import dev.dux.organizer.ui.Choice
 import dev.dux.organizer.ui.asHeading
 
-/** Un proyecto con sus tareas abiertas (ya ordenadas: la primera es el siguiente paso). */
+/** A project with its open tasks (already sorted: the first one is the next step). */
 data class ProjectSummary(val project: Project, val open: List<Task>)
 
 class ProjectsViewModel(private val projects: ProjectRepository, tasks: TaskRepository) : ViewModel() {
@@ -131,7 +131,7 @@ fun ProjectsScreen(vm: ProjectsViewModel, onOpen: (String) -> Unit, modifier: Mo
     }
 }
 
-/** [onConfirm] recibe el nombre y un callback que indica si se guardó (para mostrar el error). */
+/** [onConfirm] receives the name and a callback saying whether it was saved (to show the error). */
 @Composable
 private fun NameDialog(@StringRes title: Int, onDismiss: () -> Unit, onConfirm: (String, (Boolean) -> Unit) -> Unit) {
     var name by rememberSaveable { mutableStateOf("") }
@@ -199,7 +199,7 @@ fun ProjectDetailScreen(vm: ProjectDetailViewModel, onOpenTask: (String) -> Unit
 
 @Composable
 private fun ProjectHeader(project: Project, vm: ProjectDetailViewModel) {
-    // Igual que en el detalle de tarea: texto local, guardado al instante, sin pisarlo con la base.
+    // Same as the task detail: local text, saved instantly, never overwritten by the database.
     var name by rememberSaveable { mutableStateOf(project.name) }
     var error by rememberSaveable { mutableStateOf(false) }
     Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {

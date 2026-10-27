@@ -9,8 +9,8 @@ class ProjectRepository(private val dao: ProjectDao, private val clock: Clock = 
 
     fun observe(id: String): Flow<Project?> = dao.observe(id)
 
-    // shortcut: "tabla vacía" = primera vez; vale mientras no se puedan borrar proyectos (solo archivar).
-    // Si algún día se permite borrar, cambiar a una bandera guardada.
+    // shortcut: "empty table" = first run; holds while projects cannot be deleted (only archived).
+    // If deleting is ever allowed, switch to a stored flag.
     suspend fun seedIfEmpty() {
         val now = clock.instant()
         dao.seedIfEmpty(
@@ -18,7 +18,7 @@ class ProjectRepository(private val dao: ProjectDao, private val clock: Clock = 
         )
     }
 
-    /** Devuelve false si el nombre no es válido. */
+    /** Returns false if the name is not valid. */
     suspend fun create(name: String): Boolean {
         val clean = cleanTitle(name) ?: return false
         val now = clock.instant()

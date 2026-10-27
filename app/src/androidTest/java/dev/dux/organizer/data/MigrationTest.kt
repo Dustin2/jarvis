@@ -11,7 +11,7 @@ import org.junit.Rule
 import org.junit.Test
 import java.time.LocalDate
 
-/** Cada migración se prueba con datos escritos en el esquema viejo (app/schemas/<versión>.json). */
+/** Every migration is tested with data written in the old schema (app/schemas/<version>.json). */
 class MigrationTest {
     private val dbName = "migration-test.db"
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -26,7 +26,7 @@ class MigrationTest {
     @Test fun v1ToV2KeepsDataAndAddsEmptyReminder() {
         helper.createDatabase(dbName, 1).apply {
             execSQL("INSERT INTO projects VALUES ('p1', 'Pro-Hielo', NULL, 'ACTIVE', 0, 0, 0)")
-            // priority 3 = HIGH; dueDate en días epoch.
+            // priority 3 = HIGH; dueDate in epoch days.
             execSQL(
                 "INSERT INTO tasks (id, title, notes, status, priority, projectId, dueDate, scheduledDate, createdAt, updatedAt, completedAt) " +
                     "VALUES ('t1', 'Tarea vieja', 'nota', 'TODO', 3, 'p1', ${LocalDate.of(2026, 11, 1).toEpochDay()}, NULL, 0, 0, NULL)"
@@ -34,7 +34,7 @@ class MigrationTest {
             close()
         }
 
-        // Valida que el esquema resultante es idéntico a app/schemas/2.json.
+        // Checks that the resulting schema is identical to app/schemas/2.json.
         helper.runMigrationsAndValidate(dbName, 2, true).close()
 
         val db = Room.databaseBuilder(context, AppDatabase::class.java, dbName).build()

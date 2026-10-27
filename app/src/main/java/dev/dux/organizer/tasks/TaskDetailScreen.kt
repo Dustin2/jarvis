@@ -66,7 +66,7 @@ import java.time.LocalTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
-/** Los cambios se guardan al instante: no hay botón Guardar ni forma de perder una edición. */
+/** Changes save instantly: there is no Save button and no way to lose an edit. */
 @Composable
 fun TaskDetailScreen(vm: TaskDetailViewModel, onBack: () -> Unit) {
     val task by vm.task.collectAsStateWithLifecycle()
@@ -109,7 +109,7 @@ fun TaskDetailScreen(vm: TaskDetailViewModel, onBack: () -> Unit) {
 
 @Composable
 private fun TaskForm(task: Task, vm: TaskDetailViewModel, modifier: Modifier) {
-    // Estado local del texto: se inicializa una vez y no se pisa con lo que vuelve de la base.
+    // Local text state: initialized once and never overwritten by what comes back from the database.
     var title by rememberSaveable { mutableStateOf(task.title) }
     var notes by rememberSaveable { mutableStateOf(task.notes.orEmpty()) }
     var titleError by rememberSaveable { mutableStateOf(false) }
@@ -147,8 +147,8 @@ private fun TaskForm(task: Task, vm: TaskDetailViewModel, modifier: Modifier) {
 }
 
 /**
- * Etiqueta y botón en una línea; con letra grande el botón baja a la siguiente en vez de partir la etiqueta.
- * El botón se anuncia con su campo ("Fecha límite: Sin fecha"), no solo con su valor.
+ * Label and button on one line; with large fonts the button moves down instead of breaking the label.
+ * The button is announced with its field ("Fecha límite: Sin fecha"), not only its value.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -180,12 +180,12 @@ private fun DateField(title: Int, date: LocalDate?, onChange: (LocalDate?) -> Un
     }
 }
 
-/** [onResult] recibe la fecha elegida, o null si se pulsó "quitar". */
-// DatePicker sigue marcado experimental, pero es el selector oficial de M3.
+/** [onResult] receives the chosen date, or null if "remove" was pressed. */
+// DatePicker is still marked experimental, but it is the official M3 picker.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DatePickDialog(initial: LocalDate, removeLabel: Int, canRemove: Boolean, onDismiss: () -> Unit, onResult: (LocalDate?) -> Unit) {
-    // El DatePicker trabaja en milisegundos UTC a medianoche; convertir siempre en UTC evita el error de "un día antes".
+    // DatePicker works in UTC milliseconds at midnight; always converting in UTC avoids the "one day earlier" bug.
     val state = rememberDatePickerState(initialSelectedDateMillis = initial.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
     DatePickerDialog(
         onDismissRequest = onDismiss,
@@ -201,10 +201,10 @@ private fun DatePickDialog(initial: LocalDate, removeLabel: Int, canRemove: Bool
 }
 
 /**
- * Fecha y luego hora. Pide el permiso de notificaciones aquí, la primera vez que hace falta,
- * y no al abrir la app.
+ * Date, then time. Asks for the notification permission here, the first time it is needed,
+ * and not when the app opens.
  */
-// TimePicker sigue marcado experimental, pero es el selector oficial de M3.
+// TimePicker is still marked experimental, but it is the official M3 picker.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReminderField(at: LocalDateTime?, onChange: (LocalDateTime?) -> Unit) {
@@ -218,7 +218,7 @@ private fun ReminderField(at: LocalDateTime?, onChange: (LocalDateTime?) -> Unit
         notificationsOff = !granted
     }
 
-    // Mismo formato de 12 o 24 horas que eligió el usuario en el teléfono (y que usa el selector).
+    // Same 12/24-hour format the user chose on the phone (and the picker uses).
     val timeFormat = remember { DateTimeFormatter.ofPattern(if (DateFormat.is24HourFormat(context)) "H:mm" else "h:mm a", SPANISH) }
     val label = at?.let { "${it.toLocalDate().label(today)}, ${it.toLocalTime().format(timeFormat)}" } ?: stringResource(R.string.no_reminder)
     Field(R.string.reminder, label, onClick = {
@@ -261,7 +261,7 @@ private fun ProjectField(projects: List<Project>, selectedId: String?, onSelect:
     var open by remember { mutableStateOf(false) }
     val name = when (selectedId) {
         null -> stringResource(R.string.no_project)
-        // Un proyecto archivado no aparece en la lista, pero la tarea sigue ligada a él.
+        // An archived project is not listed, but the task is still linked to it.
         else -> projects.find { it.id == selectedId }?.name ?: stringResource(R.string.project_status_archived)
     }
     Field(R.string.project, name, onClick = { open = true }) {

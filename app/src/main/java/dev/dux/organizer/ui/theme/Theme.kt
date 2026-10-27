@@ -11,8 +11,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 /**
- * Dynamic Color siempre está disponible (minSdk 33 ≥ 31); el esquema fijo es la alternativa
- * cuando se desactiva y el que usan las previews.
+ * Dynamic Color is always available (minSdk 33 ≥ 31); the fixed scheme is the fallback
+ * when it is turned off, and the one previews use.
  */
 @Composable
 fun JarvisTheme(

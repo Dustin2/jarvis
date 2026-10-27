@@ -66,7 +66,7 @@ enum class Tab(@StringRes val label: Int, @DrawableRes val icon: Int) {
 
 @Composable
 fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}) {
-    // El back stack se guarda solo (rotación, proceso muerto); por eso las claves son @Serializable.
+    // The back stack saves itself (rotation, process death); that is why the keys are @Serializable.
     val backStack = rememberNavBackStack(Main)
     LaunchedEffect(taskToOpen) {
         if (taskToOpen != null) {
@@ -79,7 +79,7 @@ fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}) {
     NavDisplay(
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },
-        // Cada pantalla tiene su propio estado guardado y sus propios ViewModels.
+        // Each screen has its own saved state and its own ViewModels.
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator(),
@@ -174,8 +174,8 @@ private fun MainScreen(
 }
 
 /**
- * Con letra al 200 %, cuatro etiquetas no caben en el ancho del teléfono: se partían ("Proyecto / s")
- * o se encimaban. Solo estas etiquetas crecen hasta 130 %; el resto de la app sigue la letra del sistema.
+ * At 200 % font size, four labels do not fit the phone width: they broke ("Proyecto / s")
+ * or overlapped. Only these labels grow up to 130 %; the rest of the app follows the system font size.
  */
 @Composable
 private fun NavLabel(text: String) {

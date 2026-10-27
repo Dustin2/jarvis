@@ -8,18 +8,18 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 /**
- * Formato documentado en docs/backup-format.md. Agregar un campo opcional no cambia la versión
- * (los archivos viejos simplemente no lo traen); quitar o cambiar el significado de uno, sí.
+ * Format documented in docs/backup-format.md. Adding an optional field does not change the version
+ * (old files simply do not have it); removing a field or changing its meaning does.
  */
 const val BACKUP_FORMAT = "dev.dux.organizer.backup"
 const val BACKUP_VERSION = 1
 
 data class BackupData(val projects: List<Project>, val tasks: List<Task>)
 
-/** El mensaje está pensado para mostrarse tal cual al usuario. */
+/** The message is meant to be shown to the user as is (in Spanish). */
 class InvalidBackupException(message: String) : Exception(message)
 
-// org.json viene con Android: para dos tablas no justifica agregar una librería de serialización.
+// org.json ships with Android: two tables do not justify adding a serialization library.
 fun encodeBackup(data: BackupData, exportedAt: Instant): String = JSONObject()
     .put("format", BACKUP_FORMAT)
     .put("version", BACKUP_VERSION)
@@ -28,7 +28,7 @@ fun encodeBackup(data: BackupData, exportedAt: Instant): String = JSONObject()
     .put("tasks", JSONArray(data.tasks.map { it.toJson() }))
     .toString(2)
 
-/** Valida el archivo completo antes de devolver nada: si algo falla, lanza [InvalidBackupException]. */
+/** Validates the whole file before returning anything: if something fails, throws [InvalidBackupException]. */
 fun decodeBackup(text: String): BackupData {
     val root = try {
         JSONObject(text)
@@ -94,7 +94,7 @@ private fun JSONObject.toTask(where: String) = Field(this, where).run {
     )
 }
 
-/** Lectura de campos con mensajes que dicen exactamente qué falló y dónde. */
+/** Field reading with messages that say exactly what failed and where. */
 private class Field(private val o: JSONObject, private val where: String) {
     private fun fail(name: String, problem: String): Nothing = throw InvalidBackupException("$where: el campo \"$name\" $problem.")
 

@@ -33,8 +33,8 @@ import androidx.compose.ui.unit.dp
 import dev.dux.organizer.R
 import dev.dux.organizer.data.cleanTitle
 
-/** Captura rápida: título obligatorio, notas opcionales. [onSave] solo se llama con un título válido. */
-// ModalBottomSheet sigue marcado experimental desde hace años, pero es el patrón oficial de M3 para esto.
+/** Quick capture: required title, optional notes. [onSave] is only called with a valid title. */
+// ModalBottomSheet has been marked experimental for years, but it is the official M3 pattern for this.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CaptureSheet(onDismiss: () -> Unit, onSave: (title: String, notes: String) -> Unit) {
@@ -74,6 +74,6 @@ fun CaptureSheet(onDismiss: () -> Unit, onSave: (title: String, notes: String) -
             Button(onClick = save, modifier = Modifier.align(Alignment.End)) { Text(stringResource(R.string.save)) }
         }
     }
-    // Abrir el teclado de inmediato: capturar debe tomar segundos.
+    // Open the keyboard right away: capturing should take seconds.
     LaunchedEffect(Unit) { focus.requestFocus() }
 }

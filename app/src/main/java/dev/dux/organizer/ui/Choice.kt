@@ -21,8 +21,8 @@ import androidx.compose.ui.unit.dp
 import dev.dux.organizer.R
 
 /**
- * Elegir una opción de varias. Chips que pasan a la siguiente línea cuando no caben:
- * con letra grande, los botones segmentados cortaban el texto ("Pendi", "Canc").
+ * Pick one option out of several. Chips wrap to the next line when they do not fit:
+ * with large fonts, segmented buttons cut the text ("Pendi", "Canc").
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -36,7 +36,7 @@ fun <T> Choice(@StringRes title: Int, options: List<T>, selected: T, label: (T) 
                     selected = isSelected,
                     onClick = { onSelect(option) },
                     label = { Text(stringResource(label(option))) },
-                    // La palomita marca la opción sin depender solo del color.
+                    // The check mark shows the selection without relying on color alone.
                     leadingIcon = if (isSelected) ({ Icon(painterResource(R.drawable.ic_check), contentDescription = null, Modifier.size(FilterChipDefaults.IconSize)) }) else null,
                 )
             }

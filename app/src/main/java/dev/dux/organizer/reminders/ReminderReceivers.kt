@@ -8,7 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-/** goAsync: leer la base toma más que lo que Android permite dentro de onReceive. */
+/** goAsync: reading the database takes longer than Android allows inside onReceive. */
 private fun BroadcastReceiver.runAsync(block: suspend () -> Unit) {
     val pending = goAsync()
     CoroutineScope(Dispatchers.Default).launch {
@@ -27,7 +27,7 @@ class ReminderReceiver : BroadcastReceiver() {
     }
 }
 
-/** Android borra las alarmas al reiniciar, y un cambio de hora o zona cambia cuándo son "las 9:00". */
+/** Android clears alarms on reboot, and a time or time zone change moves when "9:00" is. */
 class RescheduleReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action !in ACTIONS) return

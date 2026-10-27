@@ -12,16 +12,16 @@ import dev.dux.organizer.ui.JarvisApp
 import dev.dux.organizer.ui.theme.JarvisTheme
 
 class MainActivity : ComponentActivity() {
-    /** Tarea a abrir al tocar una notificación; se consume una vez abierta. */
+    /** Task to open after tapping a notification; consumed once opened. */
     private val taskToOpen = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // La app solo está en español: sin esto, componentes como el calendario siguen el idioma del sistema.
+        // The app is Spanish-only: without this, components such as the date picker follow the system language.
         getSystemService(LocaleManager::class.java).run {
             if (applicationLocales.isEmpty) applicationLocales = LocaleList.forLanguageTags("es-MX")
         }
-        // Solo en el primer arranque: al recrear (rotación) la pantalla de la tarea ya está en el back stack.
+        // First launch only: on recreation (rotation) the task screen is already in the back stack.
         if (savedInstanceState == null) taskToOpen.value = intent.getStringExtra(EXTRA_TASK_ID)
         enableEdgeToEdge()
         setContent {
@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // La app ya estaba abierta y se tocó una notificación.
+    // The app was already open and a notification was tapped.
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         taskToOpen.value = intent.getStringExtra(EXTRA_TASK_ID)

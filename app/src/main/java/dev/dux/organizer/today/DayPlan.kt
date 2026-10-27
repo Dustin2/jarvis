@@ -9,18 +9,18 @@ data class DayPlan(
     val upcoming: List<Task>,
     val openCount: Int,
 ) {
-    /** Lo vencido va primero: ya debía estar hecho. Dentro de cada grupo se respeta el orden de entrada. */
+    /** Overdue goes first: it should already be done. Within each group the input order is kept. */
     val nextStep: Task? get() = overdue.firstOrNull() ?: today.firstOrNull()
 }
 
 const val UPCOMING_DAYS = 7L
 
 /**
- * Reglas de "Mi día" sobre tareas abiertas (ya ordenadas por prioridad):
- * - Vencida: su fecha límite ya pasó.
- * - Hoy: vence hoy, o se programó para hoy o un día anterior (lo planeado y no hecho se arrastra; no "vence").
- * - Próximas: vence o está programada en los siguientes [UPCOMING_DAYS] días.
- * Cada tarea aparece en un solo grupo, el primero que aplique.
+ * "Mi día" rules over open tasks (already sorted by priority):
+ * - Overdue: its due date has passed.
+ * - Today: due today, or scheduled for today or an earlier day (planned and not done carries over; it does not become "overdue").
+ * - Upcoming: due or scheduled within the next [UPCOMING_DAYS] days.
+ * Each task appears in a single group, the first one that applies.
  */
 fun planDay(open: List<Task>, today: LocalDate): DayPlan {
     val horizon = today.plusDays(UPCOMING_DAYS)

@@ -46,7 +46,7 @@ import java.time.format.FormatStyle
 import dev.dux.organizer.ui.asHeading
 
 class TodayViewModel(private val tasks: TaskRepository, projects: ProjectRepository) : ViewModel() {
-    /** Tareas abiertas + nombre de proyecto por id. null = cargando. */
+    /** Open tasks + project name by id. null = loading. */
     val state = combine(tasks.open, projects.visible) { open, list -> open to list.associate { it.id to it.name } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
