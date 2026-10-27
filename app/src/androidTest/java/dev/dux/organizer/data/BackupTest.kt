@@ -22,13 +22,14 @@ class BackupTest {
     private val backups = BackupRepository(db, dir)
     private val projects = ProjectRepository(db.projects())
     private val tasks = TaskRepository(db.tasks())
+    private val shopping = ShoppingRepository(db.shopping())
 
     @After fun tearDown() {
         db.close()
         dir.deleteRecursively()
     }
 
-    /** One project and two tasks covering every kind of field (dates, nulls, project). */
+    /** One project, two tasks and a shopping list covering every kind of field (dates, nulls, project). */
     private suspend fun sampleData(prefix: String = "") {
         projects.create("${prefix}Pro-Hielo")
         val projectId = projects.visible.first().first().id
@@ -42,6 +43,10 @@ class BackupTest {
         tasks.setReminder(full, LocalDateTime.of(2026, 10, 30, 9, 15))
         tasks.setRecurrence(full, Recurrence(Frequency.MONTHLY, monthDay = 31))
         tasks.setStatus(full, TaskStatus.DONE)
+        val listId = shopping.createList("${prefix}Súper")!!
+        shopping.addItem(listId, "${prefix}Leche")
+        shopping.addItem(listId, "${prefix}Tortillas", "2 kg")
+        shopping.setChecked(db.shopping().getAllItems().first().id, true)
     }
 
     @Test fun exportThenDecodeGivesTheSameData() = runBlocking {
@@ -49,21 +54,26 @@ class BackupTest {
         val decoded = decodeBackup(backups.export())
         assertEquals(db.projects().getAll(), decoded.projects)
         assertEquals(db.tasks().getAll(), decoded.tasks)
+        assertEquals(db.shopping().getAllLists(), decoded.shoppingLists)
+        assertEquals(db.shopping().getAllItems(), decoded.shoppingItems)
     }
 
     @Test fun restoreReplacesEverythingAndUndoBringsItBack() = runBlocking {
         sampleData("A-")
         val fileA = backups.export()
-        db.tasks().deleteAll(); db.projects().deleteAll()
+        db.tasks().deleteAll(); db.projects().deleteAll(); db.shopping().deleteAllLists()
         sampleData("B-")
         val before = db.tasks().getAll()
+        val itemsBefore = db.shopping().getAllItems()
 
         backups.restore(decodeBackup(fileA))
         assertTrue(db.tasks().getAll().all { it.title.startsWith("A-") })
+        assertTrue(db.shopping().getAllItems().all { it.name.startsWith("A-") })
         assertTrue(backups.canUndoRestore)
 
         backups.undoRestore()
         assertEquals(before, db.tasks().getAll())
+        assertEquals(itemsBefore, db.shopping().getAllItems())
         assertFalse(backups.canUndoRestore)
     }
 
@@ -84,6 +94,8 @@ class BackupTest {
             "duplicate id" to broken { getJSONArray("tasks").put(JSONObject(task(this).toString())) },
             "missing list" to broken { remove("projects") },
             "invalid rule" to broken { task(this).put("recurrence", "FREQ=YEARLY") },
+            "missing shopping list" to broken { getJSONArray("shoppingItems").getJSONObject(0).put("listId", "no-existe") },
+            "checked not boolean" to broken { getJSONArray("shoppingItems").getJSONObject(0).put("checked", "sí") },
         )
         cases.forEach { (case, text) ->
             val error = assertThrows(case, InvalidBackupException::class.java) { decodeBackup(text) }
@@ -102,6 +114,7 @@ class BackupTest {
         assertEquals(null, task.dueDate)
         assertEquals(null, task.projectId)
         assertEquals(null, task.reminderAt)
+        assertEquals(emptyList<ShoppingList>(), decodeBackup(minimal).shoppingLists)
     }
 
     @Test fun reminderSurvivesTheRoundTrip() = runBlocking {

@@ -4,6 +4,7 @@
     <string name="tab_inbox">Bandeja</string>
     <string name="tab_tasks">Tareas</string>
     <string name="tab_projects">Proyectos</string>
+    <string name="tab_shopping">Compras</string>
     <string name="next_step">Siguiente paso</string>
     <string name="empty_today">Nada pendiente para hoy</string>
     <string name="empty_inbox">Aquí caerá todo lo que captures rápido.</string>
@@ -134,4 +135,27 @@
         <item quantity="one">Cada mes, el día %2$d</item>
         <item quantity="other">Cada %1$d meses, el día %2$d</item>
     </plurals>
+
+    <string name="add_item">Agregar</string>
+    <string name="add_to_list">Agregar a «%1$s»</string>
+    <string name="item_name">Artículo</string>
+    <string name="quantity_optional">Cantidad (opcional)</string>
+    <string name="item_invalid">Escribe el artículo (máximo 200 caracteres) y una cantidad de hasta 40</string>
+    <string name="added_item">Agregado: %1$s</string>
+    <string name="in_cart">En el carrito (%1$d)</string>
+    <string name="remove_checked">Quitar comprados</string>
+    <string name="uncheck_all">Desmarcar todo</string>
+    <string name="remove_item">Quitar «%1$s»</string>
+    <string name="empty_shopping_list">La lista está vacía. Toca Agregar para anotar lo que falta.</string>
+    <string name="new_list">Nueva lista</string>
+    <string name="list_name">Nombre de la lista</string>
+    <string name="rename_list">Renombrar lista</string>
+    <string name="delete_list">Borrar lista</string>
+    <string name="delete_list_confirm_title">¿Borrar «%1$s»?</string>
+    <plurals name="delete_list_confirm_body">
+        <item quantity="one">Se borrará con su artículo. No se puede deshacer.</item>
+        <item quantity="other">Se borrará con sus %1$d artículos. No se puede deshacer.</item>
+    </plurals>
+    <string name="share_list">Compartir lista</string>
+    <string name="more_options">Más opciones</string>
 </resources>
