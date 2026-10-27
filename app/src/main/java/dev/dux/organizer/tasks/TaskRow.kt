@@ -1,7 +1,6 @@
 package dev.dux.organizer.tasks
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.clickable
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -50,15 +49,7 @@ fun TaskRow(
 ) {
     val done = task.status == TaskStatus.DONE || task.status == TaskStatus.CANCELLED
     ListItem(
-        modifier = Modifier.clickable(onClick = onOpen),
-        headlineContent = {
-            Text(
-                task.title,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                textDecoration = if (done) TextDecoration.LineThrough else null,
-            )
-        },
+        onClick = onOpen,
         // null cuando no hay nada que mostrar: así la fila queda de una sola línea.
         supportingContent = if (
             task.priority != Priority.NONE || task.dueDate != null || task.scheduledDate != null ||
@@ -75,7 +66,14 @@ fun TaskRow(
             }
         },
         trailingContent = trailing,
-    )
+    ) {
+        Text(
+            task.title,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            textDecoration = if (done) TextDecoration.LineThrough else null,
+        )
+    }
 }
 
 @Composable
