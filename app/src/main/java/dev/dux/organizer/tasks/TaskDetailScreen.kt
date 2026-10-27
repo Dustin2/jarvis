@@ -53,6 +53,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.dux.organizer.R
 import dev.dux.organizer.data.Priority
 import dev.dux.organizer.data.Project
+import dev.dux.organizer.data.Recurrence
 import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TaskStatus
 import dev.dux.organizer.ui.Choice
@@ -143,6 +144,7 @@ private fun TaskForm(task: Task, vm: TaskDetailViewModel, modifier: Modifier) {
         val projects by vm.projects.collectAsStateWithLifecycle()
         ProjectField(projects.orEmpty(), task.projectId, vm::setProject)
         ReminderField(task.reminderAt, vm::setReminder)
+        RepeatField(task, vm::setRecurrence)
     }
 }
 
@@ -164,6 +166,20 @@ private fun Field(title: Int, value: String, onClick: () -> Unit, menu: @Composa
             OutlinedButton(onClick = onClick, modifier = Modifier.semantics { contentDescription = "$label: $value" }) { Text(value) }
             menu()
         }
+    }
+}
+
+@Composable
+private fun RepeatField(task: Task, onChange: (Recurrence?) -> Unit) {
+    var editing by rememberSaveable { mutableStateOf(false) }
+    Field(R.string.repeat, task.recurrence.describe(), onClick = { editing = true })
+    if (editing) {
+        RepeatDialog(
+            initial = task.recurrence,
+            anchor = task.dueDate ?: task.scheduledDate ?: LocalDate.now(),
+            onDismiss = { editing = false },
+            onSave = { editing = false; onChange(it) },
+        )
     }
 }
 

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.dux.organizer.data.Priority
 import dev.dux.organizer.data.ProjectRepository
+import dev.dux.organizer.data.Recurrence
 import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TaskRepository
 import dev.dux.organizer.data.TaskStatus
@@ -54,6 +55,7 @@ class TaskDetailViewModel(
     fun setScheduledDate(date: LocalDate?) = launch { repo.setScheduledDate(id, date) }
     fun setProject(projectId: String?) = launch { repo.setProject(id, projectId) }
     fun setReminder(at: LocalDateTime?) = launch { repo.setReminder(id, at) }
+    fun setRecurrence(rule: Recurrence?) = launch { repo.setRecurrence(id, rule) }
     fun delete(onDone: () -> Unit) {
         viewModelScope.launch { repo.delete(id); onDone() }
     }

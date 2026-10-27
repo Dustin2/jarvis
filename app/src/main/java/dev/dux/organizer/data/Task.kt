@@ -44,6 +44,10 @@ data class Task(
      * Cleared when it fires; one reminder per task (schema version 2).
      */
     val reminderAt: LocalDateTime? = null,
+    /** Repeat rule (schema v3). Completing or cancelling creates the next occurrence. */
+    val recurrence: Recurrence? = null,
+    /** Links the occurrences of a series: the id of the task where repeating was enabled. */
+    val seriesId: String? = null,
 )
 
 /** Changes the status keeping [Task.completedAt] consistent: it only exists while the task is done. */
