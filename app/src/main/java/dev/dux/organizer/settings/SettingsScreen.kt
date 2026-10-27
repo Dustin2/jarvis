@@ -36,6 +36,18 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.dux.organizer.R
+import dev.dux.organizer.backup.AutoBackup
+import dev.dux.organizer.backup.AutoBackupState
+import dev.dux.organizer.ui.SPANISH
+import dev.dux.organizer.ui.label
+import dev.dux.organizer.ui.rememberToday
+import android.provider.DocumentsContract
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import dev.dux.organizer.data.BackupData
 import dev.dux.organizer.data.BackupRepository
 import dev.dux.organizer.data.InvalidBackupException
@@ -52,7 +64,14 @@ data class Message(@StringRes val text: Int, val detail: String? = null)
 // A real backup is a few kilobytes; the limit avoids running out of memory if the wrong file is picked.
 private const val MAX_BACKUP_BYTES = 20 * 1024 * 1024
 
-class SettingsViewModel(private val backups: BackupRepository, private val resolver: ContentResolver) : ViewModel() {
+class SettingsViewModel(
+    private val backups: BackupRepository,
+    private val resolver: ContentResolver,
+    private val autoBackup: AutoBackup,
+) : ViewModel() {
+    /** null = still loading. */
+    val auto = autoBackup.state.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     var message by mutableStateOf<Message?>(null)
         private set
     /** Already validated backup, waiting for the user to confirm the replacement. */
@@ -100,6 +119,19 @@ class SettingsViewModel(private val backups: BackupRepository, private val resol
         message = Message(R.string.undo_done)
     }
 
+    fun enableAutoBackup(folder: Uri) = run(R.string.auto_backup_failed) {
+        message = Message(if (autoBackup.enable(folder)) R.string.auto_backup_enabled else R.string.auto_backup_failed)
+    }
+
+    fun backUpNow() = run(R.string.auto_backup_failed) {
+        message = Message(if (autoBackup.runNow()) R.string.export_done else R.string.auto_backup_failed)
+    }
+
+    fun disableAutoBackup() = run(R.string.auto_backup_failed) {
+        autoBackup.disable()
+        message = Message(R.string.auto_backup_disabled)
+    }
+
     fun messageShown() {
         message = null
     }
@@ -131,6 +163,10 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let(vm::read)
     }
+    val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        uri?.let(vm::enableAutoBackup)
+    }
+    val auto by vm.auto.collectAsStateWithLifecycle()
 
     vm.message?.let { message ->
         val text = stringResource(message.text) + (message.detail?.let { "\n$it" } ?: "")
@@ -172,6 +208,7 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
                     Text(stringResource(R.string.undo_restore))
                 }
             }
+            auto?.let { AutoBackupSection(it, vm, onPickFolder = { folderLauncher.launch(null) }) }
         }
     }
 
@@ -184,4 +221,33 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
             dismissButton = { TextButton(onClick = vm::cancelRestore) { Text(stringResource(R.string.cancel)) } },
         )
     }
+}
+
+private val time = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(SPANISH)
+
+@Composable
+private fun AutoBackupSection(state: AutoBackupState, vm: SettingsViewModel, onPickFolder: () -> Unit) {
+    val today by rememberToday()
+    Text(
+        stringResource(R.string.auto_backup),
+        style = MaterialTheme.typography.titleLarge,
+        modifier = Modifier.padding(top = 16.dp).asHeading(),
+    )
+    Text(stringResource(R.string.auto_backup_explanation), color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val folder = state.folder
+    if (folder == null) {
+        Button(onClick = onPickFolder, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.choose_folder)) }
+        return
+    }
+    // "primary:Documents/Jarvis" → "Documents/Jarvis"; other providers may only give an opaque id.
+    Text(stringResource(R.string.auto_backup_folder, DocumentsContract.getTreeDocumentId(folder).substringAfter(':')))
+    val last = state.lastSuccess?.atZone(ZoneId.systemDefault())
+    Text(
+        if (last == null) stringResource(R.string.auto_backup_never)
+        else stringResource(R.string.auto_backup_last, last.toLocalDate().label(today), last.format(time)),
+    )
+    if (state.lastFailure != null) Text(stringResource(R.string.auto_backup_problem), color = MaterialTheme.colorScheme.error)
+    OutlinedButton(onClick = vm::backUpNow, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.back_up_now)) }
+    OutlinedButton(onClick = onPickFolder, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.change_folder)) }
+    TextButton(onClick = vm::disableAutoBackup, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.turn_off_auto_backup)) }
 }
