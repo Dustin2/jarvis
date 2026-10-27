@@ -15,6 +15,7 @@
     <string name="notes_optional">Notas (opcional)</string>
     <string name="notes">Notas</string>
     <string name="save">Guardar</string>
+    <string name="saved">Guardado</string>
     <string name="saved_to_inbox">Guardado en la Bandeja</string>
     <string name="title_invalid">Escribe un título (máximo 200 caracteres)</string>
     <string name="plan">Planificar</string>
