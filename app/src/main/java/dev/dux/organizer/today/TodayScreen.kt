@@ -30,6 +30,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import dev.dux.organizer.R
+import dev.dux.organizer.backup.AutoBackup
+import dev.dux.organizer.backup.backupOverdue
 import dev.dux.organizer.data.FinanceRepository
 import dev.dux.organizer.data.ProjectRepository
 import dev.dux.organizer.data.formatMoney
@@ -44,14 +46,16 @@ import dev.dux.organizer.ui.SPANISH
 import dev.dux.organizer.ui.rememberToday
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.Instant
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import dev.dux.organizer.ui.asHeading
 
-class TodayViewModel(private val tasks: TaskRepository, projects: ProjectRepository, finance: FinanceRepository) : ViewModel() {
+class TodayViewModel(private val tasks: TaskRepository, projects: ProjectRepository, finance: FinanceRepository, autoBackup: AutoBackup) : ViewModel() {
     /** Open tasks + project name by id. null = loading. */
     val state = combine(tasks.open, projects.visible) { open, list -> open to list.associate { it.id to it.name } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
@@ -59,6 +63,10 @@ class TodayViewModel(private val tasks: TaskRepository, projects: ProjectReposit
     // shortcut: the month is fixed when the screen opens; if the app stays open past month end it shows the old one until reopened.
     val month = combine(finance.categories, finance.movements(YearMonth.now())) { categories, movements -> monthSummary(categories, movements) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** Automatic backup is on but has not saved anything for days: better to know before the data is needed. */
+    val backupOverdue = autoBackup.state.map { backupOverdue(it.lastSuccess, it.enabledAt, Instant.now()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     fun complete(id: String) {
         viewModelScope.launch { tasks.setStatus(id, TaskStatus.DONE) }
@@ -69,6 +77,7 @@ class TodayViewModel(private val tasks: TaskRepository, projects: ProjectReposit
 fun TodayScreen(vm: TodayViewModel, onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onOpenFinances: () -> Unit, modifier: Modifier = Modifier) {
     val state by vm.state.collectAsStateWithLifecycle()
     val month by vm.month.collectAsStateWithLifecycle()
+    val backupOverdue by vm.backupOverdue.collectAsStateWithLifecycle()
     val today by rememberToday()
     val (open, projectNames) = state ?: return
     val plan = remember(open, today) { planDay(open, today) }
@@ -98,6 +107,7 @@ fun TodayScreen(vm: TodayViewModel, onOpen: (String) -> Unit, onOpenSettings: ()
                 )
             }
         }
+        if (backupOverdue) item { BackupWarningCard(onOpenSettings) }
         item { NextStepCard(plan.nextStep, onOpen) }
         month?.let { item { MonthCard(it, onOpenFinances) } }
         section(R.string.overdue, plan.overdue, row)
@@ -118,6 +128,14 @@ private fun NextStepCard(task: Task?, onOpen: (String) -> Unit) {
     val modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
     if (task == null) Card(modifier, colors = colors) { content() }
     else Card(onClick = { onOpen(task.id) }, modifier = modifier, colors = colors) { content() }
+}
+
+@Composable
+private fun BackupWarningCard(onClick: () -> Unit) {
+    val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+    Card(onClick = onClick, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), colors = colors) {
+        Text(stringResource(R.string.backup_overdue), Modifier.padding(20.dp))
+    }
 }
 
 /** The month's spending at a glance; opens Finanzas. */

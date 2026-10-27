@@ -12,7 +12,7 @@ Personal organization app for Android. Kotlin + Jetpack Compose + Material 3 Exp
 
 - Work in milestones: do not start a milestone or a substantial change without the user's approval. Explain decisions (the user is learning).
 - Before pinning versions, check Google / Maven Central `maven-metadata.xml` or the official docs; never from memory.
-- Follow `docs/architecture.md`. Do not add dependencies, layers, interfaces or abstractions without a concrete need; that document lists when each one becomes worth it. Single `:app` module, packages by feature (`today/`, `inbox/`, `tasks/`, `projects/`, `shopping/`, `finances/`, `reminders/`, `settings/`, `data/`, `ui/`).
+- Follow `docs/architecture.md`. Do not add dependencies, layers, interfaces or abstractions without a concrete need; that document lists when each one becomes worth it. Single `:app` module, packages by feature (`today/`, `inbox/`, `tasks/`, `projects/`, `shopping/`, `finances/`, `reminders/`, `backup/`, `settings/`, `data/`, `ui/`).
 - Room: `exportSchema = true`, versioned migrations, never `fallbackToDestructiveMigration`.
 - Never commit databases, backups or personal data.
 - Material 3 1.5.0 is a beta on purpose (Expressive). Say so before using APIs marked `@ExperimentalMaterial3ExpressiveApi`.
