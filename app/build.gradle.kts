@@ -12,27 +12,27 @@ android {
 
     defaultConfig {
         applicationId = "dev.dux.organizer"
-        // 33: necesario para USE_EXACT_ALARM y POST_NOTIFICATIONS (Hito 4).
+        // 33: required for USE_EXACT_ALARM and POST_NOTIFICATIONS (milestone 4).
         minSdk = 33
         targetSdk = 37
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         debug {
-            // App aparte ("Jarvis Dev") junto a la real: las pruebas de dispositivo la instalan y desinstalan
-            // en el teléfono sin tocar la app ni los datos reales (dev.dux.organizer).
+            // Separate app ("Jarvis Dev") next to the real one: device tests install and uninstall it
+            // on the phone without touching the real app or its data (dev.dux.organizer).
             applicationIdSuffix = ".debug"
         }
         release {
-            // R8 quita código sin usar y optimiza: Compose en debug es notablemente más lento.
+            // R8 removes unused code and optimizes: Compose in debug is noticeably slower.
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
-            // shortcut: firmado con la llave de debug para poder instalarlo encima de la versión debug sin perder datos.
-            // Si algún día se publica o se comparte el APK, crear una llave propia (y respaldarla).
+            // shortcut: signed with the debug key so it installs over the debug build without losing data.
+            // If the APK is ever published or shared, create a dedicated key (and back it up).
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -48,7 +48,7 @@ android {
 }
 
 room {
-    // Los esquemas exportados van a git: son la referencia para probar cada migración.
+    // Exported schemas are committed: they are the reference to test every migration.
     schemaDirectory("$projectDir/schemas")
 }
 

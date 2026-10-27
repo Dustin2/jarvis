@@ -8,18 +8,18 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 /**
- * Formato documentado en docs/backup-format.md. Agregar un campo opcional no cambia la versión
- * (los archivos viejos simplemente no lo traen); quitar o cambiar el significado de uno, sí.
+ * Format documented in docs/backup-format.md. Adding an optional field does not change the version
+ * (old files simply do not have it); removing a field or changing its meaning does.
  */
 const val BACKUP_FORMAT = "dev.dux.organizer.backup"
 const val BACKUP_VERSION = 1
 
 data class BackupData(val projects: List<Project>, val tasks: List<Task>)
 
-/** El mensaje está pensado para mostrarse tal cual al usuario. */
+/** The message is meant to be shown to the user as is (in Spanish). */
 class InvalidBackupException(message: String) : Exception(message)
 
-// org.json viene con Android: para dos tablas no justifica agregar una librería de serialización.
+// org.json ships with Android: two tables do not justify adding a serialization library.
 fun encodeBackup(data: BackupData, exportedAt: Instant): String = JSONObject()
     .put("format", BACKUP_FORMAT)
     .put("version", BACKUP_VERSION)
@@ -28,7 +28,7 @@ fun encodeBackup(data: BackupData, exportedAt: Instant): String = JSONObject()
     .put("tasks", JSONArray(data.tasks.map { it.toJson() }))
     .toString(2)
 
-/** Valida el archivo completo antes de devolver nada: si algo falla, lanza [InvalidBackupException]. */
+/** Validates the whole file before returning anything: if something fails, throws [InvalidBackupException]. */
 fun decodeBackup(text: String): BackupData {
     val root = try {
         JSONObject(text)
@@ -64,6 +64,8 @@ private fun Task.toJson() = JSONObject()
     .put("createdAt", createdAt.toString()).put("updatedAt", updatedAt.toString())
     .put("completedAt", completedAt?.toString() ?: JSONObject.NULL)
     .put("reminderAt", reminderAt?.toString() ?: JSONObject.NULL)
+    .put("recurrence", recurrence?.format() ?: JSONObject.NULL)
+    .put("seriesId", seriesId ?: JSONObject.NULL)
 
 private fun JSONObject.toProject(where: String) = Field(this, where).run {
     Project(
@@ -91,10 +93,12 @@ private fun JSONObject.toTask(where: String) = Field(this, where).run {
         updatedAt = instant("updatedAt"),
         completedAt = optionalInstant("completedAt"),
         reminderAt = optionalDateTime("reminderAt"),
+        recurrence = optionalRecurrence("recurrence"),
+        seriesId = optionalText("seriesId"),
     )
 }
 
-/** Lectura de campos con mensajes que dicen exactamente qué falló y dónde. */
+/** Field reading with messages that say exactly what failed and where. */
 private class Field(private val o: JSONObject, private val where: String) {
     private fun fail(name: String, problem: String): Nothing = throw InvalidBackupException("$where: el campo \"$name\" $problem.")
 
@@ -106,6 +110,8 @@ private class Field(private val o: JSONObject, private val where: String) {
         text(name).let { v -> values.firstOrNull { it.name == v } ?: fail(name, "no admite el valor \"$v\"") }
     fun optionalDate(name: String): LocalDate? = optionalText(name)?.let { parse(name) { LocalDate.parse(it) } }
     fun optionalDateTime(name: String): LocalDateTime? = optionalText(name)?.let { parse(name) { LocalDateTime.parse(it) } }
+    fun optionalRecurrence(name: String): Recurrence? =
+        optionalText(name)?.let { Recurrence.parse(it) ?: fail(name, "no es una regla de repetición válida") }
     fun optionalInstant(name: String): Instant? = optionalText(name)?.let { parse(name) { Instant.parse(it) } }
     fun instant(name: String): Instant = optionalInstant(name) ?: fail(name, "es obligatorio")
 

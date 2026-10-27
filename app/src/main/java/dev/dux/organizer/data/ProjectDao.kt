@@ -39,7 +39,7 @@ interface ProjectDao {
     @Update
     suspend fun update(project: Project)
 
-    /** Inserta los proyectos iniciales solo si la tabla está vacía; en una transacción para no duplicar. */
+    /** Inserts the initial projects only if the table is empty; in a transaction to avoid duplicates. */
     @Transaction
     suspend fun seedIfEmpty(projects: List<Project>) {
         if (count() == 0) insertAll(projects)

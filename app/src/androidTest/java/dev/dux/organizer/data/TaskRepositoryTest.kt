@@ -18,7 +18,7 @@ class TaskRepositoryTest {
     private var db = open()
     private var repo = TaskRepository(db.tasks())
 
-    // Archivo real (no en memoria) para poder cerrar y reabrir, como al reiniciar la app.
+    // A real file (not in memory) so it can be closed and reopened, like restarting the app.
     private fun open() = Room.databaseBuilder(context, AppDatabase::class.java, dbName).build()
 
     @After fun tearDown() {

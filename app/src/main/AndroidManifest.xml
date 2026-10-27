@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Alarmas a la hora exacta. Se concede al instalar; Google Play lo limita a apps de alarma/calendario, pero Jarvis no va a Play. -->
+    <!-- Exact-time alarms. Granted at install; Google Play restricts it to alarm/calendar apps, but Jarvis is not on Play. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
-    <!-- Se pide en tiempo de ejecución solo al crear el primer recordatorio, no al abrir la app. -->
+    <!-- Requested at runtime only when the first reminder is created, not when the app opens. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Android borra las alarmas al reiniciar: hay que volver a programarlas. -->
+    <!-- Android clears alarms on reboot: they have to be scheduled again. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
-    <!-- allowBackup=false: tus datos no se suben al respaldo de Google; el respaldo será el export JSON. -->
+    <!-- allowBackup=false: data is not uploaded to Google backup; the JSON export is the backup. -->
     <application
         android:name=".JarvisApplication"
         android:allowBackup="false"
@@ -30,7 +30,7 @@
         <receiver
             android:name=".reminders.ReminderReceiver"
             android:exported="false" />
-        <!-- exported: estos avisos los envía el sistema. Si otra app lo llamara, solo reprogramaría (inofensivo). -->
+        <!-- exported: the system sends these broadcasts. If another app called it, it would only reschedule (harmless). -->
         <receiver
             android:name=".reminders.RescheduleReceiver"
             android:exported="true">

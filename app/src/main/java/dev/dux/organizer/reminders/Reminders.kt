@@ -21,8 +21,8 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 
 /**
- * Traduce [reminderAction] a alarmas y notificaciones de Android.
- * Una alarma por tarea, identificada por su id: programar de nuevo reemplaza la anterior (sin duplicados).
+ * Turns [reminderAction] into Android alarms and notifications.
+ * One alarm per task, identified by its id: scheduling again replaces the previous one (no duplicates).
  */
 class Reminders(private val context: Context, private val dao: TaskDao) {
     private val alarms = context.getSystemService(AlarmManager::class.java)
@@ -32,37 +32,37 @@ class Reminders(private val context: Context, private val dao: TaskDao) {
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
-    /** Aplica la regla al estado actual de la tarea. */
+    /** Applies the rule to the task's current state. */
     suspend fun sync(task: Task) {
-        // Zona leída en cada llamada: tras un cambio de zona horaria, "las 9:00" se recalculan.
+        // Zone read on every call: after a time zone change, "9:00" is recalculated.
         when (val action = reminderAction(task, LocalDateTime.now())) {
             ReminderAction.Cancel -> cancel(task.id)
             is ReminderAction.Schedule -> schedule(task.id, action.at)
             ReminderAction.NotifyNow -> {
                 notify(task)
-                // Ya avisó: se borra para que un reinicio no lo repita.
+                // Already notified: cleared so a reboot does not repeat it.
                 task.reminderAt?.let { dao.clearReminder(task.id, it) }
             }
         }
     }
 
-    /** La alarma sonó: se vuelve a leer la tarea, porque pudo cambiar o borrarse desde que se programó. */
+    /** The alarm fired: the task is read again, since it may have changed or been deleted since scheduling. */
     suspend fun onAlarm(taskId: String) {
         dao.get(taskId)?.let { sync(it) }
     }
 
-    /** Tras reinicio, cambio de hora, actualización de la app o restaurar un respaldo. */
+    /** After a reboot, time change, app update or backup restore. */
     suspend fun syncAll() {
         dao.withReminder().forEach { sync(it) }
     }
 
     fun cancel(taskId: String) = alarms.cancel(alarmIntent(taskId))
 
-    // Lint solo conoce SCHEDULE_EXACT_ALARM; usamos USE_EXACT_ALARM y comprobamos canScheduleExactAlarms() antes.
+    // Lint only knows SCHEDULE_EXACT_ALARM; we use USE_EXACT_ALARM and check canScheduleExactAlarms() first.
     @SuppressLint("MissingPermission")
     private fun schedule(taskId: String, at: LocalDateTime) {
         val millis = at.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        // USE_EXACT_ALARM se concede al instalar; el respaldo inexacto es por si algún día se revoca.
+        // USE_EXACT_ALARM is granted at install; the inexact fallback is in case it is ever revoked.
         if (alarms.canScheduleExactAlarms()) {
             alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, millis, alarmIntent(taskId))
         } else {
@@ -73,14 +73,14 @@ class Reminders(private val context: Context, private val dao: TaskDao) {
     private fun alarmIntent(taskId: String): PendingIntent = PendingIntent.getBroadcast(
         context,
         0,
-        // El id va en el URI: así cada tarea tiene su propio PendingIntent y cancelar/reemplazar es exacto.
+        // The id goes in the URI: each task gets its own PendingIntent, so cancel/replace is exact.
         Intent(context, ReminderReceiver::class.java).setData("jarvis://reminder/$taskId".toUri()),
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
     )
 
     private fun notify(task: Task) {
         val manager = NotificationManagerCompat.from(context)
-        // Sin permiso o con las notificaciones apagadas no hay forma de avisar; el recordatorio se da por consumido.
+        // Without permission or with notifications off there is no way to notify; the reminder counts as consumed.
         val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         if (!granted || !manager.areNotificationsEnabled()) return
         val open = PendingIntent.getActivity(

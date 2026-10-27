@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.dux.organizer.data.Priority
 import dev.dux.organizer.data.ProjectRepository
+import dev.dux.organizer.data.Recurrence
 import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TaskRepository
 import dev.dux.organizer.data.TaskStatus
@@ -16,7 +17,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-/** null = todavía cargando (distinto de lista vacía). */
+/** null = still loading (different from an empty list). */
 private fun <T> Flow<T>.state(vm: ViewModel): StateFlow<T?> =
     stateIn(vm.viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
@@ -40,7 +41,7 @@ class TaskDetailViewModel(
 ) : ViewModel() {
     val projects = projectRepo.visible.state(this)
 
-    /** Emite null también si la tarea fue borrada. */
+    /** Also emits null if the task was deleted. */
     val task: StateFlow<Task?> = repo.observe(id).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun rename(title: String, onResult: (Boolean) -> Unit) {
@@ -54,6 +55,7 @@ class TaskDetailViewModel(
     fun setScheduledDate(date: LocalDate?) = launch { repo.setScheduledDate(id, date) }
     fun setProject(projectId: String?) = launch { repo.setProject(id, projectId) }
     fun setReminder(at: LocalDateTime?) = launch { repo.setReminder(id, at) }
+    fun setRecurrence(rule: Recurrence?) = launch { repo.setRecurrence(id, rule) }
     fun delete(onDone: () -> Unit) {
         viewModelScope.launch { repo.delete(id); onDone() }
     }

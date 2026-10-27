@@ -21,7 +21,7 @@ class ReminderRulesTest {
     @Test fun dueOrMissedReminderNotifiesNow() {
         assertEquals(ReminderAction.NotifyNow, reminderAction(task(now), now))
         assertEquals(ReminderAction.NotifyNow, reminderAction(task(now.minusDays(1)), now))
-        // Android puede disparar unos segundos antes: no reprogramar por eso.
+        // Android may fire a few seconds early: do not reschedule because of that.
         assertEquals(ReminderAction.NotifyNow, reminderAction(task(now.plusSeconds(10)), now))
     }
 
