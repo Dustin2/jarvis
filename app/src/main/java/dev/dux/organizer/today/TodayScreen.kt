@@ -18,6 +18,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import dev.dux.organizer.app
+import dev.dux.organizer.ask.AskSheet
+import dev.dux.organizer.ask.askFacts
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
@@ -117,6 +124,11 @@ fun TodayScreen(
     val today by rememberToday()
     val (open, projectNames) = state ?: return
     val plan = remember(open, today) { planDay(open, today) }
+    var asking by rememberSaveable { mutableStateOf(false) }
+    if (asking) {
+        val context = LocalContext.current
+        AskSheet(context.app.askJarvis, { askFacts(open, projectNames, month, today) }, onDismiss = { asking = false })
+    }
     val row: @Composable (Task, Modifier) -> Unit = { task, blockModifier ->
         TaskRow(
             task,
@@ -135,7 +147,10 @@ fun TodayScreen(
                 R.string.tab_today,
                 onSearch,
                 overline = today.format(headerDate).replaceFirstChar { it.uppercase() },
-                extra = { IconButton(onClick = onOpenSettings) { Icon(painterResource(R.drawable.ic_settings), stringResource(R.string.settings)) } },
+                extra = {
+                    IconButton(onClick = { asking = true }) { Icon(painterResource(R.drawable.ic_ask), stringResource(R.string.ask_jarvis)) }
+                    IconButton(onClick = onOpenSettings) { Icon(painterResource(R.drawable.ic_settings), stringResource(R.string.settings)) }
+                },
             )
         }
         if (backupOverdue) item { BackupWarningCard(onOpenSettings) }

@@ -283,4 +283,10 @@
 
     <string name="income_in">Entró</string>
     <string name="expense_out">Salió</string>
+    <string name="ask_jarvis">Pregúntale a Jarvis</string>
+    <string name="ask_hint">¿Qué tengo pendiente hoy?</string>
+    <string name="ask_send">Preguntar</string>
+    <string name="ask_thinking">Pensando…</string>
+    <string name="ask_failed">No pude responder. Intenta de nuevo.</string>
+    <string name="ask_no_model">El modelo de IA todavía no está instalado en este teléfono.</string>
 </resources>
