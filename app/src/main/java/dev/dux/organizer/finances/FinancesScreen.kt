@@ -44,6 +44,7 @@ import dev.dux.organizer.data.Category
 import dev.dux.organizer.data.DebtDirection
 import dev.dux.organizer.data.DebtWithPaid
 import dev.dux.organizer.data.MoneyKind
+import dev.dux.organizer.data.Movement
 import dev.dux.organizer.data.formatMoney
 import dev.dux.organizer.ui.AddButton
 import dev.dux.organizer.ui.CappedLabel
@@ -293,23 +294,38 @@ private fun MovementsTab(s: FinancesState, vm: FinancesViewModel, onEdit: (Strin
                 Text(stringResource(R.string.empty_movements), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(24.dp))
             }
         }
-        items(s.movements, key = { it.id }) { m ->
-            val income = m.kind == MoneyKind.INCOME
-            ListItem(
-                onClick = { onEdit(m.id) },
-                overlineContent = { Text(m.date.label(today)) },
-                supportingContent = m.note?.let { { Text(it, maxLines = 1) } },
-                trailingContent = {
-                    // The sign says it too, not only the color.
-                    Text(
-                        (if (income) "+" else "-") + formatMoney(m.amountCents),
-                        color = if (income) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                },
-            ) { Text(names[m.categoryId].orEmpty()) }
+        // Grouped by day: the date is said once (with the day's balance when it has several), instead of on every row.
+        s.movements.groupBy { it.date }.forEach { (date, day) ->
+            item(key = "day-$date") {
+                val net = day.sumOf { if (it.kind == MoneyKind.INCOME) it.amountCents else -it.amountCents }
+                Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(date.label(today), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f).asHeading())
+                    // With a single movement the total would repeat its amount.
+                    if (day.size > 1) {
+                        Text((if (net > 0) "+" else "") + formatMoney(net), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+            items(day, key = { it.id }) { m -> MovementRow(m, names[m.categoryId].orEmpty(), onClick = { onEdit(m.id) }) }
         }
     }
+}
+
+@Composable
+private fun MovementRow(m: Movement, categoryName: String, onClick: () -> Unit) {
+    val income = m.kind == MoneyKind.INCOME
+    ListItem(
+        onClick = onClick,
+        supportingContent = m.note?.let { { Text(it, maxLines = 1) } },
+        trailingContent = {
+            // The sign says it too, not only the color.
+            Text(
+                (if (income) "+" else "-") + formatMoney(m.amountCents),
+                color = if (income) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.titleMedium,
+            )
+        },
+    ) { Text(categoryName) }
 }
 
 @Composable

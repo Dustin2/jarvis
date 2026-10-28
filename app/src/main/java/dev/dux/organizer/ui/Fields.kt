@@ -15,15 +15,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -38,27 +35,6 @@ import dev.dux.organizer.R
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
-
-/**
- * Label and button on one line; with large fonts the button moves down instead of breaking the label.
- * The button is announced with its field ("Fecha límite: Sin fecha"), not only its value.
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun Field(title: Int, value: String, onClick: () -> Unit, menu: @Composable () -> Unit = {}) {
-    val label = stringResource(title)
-    FlowRow(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        itemVerticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(end = 12.dp))
-        Box {
-            OutlinedButton(onClick = onClick, modifier = Modifier.semantics { contentDescription = "$label: $value" }) { Text(value) }
-            menu()
-        }
-    }
-}
 
 /** [onResult] receives the chosen date, or null if "remove" was pressed. */
 // DatePicker is still marked experimental, but it is the official M3 picker.
