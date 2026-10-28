@@ -12,7 +12,7 @@ import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
@@ -56,7 +56,7 @@ fun TasksScreen(
     offerUndo: (String, () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val resources = LocalContext.current.resources
+    val resources = LocalResources.current
     val inbox by vm.inbox.collectAsStateWithLifecycle()
     val lists by vm.lists.collectAsStateWithLifecycle()
     val projectNames by vm.projectNames.collectAsStateWithLifecycle()
