@@ -74,6 +74,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    // Spike: on-device LLM benchmark only (see LocalLlmBenchmark).
+    debugImplementation(libs.litertlm.android)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.room.testing)
