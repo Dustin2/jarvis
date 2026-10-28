@@ -15,8 +15,8 @@ android {
         // 33: required for USE_EXACT_ALARM and POST_NOTIFICATIONS (milestone 4).
         minSdk = 33
         targetSdk = 37
-        versionCode = 12
-        versionName = "0.9.0"
+        versionCode = 13
+        versionName = "0.10.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

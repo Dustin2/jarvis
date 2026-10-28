@@ -21,7 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
@@ -50,7 +49,6 @@ import dev.dux.organizer.search.SearchScreen
 import dev.dux.organizer.search.SearchTarget
 import dev.dux.organizer.search.SearchViewModel
 import dev.dux.organizer.settings.SettingsScreen
-import dev.dux.organizer.shopping.AddItemSheet
 import dev.dux.organizer.shopping.ShoppingScreen
 import dev.dux.organizer.shopping.ShoppingViewModel
 import dev.dux.organizer.settings.SettingsViewModel
@@ -210,8 +208,6 @@ private fun MainScreen(
             onCaptureShown()
         }
     }
-    var addingItem by rememberSaveable { mutableStateOf(false) }
-    val shopping by shoppingVm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val savedMessage = stringResource(R.string.saved_to_inbox)
@@ -229,11 +225,9 @@ private fun MainScreen(
         floatingActionButton = {
             // In Compras the button adds items to the open list; everywhere else it captures a task.
             val shoppingTab = tab == Tab.Shopping
-            // Finanzas has its own button ("Registrar" / "Nueva deuda").
-            if (tab != Tab.Finances && (!shoppingTab || shopping?.current != null)) {
-                AddButton(stringResource(if (shoppingTab) R.string.add_item else R.string.capture)) {
-                    if (shoppingTab) addingItem = true else capturing = true
-                }
+            // Finanzas has its own button ("Registrar" / "Nueva deuda"); Compras adds from the field at the top of its list.
+            if (tab != Tab.Finances && !shoppingTab) {
+                AddButton(stringResource(R.string.capture)) { capturing = true }
             }
         },
         bottomBar = {
@@ -275,9 +269,5 @@ private fun MainScreen(
         )
     }
 
-    val list = shopping?.current
-    if (addingItem && list != null) {
-        AddItemSheet(list.name, drafts, onDismiss = { addingItem = false }, onAdd = shoppingVm::add)
-    }
 }
 

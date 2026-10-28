@@ -21,6 +21,8 @@ data class ShoppingState(
     val current: ShoppingList?,
     val pending: List<ShoppingItem>,
     val inCart: List<ShoppingItem>,
+    /** Items still to buy in each list, for the list chips ("Súper · 5"). */
+    val pendingByList: Map<String, Int> = emptyMap(),
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -39,6 +41,7 @@ class ShoppingViewModel(private val repo: ShoppingRepository) : ViewModel() {
                 }
             }
         }
+        .combine(repo.allItems) { state, all -> state.copy(pendingByList = all.filter { !it.checked }.groupingBy { it.listId }.eachCount()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val currentId get() = state.value?.current?.id

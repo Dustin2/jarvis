@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -29,6 +28,22 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import dev.dux.organizer.ui.inBlock
+import dev.dux.organizer.ui.inlineLabel
+import java.time.LocalDate
+import java.time.ZoneId
 import dev.dux.organizer.R
 import dev.dux.organizer.backup.AutoBackup
 import dev.dux.organizer.backup.backupOverdue
@@ -40,6 +55,7 @@ import dev.dux.organizer.finances.MonthSummary
 import dev.dux.organizer.finances.monthSummary
 import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TaskRepository
+import dev.dux.organizer.data.TaskStatus
 import dev.dux.organizer.tasks.TaskRow
 import dev.dux.organizer.ui.SPANISH
 import dev.dux.organizer.ui.ScreenHeader
@@ -52,7 +68,6 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import dev.dux.organizer.ui.asHeading
 
 class TodayViewModel(private val tasks: TaskRepository, projects: ProjectRepository, finance: FinanceRepository, autoBackup: AutoBackup) : ViewModel() {
@@ -67,6 +82,13 @@ class TodayViewModel(private val tasks: TaskRepository, projects: ProjectReposit
     /** Automatic backup is on but has not saved anything for days: better to know before the data is needed. */
     val backupOverdue = autoBackup.state.map { backupOverdue(it.lastSuccess, it.enabledAt, Instant.now()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    // shortcut: "today" is read when the list changes; just after midnight it can count yesterday's until something changes.
+    /** Tasks completed today, for the "3 de 8 hechas" progress. */
+    val doneToday = tasks.finished.map { list ->
+        val today = LocalDate.now()
+        list.count { it.status == TaskStatus.DONE && it.completedAt?.atZone(ZoneId.systemDefault())?.toLocalDate() == today }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     /** Completes the task and hands back an undo for the "Deshacer" message. */
     fun complete(task: Task, onCompleted: (undo: () -> Unit) -> Unit) {
@@ -90,60 +112,91 @@ fun TodayScreen(
     val state by vm.state.collectAsStateWithLifecycle()
     val month by vm.month.collectAsStateWithLifecycle()
     val backupOverdue by vm.backupOverdue.collectAsStateWithLifecycle()
+    val doneToday by vm.doneToday.collectAsStateWithLifecycle()
     val today by rememberToday()
     val (open, projectNames) = state ?: return
     val plan = remember(open, today) { planDay(open, today) }
-    val row: @Composable (Task) -> Unit = { task ->
-        TaskRow(task, onOpen = { onOpen(task.id) }, onToggleDone = { vm.complete(task) { undo -> offerUndo(resources.getString(R.string.task_completed, task.title), undo) } }, projectName = projectNames[task.projectId])
+    val row: @Composable (Task, Modifier) -> Unit = { task, blockModifier ->
+        TaskRow(
+            task,
+            onOpen = { onOpen(task.id) },
+            onToggleDone = { vm.complete(task) { undo -> offerUndo(resources.getString(R.string.task_completed, task.title), undo) } },
+            projectName = projectNames[task.projectId],
+            modifier = blockModifier,
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        )
     }
 
     LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
         item {
-            ScreenHeader(R.string.tab_today, onSearch, extra = {
-                IconButton(onClick = onOpenSettings) { Icon(painterResource(R.drawable.ic_settings), stringResource(R.string.settings)) }
-            })
-        }
-        item {
-            Column(Modifier.padding(start = 24.dp, end = 24.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    today.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(SPANISH)).replaceFirstChar { it.uppercase() },
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    pluralStringResource(R.plurals.open_count, plan.openCount, plan.openCount) + " · " +
-                        pluralStringResource(R.plurals.overdue_count, plan.overdue.size, plan.overdue.size),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            ScreenHeader(
+                R.string.tab_today,
+                onSearch,
+                overline = today.format(headerDate).replaceFirstChar { it.uppercase() },
+                extra = { IconButton(onClick = onOpenSettings) { Icon(painterResource(R.drawable.ic_settings), stringResource(R.string.settings)) } },
+            )
         }
         if (backupOverdue) item { BackupWarningCard(onOpenSettings) }
+        // Today's work: what was done today plus what is still due or planned for today.
+        val total = doneToday + plan.overdue.size + plan.today.size
+        if (total > 0) item { ProgressCard(doneToday, total, plan.overdue.size) }
         val next = plan.nextStep
         item {
             NextStepCard(next, onOpen, onComplete = { task ->
                 vm.complete(task) { undo -> offerUndo(resources.getString(R.string.task_completed, task.title), undo) }
             })
         }
-        month?.let { item { MonthCard(it, onOpenFinances) } }
         // The next step already has its own card: listing it again below repeated it.
         section(R.string.overdue, plan.overdue - setOfNotNull(next), row)
         section(R.string.today, plan.today - setOfNotNull(next), row)
         section(R.string.upcoming, plan.upcoming, row)
+        month?.let { item { MonthRow(it, onOpenFinances) } }
+    }
+}
+
+private val headerDate = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", SPANISH)
+
+/** "3 de 8 hechas" with a ring, and the overdue count in words. */
+@Composable
+private fun ProgressCard(done: Int, total: Int, overdue: Int) {
+    Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+        Row(Modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            CircularProgressIndicator(
+                progress = { done.toFloat() / total },
+                modifier = Modifier.size(56.dp),
+                strokeWidth = 7.dp,
+                trackColor = MaterialTheme.colorScheme.secondaryContainer,
+            )
+            Column {
+                Text(pluralStringResource(R.plurals.progress_done, total, done, total), style = MaterialTheme.typography.titleLarge)
+                if (overdue > 0) {
+                    Text(pluralStringResource(R.plurals.overdue_count, overdue, overdue), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
     }
 }
 
 @Composable
 private fun NextStepCard(task: Task?, onOpen: (String) -> Unit, onComplete: (Task) -> Unit) {
+    val today by rememberToday()
     val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
     val content: @Composable () -> Unit = {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.next_step), style = MaterialTheme.typography.labelLarge)
             Text(task?.title ?: stringResource(R.string.empty_today), style = MaterialTheme.typography.headlineSmall)
             if (task != null) {
-                Button(onClick = { onComplete(task) }, modifier = Modifier.padding(top = 8.dp)) {
-                    Icon(painterResource(R.drawable.ic_check), contentDescription = null)
-                    Text(stringResource(R.string.complete), Modifier.padding(start = 8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    whenLabel(task, today)?.let {
+                        Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f)) {
+                            Text(it, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+                        }
+                    }
+                    Spacer(Modifier.weight(1f))
+                    Button(onClick = { onComplete(task) }) {
+                        Icon(painterResource(R.drawable.ic_check), contentDescription = null)
+                        Text(stringResource(R.string.complete), Modifier.padding(start = 8.dp))
+                    }
                 }
             }
         }
@@ -151,6 +204,19 @@ private fun NextStepCard(task: Task?, onOpen: (String) -> Unit, onComplete: (Tas
     val modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
     if (task == null) Card(modifier, colors = colors) { content() }
     else Card(onClick = { onOpen(task.id) }, modifier = modifier, colors = colors) { content() }
+}
+
+/** When the next step is due, in words: "Vencida ayer", "Vence hoy", "Desde ayer", "Para hoy". */
+@Composable
+private fun whenLabel(task: Task, today: LocalDate): String? {
+    val due = task.dueDate
+    val scheduled = task.scheduledDate
+    return when {
+        due != null && due < today -> stringResource(R.string.overdue_label, due.inlineLabel(today))
+        due != null -> stringResource(R.string.due_label, due.inlineLabel(today))
+        scheduled != null -> stringResource(if (scheduled < today) R.string.scheduled_since else R.string.scheduled_label, scheduled.inlineLabel(today))
+        else -> null
+    }
 }
 
 @Composable
@@ -161,27 +227,33 @@ private fun BackupWarningCard(onClick: () -> Unit) {
     }
 }
 
-/** The month's spending at a glance; opens Finanzas. */
+/** The month's spending in one row; opens Finanzas. */
 @Composable
-private fun MonthCard(summary: MonthSummary, onClick: () -> Unit) {
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(stringResource(R.string.month_spending) + " · " + stringResource(R.string.finances), style = MaterialTheme.typography.labelLarge)
-            val budget = summary.budgetCents
-            if (budget == null) Text(stringResource(R.string.month_spent, formatMoney(summary.expenseCents)), style = MaterialTheme.typography.titleLarge)
-            else BudgetProgress(summary.expenseCents, budget, total = true)
+private fun MonthRow(summary: MonthSummary, onClick: () -> Unit) {
+    Surface(onClick = onClick, shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Box(Modifier.size(40.dp).background(MaterialTheme.colorScheme.secondaryContainer, CircleShape), contentAlignment = Alignment.Center) {
+                Icon(painterResource(R.drawable.ic_finances), contentDescription = null, Modifier.size(22.dp), tint = MaterialTheme.colorScheme.onSecondaryContainer)
+            }
+            Column(Modifier.weight(1f)) {
+                val budget = summary.budgetCents
+                if (budget == null) Text(stringResource(R.string.month_spent, formatMoney(summary.expenseCents)))
+                else BudgetProgress(summary.expenseCents, budget, total = true)
+            }
         }
     }
 }
 
-private fun LazyListScope.section(@StringRes title: Int, tasks: List<Task>, row: @Composable (Task) -> Unit) {
+/** A titled group of tasks drawn as one rounded block, like the task detail's options. */
+private fun LazyListScope.section(@StringRes title: Int, tasks: List<Task>, row: @Composable (Task, Modifier) -> Unit) {
     if (tasks.isEmpty()) return
     item(key = "header-$title") {
         Text(
             stringResource(title),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 4.dp).asHeading(),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 8.dp).asHeading(),
         )
     }
-    items(tasks, key = { "$title-${it.id}" }) { row(it) }
+    itemsIndexed(tasks, key = { _, task -> "$title-${task.id}" }) { index, task -> row(task, Modifier.inBlock(index, tasks.lastIndex)) }
 }

@@ -135,16 +135,13 @@
         <item quantity="other">Cada %1$d meses, el día %2$d</item>
     </plurals>
 
-    <string name="add_item">Agregar</string>
-    <string name="add_to_list">Agregar a «%1$s»</string>
-    <string name="item_name">Artículo</string>
     <string name="quantity_optional">Cantidad (opcional)</string>
     <string name="item_invalid">Escribe el artículo (máximo 200 caracteres) y una cantidad de hasta 40</string>
     <string name="added_item">Agregado: %1$s</string>
-    <string name="in_cart">En el carrito (%1$d)</string>
+    <string name="in_cart">En el carrito · %1$d</string>
     <string name="remove_checked">Quitar comprados</string>
     <string name="uncheck_all">Desmarcar todo</string>
-    <string name="empty_shopping_list">La lista está vacía. Toca Agregar para anotar lo que falta.</string>
+    <string name="empty_shopping_list">La lista está vacía. Escribe arriba lo que falta.</string>
     <string name="new_list">Nueva lista</string>
     <string name="list_name">Nombre de la lista</string>
     <string name="rename_list">Renombrar lista</string>
@@ -177,8 +174,6 @@
     <string name="edit">Editar</string>
     <string name="previous_month">Mes anterior</string>
     <string name="next_month">Mes siguiente</string>
-    <string name="income_total">Ingresos</string>
-    <string name="expense_total">Gastos</string>
     <string name="balance">Te queda</string>
     <string name="negative_balance">Este mes gastaste más de lo que entró.</string>
     <string name="spent_of_budget">%1$s de %2$s</string>
@@ -214,7 +209,6 @@
     <string name="delete_payment_confirm">¿Eliminar este abono?</string>
     <string name="delete_debt">Eliminar deuda</string>
     <string name="delete_debt_confirm">¿Eliminar esta deuda y sus abonos?</string>
-    <string name="month_spending">Este mes</string>
     <string name="month_spent">Gastado: %1$s</string>
 
     <string name="auto_backup">Respaldo automático</string>
@@ -276,4 +270,17 @@
     <string name="add_task_to">Nueva tarea en «%1$s»</string>
 
     <string name="remove">Quitar</string>
+
+    <plurals name="progress_done">
+        <item quantity="one">%1$d de %2$d hecha</item>
+        <item quantity="other">%1$d de %2$d hechas</item>
+    </plurals>
+    <string name="overdue_label">Vencida %1$s</string>
+
+    <string name="add_item_hint">Agregar artículo…</string>
+    <string name="quantity">Cantidad</string>
+    <string name="to_buy">Por comprar · %1$d</string>
+
+    <string name="income_in">Entró</string>
+    <string name="expense_out">Salió</string>
 </resources>
