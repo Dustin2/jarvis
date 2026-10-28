@@ -233,4 +233,11 @@
     <string name="auto_backup_disabled">Respaldo automático desactivado</string>
     <string name="auto_backup_failed">No se pudo guardar el respaldo en la carpeta</string>
     <string name="backup_overdue">El respaldo automático no se ha hecho en más de 3 días. Toca para revisarlo en Ajustes.</string>
+
+    <string name="search">Buscar</string>
+    <string name="search_hint">Buscar en Jarvis</string>
+    <string name="clear_search">Borrar búsqueda</string>
+    <string name="no_results">Nada coincide con «%1$s»</string>
+    <string name="see_all">Ver todos (%1$d)</string>
+    <string name="in_cart_short">En el carrito</string>
 </resources>

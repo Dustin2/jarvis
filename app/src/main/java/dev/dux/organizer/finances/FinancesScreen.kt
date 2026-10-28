@@ -64,11 +64,12 @@ private enum class FinanceTab(@StringRes val label: Int) {
 private const val NEW = "new"
 
 @Composable
-fun FinancesScreen(vm: FinancesViewModel, onOpenDebt: (String) -> Unit, onBack: () -> Unit) {
+fun FinancesScreen(vm: FinancesViewModel, onOpenDebt: (String) -> Unit, onBack: () -> Unit, initialMovement: String? = null) {
     val state by vm.state.collectAsStateWithLifecycle()
-    var tab by rememberSaveable { mutableStateOf(FinanceTab.Summary) }
+    // Opened from the search: straight to that movement.
+    var tab by rememberSaveable { mutableStateOf(if (initialMovement != null) FinanceTab.Movements else FinanceTab.Summary) }
     // Ids of what is being edited; NEW = creating one.
-    var movement by rememberSaveable { mutableStateOf<String?>(null) }
+    var movement by rememberSaveable { mutableStateOf(initialMovement) }
     var category by rememberSaveable { mutableStateOf<String?>(null) }
     var creatingDebt by rememberSaveable { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
