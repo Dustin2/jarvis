@@ -52,10 +52,17 @@ class ShoppingRepository(private val dao: ShoppingDao, private val clock: Clock 
         if (current.checked != checked) dao.updateItem(current.copy(checked = checked, updatedAt = clock.instant()))
     }
 
-    suspend fun deleteItem(itemId: String) = dao.deleteItem(itemId)
+    /** Returns the deleted item, so it can be undone with [restore]. */
+    suspend fun deleteItem(itemId: String): ShoppingItem? = dao.getItem(itemId)?.also { dao.deleteItem(itemId) }
 
     /** "Quitar comprados". */
-    suspend fun removeChecked(listId: String) = dao.deleteChecked(listId)
+    suspend fun removeChecked(listId: String): List<ShoppingItem> = dao.removeChecked(listId)
+
+    /** "Deshacer": puts deleted items back as they were. Nothing happens if their list was deleted meanwhile. */
+    suspend fun restore(items: List<ShoppingItem>) {
+        if (items.isEmpty() || dao.getList(items.first().listId) == null) return
+        dao.insertItems(items)
+    }
 
     /** "Desmarcar todo": for lists bought every week. */
     suspend fun uncheckAll(listId: String) = dao.uncheckAll(listId, clock.instant())

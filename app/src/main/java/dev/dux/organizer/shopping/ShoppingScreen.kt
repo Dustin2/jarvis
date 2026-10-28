@@ -54,7 +54,9 @@ private enum class ListDialog { Create, Rename, Delete }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ShoppingScreen(vm: ShoppingViewModel, modifier: Modifier = Modifier) {
+/** [offerUndo] shows a message with "Deshacer" after something is deleted. */
+fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Unit, modifier: Modifier = Modifier) {
+    val resources = LocalContext.current.resources
     val state by vm.state.collectAsStateWithLifecycle()
     var dialog by rememberSaveable { mutableStateOf<ListDialog?>(null) }
     var menuOpen by rememberSaveable { mutableStateOf(false) }
@@ -117,7 +119,9 @@ fun ShoppingScreen(vm: ShoppingViewModel, modifier: Modifier = Modifier) {
             }
         }
         items(current.pending, key = { it.id }) { item ->
-            ItemRow(item, onToggle = { vm.toggle(item) }, onDelete = { vm.delete(item) })
+            ItemRow(item, onToggle = { vm.toggle(item) }, onDelete = {
+                vm.delete(item) { deleted -> offerUndo(resources.getString(R.string.item_removed, deleted.name)) { vm.restore(listOf(deleted)) } }
+            })
         }
         if (current.inCart.isNotEmpty()) {
             item {
@@ -136,7 +140,11 @@ fun ShoppingScreen(vm: ShoppingViewModel, modifier: Modifier = Modifier) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 ) {
                     OutlinedButton(onClick = { vm.uncheckAll() }) { Text(stringResource(R.string.uncheck_all)) }
-                    FilledTonalButton(onClick = { vm.removeChecked() }) { Text(stringResource(R.string.remove_checked)) }
+                    FilledTonalButton(onClick = {
+                        vm.removeChecked { removed ->
+                            if (removed.isNotEmpty()) offerUndo(resources.getQuantityString(R.plurals.items_removed, removed.size, removed.size)) { vm.restore(removed) }
+                        }
+                    }) { Text(stringResource(R.string.remove_checked)) }
                 }
             }
         }

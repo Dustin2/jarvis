@@ -3,7 +3,6 @@ package dev.dux.organizer.ui
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShortNavigationBar
@@ -12,7 +11,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,10 +20,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Density
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -36,6 +32,8 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import dev.dux.organizer.R
 import dev.dux.organizer.app
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarResult
 import dev.dux.organizer.finances.DebtDetailScreen
 import dev.dux.organizer.finances.DebtDetailViewModel
 import dev.dux.organizer.finances.FinancesScreen
@@ -214,6 +212,14 @@ private fun MainScreen(
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val savedMessage = stringResource(R.string.saved_to_inbox)
+    val undoLabel = stringResource(R.string.undo)
+    val drafts = rememberDrafts()
+    /** A snackbar with "Deshacer" after deleting something. */
+    val offerUndo: (String, () -> Unit) -> Unit = { message, undo ->
+        scope.launch {
+            if (snackbar.showSnackbar(message, actionLabel = undoLabel, duration = SnackbarDuration.Long) == SnackbarResult.ActionPerformed) undo()
+        }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
@@ -221,11 +227,9 @@ private fun MainScreen(
             // In Compras the button adds items to the open list; everywhere else it captures a task.
             val shoppingTab = tab == Tab.Shopping
             if (!shoppingTab || shopping?.current != null) {
-                ExtendedFloatingActionButton(
-                    onClick = { if (shoppingTab) addingItem = true else capturing = true },
-                    icon = { Icon(painterResource(R.drawable.ic_add), contentDescription = null) },
-                    text = { Text(stringResource(if (shoppingTab) R.string.add_item else R.string.capture)) },
-                )
+                AddButton(stringResource(if (shoppingTab) R.string.add_item else R.string.capture)) {
+                    if (shoppingTab) addingItem = true else capturing = true
+                }
             }
         },
         bottomBar = {
@@ -235,7 +239,7 @@ private fun MainScreen(
                         selected = it == tab,
                         onClick = { onTabChange(it) },
                         icon = { Icon(painterResource(it.icon), contentDescription = null) },
-                        label = { NavLabel(stringResource(it.label)) },
+                        label = { CappedLabel(stringResource(it.label)) },
                     )
                 }
             }
@@ -247,17 +251,19 @@ private fun MainScreen(
             Tab.Inbox -> InboxScreen(tasksVm, onOpenTask, modifier)
             Tab.Tasks -> TasksScreen(tasksVm, onOpenTask, onSearch, modifier)
             Tab.Projects -> ProjectsScreen(projectsVm, onOpenProject, modifier)
-            Tab.Shopping -> ShoppingScreen(shoppingVm, modifier)
+            Tab.Shopping -> ShoppingScreen(shoppingVm, offerUndo, modifier)
         }
     }
 
     if (capturing) {
         CaptureSheet(
+            drafts = drafts,
             onDismiss = { capturing = false },
             onSave = { title, notes ->
                 tasksVm.capture(title, notes) { saved ->
                     if (saved) {
                         capturing = false
+                        drafts.clear("capture.")
                         scope.launch { snackbar.showSnackbar(savedMessage) }
                     }
                 }
@@ -267,18 +273,7 @@ private fun MainScreen(
 
     val list = shopping?.current
     if (addingItem && list != null) {
-        AddItemSheet(list.name, onDismiss = { addingItem = false }, onAdd = shoppingVm::add)
+        AddItemSheet(list.name, drafts, onDismiss = { addingItem = false }, onAdd = shoppingVm::add)
     }
 }
 
-/**
- * At 200 % font size, five labels do not fit the phone width: they broke ("Proyecto / s")
- * or overlapped. Only these labels grow up to 130 %; the rest of the app follows the system font size.
- */
-@Composable
-private fun NavLabel(text: String) {
-    val density = LocalDensity.current
-    CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f))) {
-        Text(text, maxLines = 1)
-    }
-}

@@ -36,6 +36,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import dev.dux.organizer.R
+import dev.dux.organizer.ui.Drafts
 
 /**
  * Adds items in a burst: after each one the fields clear and the keyboard stays open for the next.
@@ -43,9 +44,10 @@ import dev.dux.organizer.R
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddItemSheet(listName: String, onDismiss: () -> Unit, onAdd: (String, String, (Boolean) -> Unit) -> Unit) {
-    var name by rememberSaveable { mutableStateOf("") }
-    var quantity by rememberSaveable { mutableStateOf("") }
+fun AddItemSheet(listName: String, drafts: Drafts, onDismiss: () -> Unit, onAdd: (String, String, (Boolean) -> Unit) -> Unit) {
+    // Kept by the screen: closing the sheet by accident does not lose what was typed.
+    var name by drafts.field("item.name")
+    var quantity by drafts.field("item.quantity")
     var error by rememberSaveable { mutableStateOf(false) }
     var lastAdded by rememberSaveable { mutableStateOf<String?>(null) }
     val focus = remember { FocusRequester() }

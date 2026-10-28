@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -47,7 +46,10 @@ import dev.dux.organizer.data.DebtDirection
 import dev.dux.organizer.data.DebtWithPaid
 import dev.dux.organizer.data.MoneyKind
 import dev.dux.organizer.data.formatMoney
+import dev.dux.organizer.ui.AddButton
+import dev.dux.organizer.ui.CappedLabel
 import dev.dux.organizer.ui.SPANISH
+import dev.dux.organizer.ui.rememberDrafts
 import dev.dux.organizer.ui.asHeading
 import dev.dux.organizer.ui.label
 import dev.dux.organizer.ui.rememberToday
@@ -75,6 +77,7 @@ fun FinancesScreen(vm: FinancesViewModel, onOpenDebt: (String) -> Unit, onBack: 
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val savedMessage = stringResource(R.string.movement_saved)
+    val drafts = rememberDrafts()
 
     Scaffold(
         topBar = {
@@ -88,18 +91,16 @@ fun FinancesScreen(vm: FinancesViewModel, onOpenDebt: (String) -> Unit, onBack: 
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
             val debts = tab == FinanceTab.Debts
-            ExtendedFloatingActionButton(
-                onClick = { if (debts) creatingDebt = true else movement = NEW },
-                icon = { Icon(painterResource(R.drawable.ic_add), contentDescription = null) },
-                text = { Text(stringResource(if (debts) R.string.new_debt else R.string.register)) },
-            )
+            AddButton(stringResource(if (debts) R.string.new_debt else R.string.register)) {
+                if (debts) creatingDebt = true else movement = NEW
+            }
         },
     ) { padding ->
         val s = state ?: return@Scaffold
         Column(Modifier.padding(padding)) {
             PrimaryTabRow(selectedTabIndex = tab.ordinal) {
                 FinanceTab.entries.forEach {
-                    Tab(selected = it == tab, onClick = { tab = it }, text = { Text(stringResource(it.label), maxLines = 1) })
+                    Tab(selected = it == tab, onClick = { tab = it }, text = { CappedLabel(stringResource(it.label)) })
                 }
             }
             when (tab) {
@@ -114,12 +115,14 @@ fun FinancesScreen(vm: FinancesViewModel, onOpenDebt: (String) -> Unit, onBack: 
             MovementSheet(
                 categories = s.categories,
                 initial = editing,
+                drafts = drafts,
                 onDismiss = { movement = null },
                 onSave = { cents, categoryId, date, note, done ->
                     vm.saveMovement(editing?.id, cents, categoryId, date, note) { ok ->
                         done(ok)
                         if (ok) {
                             movement = null
+                            drafts.clear("movement.")
                             scope.launch { snackbar.showSnackbar(savedMessage) }
                         }
                     }
@@ -140,9 +143,16 @@ fun FinancesScreen(vm: FinancesViewModel, onOpenDebt: (String) -> Unit, onBack: 
         if (creatingDebt) {
             DebtSheet(
                 initial = null,
+                drafts = drafts,
                 onDismiss = { creatingDebt = false },
                 onSave = { person, direction, cents, due, note, done ->
-                    vm.addDebt(person, direction, cents, due, note) { ok -> done(ok); if (ok) creatingDebt = false }
+                    vm.addDebt(person, direction, cents, due, note) { ok ->
+                        done(ok)
+                        if (ok) {
+                            creatingDebt = false
+                            drafts.clear("debt.")
+                        }
+                    }
                 },
             )
         }

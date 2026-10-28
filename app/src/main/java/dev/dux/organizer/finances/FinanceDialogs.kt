@@ -25,6 +25,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +54,7 @@ import dev.dux.organizer.data.parseMoney
 import dev.dux.organizer.ui.Choice
 import dev.dux.organizer.ui.ChoiceChips
 import dev.dux.organizer.ui.DatePickDialog
+import dev.dux.organizer.ui.Drafts
 import dev.dux.organizer.ui.Field
 import dev.dux.organizer.ui.label
 import dev.dux.organizer.ui.rememberToday
@@ -113,16 +115,18 @@ private fun DateButton(@StringRes title: Int, date: LocalDate?, canRemove: Boole
 fun MovementSheet(
     categories: List<Category>,
     initial: Movement?,
+    drafts: Drafts,
     onDismiss: () -> Unit,
     onSave: (Long, String, LocalDate, String, (Boolean) -> Unit) -> Unit,
     onDelete: (() -> Unit)?,
 ) {
     val today by rememberToday()
     var kind by rememberSaveable { mutableStateOf(initial?.kind ?: MoneyKind.EXPENSE) }
-    var amount by rememberSaveable { mutableStateOf(initial?.let { editableMoney(it.amountCents) } ?: "") }
+    // A new movement keeps its typed text in the screen's drafts; editing starts from the saved one.
+    var amount by if (initial == null) drafts.field("movement.amount") else rememberSaveable { mutableStateOf(editableMoney(initial.amountCents)) }
     var categoryId by rememberSaveable { mutableStateOf(initial?.categoryId) }
     var date by rememberSaveable { mutableStateOf(initial?.date ?: today) }
-    var note by rememberSaveable { mutableStateOf(initial?.note ?: "") }
+    var note by if (initial == null) drafts.field("movement.note") else rememberSaveable { mutableStateOf(initial.note ?: "") }
     var amountError by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     val focus = remember { FocusRequester() }
@@ -236,12 +240,21 @@ fun CategoryDialog(initial: Category?, onDismiss: () -> Unit, onSave: (String, M
 /** New debt (the direction is chosen here) or edit. [onSave]: person, direction, cents, due date, note, result. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DebtSheet(initial: Debt?, onDismiss: () -> Unit, onSave: (String, DebtDirection, Long, LocalDate?, String, (Boolean) -> Unit) -> Unit) {
+fun DebtSheet(
+    initial: Debt?,
+    onDismiss: () -> Unit,
+    onSave: (String, DebtDirection, Long, LocalDate?, String, (Boolean) -> Unit) -> Unit,
+    drafts: Drafts? = null,
+) {
     var direction by rememberSaveable { mutableStateOf(initial?.direction ?: DebtDirection.I_OWE) }
-    var person by rememberSaveable { mutableStateOf(initial?.person ?: "") }
-    var amount by rememberSaveable { mutableStateOf(initial?.let { editableMoney(it.amountCents) } ?: "") }
+    // A new debt keeps its typed text in the screen's drafts; editing starts from the saved one.
+    val personState: MutableState<String> = drafts?.field("debt.person") ?: rememberSaveable { mutableStateOf(initial?.person ?: "") }
+    val amountState: MutableState<String> = drafts?.field("debt.amount") ?: rememberSaveable { mutableStateOf(initial?.let { editableMoney(it.amountCents) } ?: "") }
+    val noteState: MutableState<String> = drafts?.field("debt.note") ?: rememberSaveable { mutableStateOf(initial?.note ?: "") }
+    var person by personState
+    var amount by amountState
+    var note by noteState
     var dueDate by rememberSaveable { mutableStateOf(initial?.dueDate) }
-    var note by rememberSaveable { mutableStateOf(initial?.note ?: "") }
     var personError by rememberSaveable { mutableStateOf(false) }
     var amountError by rememberSaveable { mutableStateOf(false) }
     val save = {
