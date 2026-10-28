@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,9 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -31,9 +28,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -48,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.dux.organizer.R
 import dev.dux.organizer.data.ShoppingItem
 import dev.dux.organizer.ui.NameDialog
+import dev.dux.organizer.ui.ScreenHeader
 import dev.dux.organizer.ui.asHeading
 
 private enum class ListDialog { Create, Rename, Delete }
@@ -55,41 +53,43 @@ private enum class ListDialog { Create, Rename, Delete }
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 /** [offerUndo] shows a message with "Deshacer" after something is deleted. */
-fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Unit, modifier: Modifier = Modifier) {
+fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Unit, onSearch: () -> Unit, modifier: Modifier = Modifier) {
     val resources = LocalContext.current.resources
     val state by vm.state.collectAsStateWithLifecycle()
     var dialog by rememberSaveable { mutableStateOf<ListDialog?>(null) }
-    var menuOpen by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
     val current = state ?: return
     val list = current.current
 
     LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
         item {
-            Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 4.dp, top = 16.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.tab_shopping), style = MaterialTheme.typography.displaySmall, modifier = Modifier.weight(1f).asHeading())
-                if (list != null) {
-                    IconButton(
-                        onClick = {
-                            val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, shoppingText(list.name, current.pending))
-                            context.startActivity(Intent.createChooser(send, null))
-                        },
-                        enabled = current.pending.isNotEmpty(),
-                    ) { Icon(painterResource(R.drawable.ic_share), stringResource(R.string.share_list)) }
-                    IconButton(onClick = { menuOpen = true }) {
-                        Icon(painterResource(R.drawable.ic_more), stringResource(R.string.more_options))
-                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            DropdownMenuItem(text = { Text(stringResource(R.string.rename_list)) }, onClick = { menuOpen = false; dialog = ListDialog.Rename })
-                            // The last list cannot be deleted: the tab always has one.
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.delete_list)) },
-                                onClick = { menuOpen = false; dialog = ListDialog.Delete },
-                                enabled = current.lists.size > 1,
-                            )
-                        }
+            ScreenHeader(
+                R.string.tab_shopping,
+                onSearch,
+                extra = {
+                    if (list != null) {
+                        IconButton(
+                            onClick = {
+                                val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, shoppingText(list.name, current.pending))
+                                context.startActivity(Intent.createChooser(send, null))
+                            },
+                            enabled = current.pending.isNotEmpty(),
+                        ) { Icon(painterResource(R.drawable.ic_share), stringResource(R.string.share_list)) }
                     }
-                }
-            }
+                },
+                menu = { close ->
+                    DropdownMenuItem(text = { Text(stringResource(R.string.new_list)) }, onClick = { close(); dialog = ListDialog.Create })
+                    if (list != null) {
+                        DropdownMenuItem(text = { Text(stringResource(R.string.rename_list)) }, onClick = { close(); dialog = ListDialog.Rename })
+                        // The last list cannot be deleted: the tab always has one.
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.delete_list)) },
+                            onClick = { close(); dialog = ListDialog.Delete },
+                            enabled = current.lists.size > 1,
+                        )
+                    }
+                },
+            )
         }
         item {
             FlowRow(Modifier.fillMaxWidth().padding(horizontal = 16.dp).selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -102,11 +102,6 @@ fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Uni
                         leadingIcon = if (selected) ({ Icon(painterResource(R.drawable.ic_check), contentDescription = null, Modifier.size(FilterChipDefaults.IconSize)) }) else null,
                     )
                 }
-                AssistChip(
-                    onClick = { dialog = ListDialog.Create },
-                    label = { Text(stringResource(R.string.new_list)) },
-                    leadingIcon = { Icon(painterResource(R.drawable.ic_add), contentDescription = null, Modifier.size(FilterChipDefaults.IconSize)) },
-                )
             }
         }
         if (list != null && current.pending.isEmpty() && current.inCart.isEmpty()) {

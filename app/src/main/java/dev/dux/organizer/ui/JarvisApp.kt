@@ -9,15 +9,14 @@ import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ShortNavigationBarItem
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -39,7 +38,6 @@ import dev.dux.organizer.finances.DebtDetailViewModel
 import dev.dux.organizer.finances.FinancesScreen
 import dev.dux.organizer.finances.FinancesViewModel
 import dev.dux.organizer.inbox.CaptureSheet
-import dev.dux.organizer.tasks.InboxScreen
 import dev.dux.organizer.tasks.TaskDetailScreen
 import dev.dux.organizer.tasks.TaskDetailViewModel
 import dev.dux.organizer.tasks.TaskListViewModel
@@ -73,10 +71,10 @@ import java.time.YearMonth
 
 enum class Tab(@StringRes val label: Int, @DrawableRes val icon: Int) {
     Today(R.string.tab_today, R.drawable.ic_today),
-    Inbox(R.string.tab_inbox, R.drawable.ic_inbox),
     Tasks(R.string.tab_tasks, R.drawable.ic_tasks),
     Projects(R.string.tab_projects, R.drawable.ic_projects),
     Shopping(R.string.tab_shopping, R.drawable.ic_shopping),
+    Finances(R.string.finances, R.drawable.ic_finances),
 }
 
 @Composable
@@ -115,10 +113,12 @@ fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}, capture
                     todayVm = viewModel { TodayViewModel(app.tasks, app.projects, app.finance, app.autoBackup) },
                     projectsVm = viewModel { ProjectsViewModel(app.projects, app.tasks) },
                     shoppingVm = viewModel { ShoppingViewModel(app.shopping) },
+                    financesVm = viewModel { FinancesViewModel(app.finance) },
                     onOpenTask = openTask,
                     onOpenProject = { backStack.add(ProjectDetail(it)) },
                     onOpenSettings = { backStack.add(Settings) },
-                    onOpenFinances = { backStack.add(Finances()) },
+                    onOpenFinances = { tab = Tab.Finances },
+                    onOpenDebt = { backStack.add(DebtDetail(it)) },
                     onSearch = { backStack.add(Search) },
                     tab = tab,
                     onTabChange = { tab = it },
@@ -157,6 +157,7 @@ fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}, capture
             entry<Finances> { key ->
                 FinancesScreen(
                     viewModel { FinancesViewModel(app.finance, key.month?.let(YearMonth::parse) ?: YearMonth.now()) },
+                    onSearch = { backStack.add(Search) },
                     initialMovement = key.movementId,
                     onOpenDebt = { backStack.add(DebtDetail(it)) },
                     onBack = { backStack.removeLastOrNull() },
@@ -182,10 +183,12 @@ private fun MainScreen(
     todayVm: TodayViewModel,
     projectsVm: ProjectsViewModel,
     shoppingVm: ShoppingViewModel,
+    financesVm: FinancesViewModel,
     onOpenTask: (String) -> Unit,
     onOpenProject: (String) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenFinances: () -> Unit,
+    onOpenDebt: (String) -> Unit,
     onSearch: () -> Unit,
     tab: Tab,
     onTabChange: (Tab) -> Unit,
@@ -226,7 +229,8 @@ private fun MainScreen(
         floatingActionButton = {
             // In Compras the button adds items to the open list; everywhere else it captures a task.
             val shoppingTab = tab == Tab.Shopping
-            if (!shoppingTab || shopping?.current != null) {
+            // Finanzas has its own button ("Registrar" / "Nueva deuda").
+            if (tab != Tab.Finances && (!shoppingTab || shopping?.current != null)) {
                 AddButton(stringResource(if (shoppingTab) R.string.add_item else R.string.capture)) {
                     if (shoppingTab) addingItem = true else capturing = true
                 }
@@ -248,10 +252,10 @@ private fun MainScreen(
         val modifier = Modifier.padding(padding)
         when (tab) {
             Tab.Today -> TodayScreen(todayVm, onOpenTask, onOpenSettings, onOpenFinances, onSearch, modifier)
-            Tab.Inbox -> InboxScreen(tasksVm, onOpenTask, modifier)
             Tab.Tasks -> TasksScreen(tasksVm, onOpenTask, onSearch, modifier)
-            Tab.Projects -> ProjectsScreen(projectsVm, onOpenProject, modifier)
-            Tab.Shopping -> ShoppingScreen(shoppingVm, offerUndo, modifier)
+            Tab.Projects -> ProjectsScreen(projectsVm, onOpenProject, onSearch, modifier)
+            Tab.Shopping -> ShoppingScreen(shoppingVm, offerUndo, onSearch, modifier)
+            Tab.Finances -> FinancesScreen(financesVm, onOpenDebt, onSearch, onBack = null, modifier = modifier)
         }
     }
 

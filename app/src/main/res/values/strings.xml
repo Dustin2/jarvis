@@ -1,7 +1,6 @@
 <resources>
     <string name="app_name">Jarvis</string>
     <string name="tab_today">Mi día</string>
-    <string name="tab_inbox">Bandeja</string>
     <string name="tab_tasks">Tareas</string>
     <string name="tab_projects">Proyectos</string>
     <string name="tab_shopping">Compras</string>
@@ -27,7 +26,6 @@
     <string name="cancel">Cancelar</string>
     <string name="status">Estado</string>
     <string name="priority">Prioridad</string>
-    <string name="show_finished">Terminadas (%1$d)</string>
     <string name="complete_task">Completar «%1$s»</string>
 
     <string name="status_inbox">Bandeja</string>
@@ -258,4 +256,9 @@
 
     <string name="spent_of_budget_total">Gastado: %1$s de %2$s</string>
     <string name="debt_overdue">Vencida: %1$s</string>
+
+    <string name="view_inbox">Bandeja (%1$d)</string>
+    <string name="view_pending">Pendientes (%1$d)</string>
+    <string name="view_finished">Terminadas (%1$d)</string>
+    <string name="empty_finished">Todavía no has terminado ninguna tarea.</string>
 </resources>
