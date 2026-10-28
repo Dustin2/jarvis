@@ -40,6 +40,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import dev.dux.organizer.ui.blockRowShapes
 import dev.dux.organizer.ui.inBlock
 import dev.dux.organizer.ui.inlineLabel
 import java.time.LocalDate
@@ -124,6 +125,7 @@ fun TodayScreen(
             projectName = projectNames[task.projectId],
             modifier = blockModifier,
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            shapes = blockRowShapes(),
         )
     }
 

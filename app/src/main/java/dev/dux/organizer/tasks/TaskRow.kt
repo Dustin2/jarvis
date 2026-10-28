@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.ListItemShapes
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -50,11 +51,13 @@ fun TaskRow(
     projectName: String? = null,
     trailing: (@Composable () -> Unit)? = null,
     containerColor: Color = Color.Unspecified,
+    shapes: ListItemShapes = ListItemDefaults.shapes(),
 ) {
     val done = task.status == TaskStatus.DONE || task.status == TaskStatus.CANCELLED
     ListItem(
         onClick = onOpen,
         modifier = modifier,
+        shapes = shapes,
         colors = if (containerColor == Color.Unspecified) ListItemDefaults.colors() else ListItemDefaults.colors(containerColor = containerColor),
         // null when there is nothing to show: the row stays single-line.
         supportingContent = if (
