@@ -74,7 +74,7 @@ class TodayViewModel(private val tasks: TaskRepository, projects: ProjectReposit
 }
 
 @Composable
-fun TodayScreen(vm: TodayViewModel, onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onOpenFinances: () -> Unit, modifier: Modifier = Modifier) {
+fun TodayScreen(vm: TodayViewModel, onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onOpenFinances: () -> Unit, onSearch: () -> Unit, modifier: Modifier = Modifier) {
     val state by vm.state.collectAsStateWithLifecycle()
     val month by vm.month.collectAsStateWithLifecycle()
     val backupOverdue by vm.backupOverdue.collectAsStateWithLifecycle()
@@ -90,6 +90,7 @@ fun TodayScreen(vm: TodayViewModel, onOpen: (String) -> Unit, onOpenSettings: ()
             Column(Modifier.padding(horizontal = 24.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.tab_today), style = MaterialTheme.typography.displaySmall, modifier = Modifier.weight(1f).asHeading())
+                    IconButton(onClick = onSearch) { Icon(painterResource(R.drawable.ic_search), stringResource(R.string.search)) }
                     IconButton(onClick = onOpenSettings) {
                         Icon(painterResource(R.drawable.ic_settings), stringResource(R.string.settings))
                     }

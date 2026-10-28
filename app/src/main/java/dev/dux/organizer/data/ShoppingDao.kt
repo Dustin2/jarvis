@@ -16,6 +16,9 @@ interface ShoppingDao {
     @Query("SELECT * FROM shopping_items WHERE listId = :listId ORDER BY sortOrder")
     fun observeItems(listId: String): Flow<List<ShoppingItem>>
 
+    @Query("SELECT * FROM shopping_items")
+    fun observeAllItems(): Flow<List<ShoppingItem>>
+
     @Query("SELECT * FROM shopping_lists WHERE id = :id")
     suspend fun getList(id: String): ShoppingList?
 

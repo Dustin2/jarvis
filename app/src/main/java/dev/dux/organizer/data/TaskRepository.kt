@@ -28,6 +28,8 @@ class TaskRepository(
     val open: Flow<List<Task>> = dao.observeByStatus(listOf(TaskStatus.INBOX, TaskStatus.TODO))
     val finished: Flow<List<Task>> = dao.observeByStatus(listOf(TaskStatus.DONE, TaskStatus.CANCELLED))
 
+    val all: Flow<List<Task>> = dao.observeAll()
+
     fun observe(id: String): Flow<Task?> = dao.observe(id)
 
     fun observeByProject(projectId: String): Flow<List<Task>> = dao.observeByProject(projectId)
