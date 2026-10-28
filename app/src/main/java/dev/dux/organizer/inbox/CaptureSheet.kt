@@ -32,14 +32,16 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import dev.dux.organizer.R
 import dev.dux.organizer.data.cleanTitle
+import dev.dux.organizer.ui.Drafts
 
 /** Quick capture: required title, optional notes. [onSave] is only called with a valid title. */
 // ModalBottomSheet has been marked experimental for years, but it is the official M3 pattern for this.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CaptureSheet(onDismiss: () -> Unit, onSave: (title: String, notes: String) -> Unit) {
-    var title by rememberSaveable { mutableStateOf("") }
-    var notes by rememberSaveable { mutableStateOf("") }
+fun CaptureSheet(drafts: Drafts, onDismiss: () -> Unit, onSave: (title: String, notes: String) -> Unit) {
+    // Kept by the screen: closing the sheet by accident does not lose what was typed.
+    var title by drafts.field("capture.title")
+    var notes by drafts.field("capture.notes")
     var showError by rememberSaveable { mutableStateOf(false) }
     val focus = remember { FocusRequester() }
     val save = {

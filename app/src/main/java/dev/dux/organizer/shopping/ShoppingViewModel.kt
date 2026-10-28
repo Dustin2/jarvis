@@ -71,8 +71,9 @@ class ShoppingViewModel(private val repo: ShoppingRepository) : ViewModel() {
     }
 
     fun toggle(item: ShoppingItem) = launch { repo.setChecked(item.id, !item.checked) }
-    fun delete(item: ShoppingItem) = launch { repo.deleteItem(item.id) }
-    fun removeChecked() = currentId?.let { id -> launch { repo.removeChecked(id) } }
+    fun delete(item: ShoppingItem, onDeleted: (ShoppingItem) -> Unit) = launch { repo.deleteItem(item.id)?.let(onDeleted) }
+    fun removeChecked(onRemoved: (List<ShoppingItem>) -> Unit) = currentId?.let { id -> launch { onRemoved(repo.removeChecked(id)) } }
+    fun restore(items: List<ShoppingItem>) = launch { repo.restore(items) }
     fun uncheckAll() = currentId?.let { id -> launch { repo.uncheckAll(id) } }
 
     private fun launch(block: suspend () -> Unit) {

@@ -216,7 +216,7 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
         AlertDialog(
             onDismissRequest = vm::cancelRestore,
             title = { Text(stringResource(R.string.restore_confirm_title)) },
-            text = { Text(stringResource(R.string.restore_confirm_body, data.tasks.size, data.projects.size)) },
+            text = { Text(stringResource(R.string.restore_confirm_body, data.tasks.size, data.projects.size, data.shoppingItems.size, data.movements.size, data.debts.size)) },
             confirmButton = { TextButton(onClick = vm::confirmRestore) { Text(stringResource(R.string.restore)) } },
             dismissButton = { TextButton(onClick = vm::cancelRestore) { Text(stringResource(R.string.cancel)) } },
         )
