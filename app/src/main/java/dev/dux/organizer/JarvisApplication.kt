@@ -32,6 +32,7 @@ class JarvisApplication : Application() {
             projects.seedIfEmpty()
             shopping.seedIfEmpty()
             finance.seedIfEmpty()
+            autoBackup.scheduleIfEnabled()
             // Force-stopping the app silently clears its alarms; opening it restores them (and notifies missed ones).
             reminders.syncAll()
         }
