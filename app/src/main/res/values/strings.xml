@@ -240,4 +240,8 @@
     <string name="no_results">Nada coincide con «%1$s»</string>
     <string name="see_all">Ver todos (%1$d)</string>
     <string name="in_cart_short">En el carrito</string>
+
+    <string name="widget_name">Mi día</string>
+    <string name="widget_description">Tus pendientes de hoy: palomea sin abrir la app o captura algo nuevo.</string>
+    <string name="widget_overdue">Vencida</string>
 </resources>

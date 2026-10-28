@@ -25,7 +25,7 @@ Rules:
 
 ## Structure
 
-- Single `:app` module, packages by feature: `today/`, `inbox/`, `tasks/`, `projects/`, `shopping/`, `finances/`, `search/`, `reminders/`, `backup/`, `settings/`. Shared code in `data/` (entities, DAOs, repositories, backup) and `ui/` (theme and reusable components).
+- Single `:app` module, packages by feature: `today/`, `inbox/`, `tasks/`, `projects/`, `shopping/`, `finances/`, `search/`, `reminders/`, `backup/`, `widget/`, `settings/`. Shared code in `data/` (entities, DAOs, repositories, backup) and `ui/` (theme and reusable components).
 - A new feature gets its own package; its entities, DAO and repository go in `data/`.
 - Manual dependency injection: `JarvisApplication` creates the database and repositories once; screens get them through `viewModel { … }` in `ui/JarvisApp.kt`.
 - Background work uses WorkManager (the daily automatic backup); exact reminders use AlarmManager. Small settings live in DataStore.

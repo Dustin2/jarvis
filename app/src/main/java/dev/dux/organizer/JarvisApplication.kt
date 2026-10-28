@@ -10,7 +10,11 @@ import dev.dux.organizer.data.ProjectRepository
 import dev.dux.organizer.data.ShoppingRepository
 import dev.dux.organizer.data.TaskRepository
 import dev.dux.organizer.reminders.Reminders
+import androidx.glance.appwidget.updateAll
+import dev.dux.organizer.widget.TodayWidget
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -35,6 +39,10 @@ class JarvisApplication : Application() {
             autoBackup.scheduleIfEnabled()
             // Force-stopping the app silently clears its alarms; opening it restores them (and notifies missed ones).
             reminders.syncAll()
+        }
+        // Keeps the home screen widget in step with any change to open tasks, wherever it is made.
+        MainScope().launch {
+            tasks.open.drop(1).collectLatest { TodayWidget().updateAll(this@JarvisApplication) }
         }
     }
 }
