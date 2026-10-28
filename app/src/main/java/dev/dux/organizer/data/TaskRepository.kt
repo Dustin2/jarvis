@@ -84,6 +84,12 @@ class TaskRepository(
         reminders?.cancel(id)
     }
 
+    /** "Deshacer" after deleting: puts the task back exactly as it was, reminder included. */
+    suspend fun restore(task: Task) {
+        dao.insert(task)
+        reminders?.sync(task)
+    }
+
     // Serialized read-modify-write: typing fast in the detail screen must not let two edits overwrite each other.
     private val writeLock = Mutex()
 
