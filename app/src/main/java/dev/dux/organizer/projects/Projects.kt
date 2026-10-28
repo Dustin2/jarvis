@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -112,6 +113,7 @@ fun ProjectsScreen(vm: ProjectsViewModel, onOpen: (String) -> Unit, modifier: Mo
                     Text(
                         open.firstOrNull()?.let { stringResource(R.string.next_label, it.title) } ?: stringResource(R.string.no_next_step),
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 },
                 overlineContent = if (project.status != ProjectStatus.ACTIVE) ({ Text(stringResource(project.status.label)) }) else null,
