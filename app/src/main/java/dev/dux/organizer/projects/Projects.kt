@@ -4,7 +4,6 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -21,10 +20,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -48,6 +46,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import dev.dux.organizer.ui.Choice
 import dev.dux.organizer.ui.NameDialog
+import dev.dux.organizer.ui.ScreenHeader
+import androidx.compose.material3.DropdownMenuItem
 import dev.dux.organizer.ui.SavedIndicator
 import dev.dux.organizer.ui.asHeading
 
@@ -92,19 +92,16 @@ val ProjectStatus.label: Int
     }
 
 @Composable
-fun ProjectsScreen(vm: ProjectsViewModel, onOpen: (String) -> Unit, modifier: Modifier = Modifier) {
+fun ProjectsScreen(vm: ProjectsViewModel, onOpen: (String) -> Unit, onSearch: () -> Unit, modifier: Modifier = Modifier) {
     val summaries by vm.summaries.collectAsStateWithLifecycle()
     var creating by rememberSaveable { mutableStateOf(false) }
     val items = summaries ?: return
 
     LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
         item {
-            Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, top = 16.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.tab_projects), style = MaterialTheme.typography.displaySmall, modifier = Modifier.weight(1f).asHeading())
-                IconButton(onClick = { creating = true }) {
-                    Icon(painterResource(R.drawable.ic_add), stringResource(R.string.new_project))
-                }
-            }
+            ScreenHeader(R.string.tab_projects, onSearch, menu = { close ->
+                DropdownMenuItem(text = { Text(stringResource(R.string.new_project)) }, onClick = { close(); creating = true })
+            })
         }
         items(items, key = { it.project.id }) { (project, open) ->
             ListItem(

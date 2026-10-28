@@ -4,7 +4,6 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,7 +19,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -43,6 +41,7 @@ import dev.dux.organizer.data.TaskRepository
 import dev.dux.organizer.data.TaskStatus
 import dev.dux.organizer.tasks.TaskRow
 import dev.dux.organizer.ui.SPANISH
+import dev.dux.organizer.ui.ScreenHeader
 import dev.dux.organizer.ui.rememberToday
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -87,14 +86,12 @@ fun TodayScreen(vm: TodayViewModel, onOpen: (String) -> Unit, onOpenSettings: ()
 
     LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
         item {
-            Column(Modifier.padding(horizontal = 24.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.tab_today), style = MaterialTheme.typography.displaySmall, modifier = Modifier.weight(1f).asHeading())
-                    IconButton(onClick = onSearch) { Icon(painterResource(R.drawable.ic_search), stringResource(R.string.search)) }
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(painterResource(R.drawable.ic_settings), stringResource(R.string.settings))
-                    }
-                }
+            ScreenHeader(R.string.tab_today, onSearch, extra = {
+                IconButton(onClick = onOpenSettings) { Icon(painterResource(R.drawable.ic_settings), stringResource(R.string.settings)) }
+            })
+        }
+        item {
+            Column(Modifier.padding(start = 24.dp, end = 24.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     today.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(SPANISH)).replaceFirstChar { it.uppercase() },
                     style = MaterialTheme.typography.titleMedium,

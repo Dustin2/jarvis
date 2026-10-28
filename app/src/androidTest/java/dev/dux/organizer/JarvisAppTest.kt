@@ -16,11 +16,16 @@ class JarvisAppTest {
     val compose = createComposeRule()
 
     @Test
-    fun startsOnTodayAndSwitchesTabs() {
+    fun startsOnTodayAndSwitchesTabsAndTaskViews() {
         compose.setContent { JarvisTheme { JarvisApp() } }
 
         compose.onNodeWithText("Siguiente paso").assertExists()
 
-        compose.onNode(hasText("Bandeja") and isSelectable()).performClick().assertIsSelected()
+        compose.onNode(hasText("Finanzas") and isSelectable()).performClick().assertIsSelected()
+        compose.onNodeWithText("Resumen").assertExists()
+
+        // The Bandeja is a view inside Tareas ("Bandeja (n)").
+        compose.onNode(hasText("Tareas") and isSelectable()).performClick().assertIsSelected()
+        compose.onNode(hasText("Bandeja", substring = true) and isSelectable()).performClick().assertIsSelected()
     }
 }
