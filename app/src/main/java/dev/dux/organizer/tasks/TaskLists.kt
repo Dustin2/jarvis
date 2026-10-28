@@ -2,7 +2,7 @@ package dev.dux.organizer.tasks
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -43,7 +43,7 @@ fun TasksScreen(
     offerUndo: (String, () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val resources = LocalContext.current.resources
+    val resources = LocalResources.current
     val inbox by vm.inbox.collectAsStateWithLifecycle()
     val lists by vm.lists.collectAsStateWithLifecycle()
     val projectNames by vm.projectNames.collectAsStateWithLifecycle()

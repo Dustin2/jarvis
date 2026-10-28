@@ -45,6 +45,7 @@
     <string name="scheduled_date">Programada para</string>
     <string name="due_label">Vence %1$s</string>
     <string name="scheduled_label">Para %1$s</string>
+    <string name="scheduled_since">Desde %1$s</string>
     <string name="no_date">Sin fecha</string>
     <string name="remove_date">Quitar fecha</string>
     <string name="accept">Aceptar</string>
