@@ -17,6 +17,9 @@ interface FinanceDao {
     @Query("SELECT * FROM finance_movements WHERE date BETWEEN :from AND :to ORDER BY date DESC, createdAt DESC")
     fun observeMovements(from: LocalDate, to: LocalDate): Flow<List<Movement>>
 
+    @Query("SELECT * FROM finance_movements")
+    fun observeAllMovements(): Flow<List<Movement>>
+
     @Query(
         "SELECT d.*, COALESCE((SELECT SUM(p.amountCents) FROM finance_debt_payments p WHERE p.debtId = d.id), 0) AS paidCents " +
             "FROM finance_debts d ORDER BY d.settledAt IS NOT NULL, d.dueDate IS NULL, d.dueDate, d.createdAt"

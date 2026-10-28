@@ -50,6 +50,9 @@ import dev.dux.organizer.projects.ProjectDetailScreen
 import dev.dux.organizer.projects.ProjectDetailViewModel
 import dev.dux.organizer.projects.ProjectsScreen
 import dev.dux.organizer.projects.ProjectsViewModel
+import dev.dux.organizer.search.SearchScreen
+import dev.dux.organizer.search.SearchTarget
+import dev.dux.organizer.search.SearchViewModel
 import dev.dux.organizer.settings.SettingsScreen
 import dev.dux.organizer.shopping.AddItemSheet
 import dev.dux.organizer.shopping.ShoppingScreen
@@ -59,12 +62,15 @@ import dev.dux.organizer.today.TodayScreen
 import dev.dux.organizer.today.TodayViewModel
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import java.time.YearMonth
 
 @Serializable data object Main : NavKey
 @Serializable data class TaskDetail(val id: String) : NavKey
 @Serializable data class ProjectDetail(val id: String) : NavKey
 @Serializable data object Settings : NavKey
-@Serializable data object Finances : NavKey
+/** [month] ("2026-10") and [movementId] open a movement found by the search. */
+@Serializable data class Finances(val month: String? = null, val movementId: String? = null) : NavKey
+@Serializable data object Search : NavKey
 @Serializable data class DebtDetail(val id: String) : NavKey
 
 enum class Tab(@StringRes val label: Int, @DrawableRes val icon: Int) {
@@ -86,6 +92,9 @@ fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}) {
         }
     }
     val app = LocalContext.current.app
+    // Hoisted so the search can open Compras on a given list.
+    var tab by rememberSaveable { mutableStateOf(Tab.Today) }
+    var listToOpen by rememberSaveable { mutableStateOf<String?>(null) }
     val openTask: (String) -> Unit = { backStack.add(TaskDetail(it)) }
     NavDisplay(
         backStack = backStack,
@@ -105,7 +114,12 @@ fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}) {
                     onOpenTask = openTask,
                     onOpenProject = { backStack.add(ProjectDetail(it)) },
                     onOpenSettings = { backStack.add(Settings) },
-                    onOpenFinances = { backStack.add(Finances) },
+                    onOpenFinances = { backStack.add(Finances()) },
+                    onSearch = { backStack.add(Search) },
+                    tab = tab,
+                    onTabChange = { tab = it },
+                    listToOpen = listToOpen,
+                    onListOpened = { listToOpen = null },
                 )
             }
             entry<TaskDetail> { key ->
@@ -114,9 +128,30 @@ fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}) {
             entry<Settings> {
                 SettingsScreen(viewModel { SettingsViewModel(app.backups, app.contentResolver, app.autoBackup) }, onBack = { backStack.removeLastOrNull() })
             }
-            entry<Finances> {
+            entry<Search> {
+                SearchScreen(
+                    viewModel { SearchViewModel(app.tasks, app.projects, app.shopping, app.finance) },
+                    onOpen = { target ->
+                        when (target) {
+                            is SearchTarget.Task -> backStack.add(TaskDetail(target.id))
+                            is SearchTarget.Project -> backStack.add(ProjectDetail(target.id))
+                            is SearchTarget.Debt -> backStack.add(DebtDetail(target.id))
+                            is SearchTarget.Movement -> backStack.add(Finances(target.month.toString(), target.id))
+                            is SearchTarget.ShoppingList -> {
+                                // Compras is a tab of the main screen: go back to it with that list selected.
+                                while (backStack.size > 1) backStack.removeLastOrNull()
+                                tab = Tab.Shopping
+                                listToOpen = target.id
+                            }
+                        }
+                    },
+                    onBack = { backStack.removeLastOrNull() },
+                )
+            }
+            entry<Finances> { key ->
                 FinancesScreen(
-                    viewModel { FinancesViewModel(app.finance) },
+                    viewModel { FinancesViewModel(app.finance, key.month?.let(YearMonth::parse) ?: YearMonth.now()) },
+                    initialMovement = key.movementId,
                     onOpenDebt = { backStack.add(DebtDetail(it)) },
                     onBack = { backStack.removeLastOrNull() },
                 )
@@ -145,8 +180,18 @@ private fun MainScreen(
     onOpenProject: (String) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenFinances: () -> Unit,
+    onSearch: () -> Unit,
+    tab: Tab,
+    onTabChange: (Tab) -> Unit,
+    listToOpen: String?,
+    onListOpened: () -> Unit,
 ) {
-    var tab by rememberSaveable { mutableStateOf(Tab.Today) }
+    LaunchedEffect(listToOpen) {
+        if (listToOpen != null) {
+            shoppingVm.select(listToOpen)
+            onListOpened()
+        }
+    }
     var capturing by rememberSaveable { mutableStateOf(false) }
     var addingItem by rememberSaveable { mutableStateOf(false) }
     val shopping by shoppingVm.state.collectAsStateWithLifecycle()
@@ -172,7 +217,7 @@ private fun MainScreen(
                 Tab.entries.forEach {
                     ShortNavigationBarItem(
                         selected = it == tab,
-                        onClick = { tab = it },
+                        onClick = { onTabChange(it) },
                         icon = { Icon(painterResource(it.icon), contentDescription = null) },
                         label = { NavLabel(stringResource(it.label)) },
                     )
@@ -182,9 +227,9 @@ private fun MainScreen(
     ) { padding ->
         val modifier = Modifier.padding(padding)
         when (tab) {
-            Tab.Today -> TodayScreen(todayVm, onOpenTask, onOpenSettings, onOpenFinances, modifier)
+            Tab.Today -> TodayScreen(todayVm, onOpenTask, onOpenSettings, onOpenFinances, onSearch, modifier)
             Tab.Inbox -> InboxScreen(tasksVm, onOpenTask, modifier)
-            Tab.Tasks -> TasksScreen(tasksVm, onOpenTask, modifier)
+            Tab.Tasks -> TasksScreen(tasksVm, onOpenTask, onSearch, modifier)
             Tab.Projects -> ProjectsScreen(projectsVm, onOpenProject, modifier)
             Tab.Shopping -> ShoppingScreen(shoppingVm, modifier)
         }

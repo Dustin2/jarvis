@@ -11,6 +11,8 @@ class FinanceRepository(private val dao: FinanceDao, private val clock: Clock = 
     val categories: Flow<List<Category>> = dao.observeCategories()
     val debts: Flow<List<DebtWithPaid>> = dao.observeDebts()
 
+    val allMovements: Flow<List<Movement>> = dao.observeAllMovements()
+
     fun movements(month: YearMonth): Flow<List<Movement>> = dao.observeMovements(month.atDay(1), month.atEndOfMonth())
     fun debt(id: String): Flow<DebtWithPaid?> = dao.observeDebt(id)
     fun payments(debtId: String): Flow<List<DebtPayment>> = dao.observePayments(debtId)

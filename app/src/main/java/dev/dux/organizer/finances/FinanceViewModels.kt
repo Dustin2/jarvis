@@ -29,8 +29,8 @@ data class FinancesState(
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class FinancesViewModel(private val repo: FinanceRepository) : ViewModel() {
-    private val month = MutableStateFlow(YearMonth.now())
+class FinancesViewModel(private val repo: FinanceRepository, initialMonth: YearMonth = YearMonth.now()) : ViewModel() {
+    private val month = MutableStateFlow(initialMonth)
 
     /** null = still loading. */
     val state: StateFlow<FinancesState?> = combine(month, repo.categories, month.flatMapLatest { repo.movements(it) }, repo.debts) { m, categories, movements, debts ->

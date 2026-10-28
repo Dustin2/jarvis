@@ -31,6 +31,9 @@ interface TaskDao {
     )
     fun observeByProject(projectId: String): Flow<List<Task>>
 
+    @Query("SELECT * FROM tasks")
+    fun observeAll(): Flow<List<Task>>
+
     @Query("SELECT * FROM tasks WHERE id = :id")
     fun observe(id: String): Flow<Task?>
 
