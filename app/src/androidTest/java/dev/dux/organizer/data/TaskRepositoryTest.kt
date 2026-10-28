@@ -85,4 +85,13 @@ class TaskRepositoryTest {
         repo.delete(id)
         assertNull(repo.observe(id).first())
     }
+
+    @Test fun deletedTaskCanBeRestoredAsItWas() = runBlocking {
+        repo.capture("Idea", "con notas")
+        val task = repo.inbox.first().single()
+        repo.delete(task.id)
+        assertTrue(repo.inbox.first().isEmpty())
+        repo.restore(task)
+        assertEquals(task, repo.inbox.first().single())
+    }
 }

@@ -38,10 +38,17 @@ import dev.dux.organizer.ui.Drafts
 // ModalBottomSheet has been marked experimental for years, but it is the official M3 pattern for this.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CaptureSheet(drafts: Drafts, onDismiss: () -> Unit, onSave: (title: String, notes: String) -> Unit) {
+/** [heading] replaces "¿Qué tienes pendiente?" (e.g. "Nueva tarea en «Pro-Hielo»"); [draftKey] keeps separate drafts per place. */
+fun CaptureSheet(
+    drafts: Drafts,
+    onDismiss: () -> Unit,
+    onSave: (title: String, notes: String) -> Unit,
+    heading: String? = null,
+    draftKey: String = "capture",
+) {
     // Kept by the screen: closing the sheet by accident does not lose what was typed.
-    var title by drafts.field("capture.title")
-    var notes by drafts.field("capture.notes")
+    var title by drafts.field("$draftKey.title")
+    var notes by drafts.field("$draftKey.notes")
     var showError by rememberSaveable { mutableStateOf(false) }
     val focus = remember { FocusRequester() }
     val save = {
@@ -53,7 +60,7 @@ fun CaptureSheet(drafts: Drafts, onDismiss: () -> Unit, onSave: (title: String, 
             Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp).imePadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(stringResource(R.string.capture_title), style = MaterialTheme.typography.headlineSmall)
+            Text(heading ?: stringResource(R.string.capture_title), style = MaterialTheme.typography.headlineSmall)
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it; showError = false },

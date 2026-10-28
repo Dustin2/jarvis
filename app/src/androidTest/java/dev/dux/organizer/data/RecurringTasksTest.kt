@@ -101,4 +101,13 @@ class RecurringTasksTest {
         repo.setStatus(id, TaskStatus.DONE)
         assertNull(open().single().reminderAt)
     }
+
+    @Test fun undoingACompletionRemovesTheOccurrenceItCreated() = runBlocking {
+        val id = bill()
+        val undo = repo.complete(id)!!
+        assertEquals(2, all().size)
+        undo()
+        assertEquals("only the original, open again", listOf(id), open().map { it.id })
+        assertEquals(1, all().size)
+    }
 }

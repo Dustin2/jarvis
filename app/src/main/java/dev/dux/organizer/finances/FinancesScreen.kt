@@ -23,15 +23,14 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,10 +44,16 @@ import dev.dux.organizer.data.Category
 import dev.dux.organizer.data.DebtDirection
 import dev.dux.organizer.data.DebtWithPaid
 import dev.dux.organizer.data.MoneyKind
+import dev.dux.organizer.data.Movement
 import dev.dux.organizer.data.formatMoney
 import dev.dux.organizer.ui.AddButton
 import dev.dux.organizer.ui.CappedLabel
 import dev.dux.organizer.ui.SPANISH
+import dev.dux.organizer.ui.ScreenHeader
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ScaffoldDefaults
 import dev.dux.organizer.ui.rememberDrafts
 import dev.dux.organizer.ui.asHeading
 import dev.dux.organizer.ui.inlineLabel
@@ -67,7 +72,18 @@ private enum class FinanceTab(@StringRes val label: Int) {
 private const val NEW = "new"
 
 @Composable
-fun FinancesScreen(vm: FinancesViewModel, onOpenDebt: (String) -> Unit, onBack: () -> Unit, initialMovement: String? = null) {
+/**
+ * A main tab when [onBack] is null (its own header, no top bar); a pushed screen with a back arrow when
+ * opened from the search on a given movement.
+ */
+fun FinancesScreen(
+    vm: FinancesViewModel,
+    onOpenDebt: (String) -> Unit,
+    onSearch: () -> Unit,
+    onBack: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    initialMovement: String? = null,
+) {
     val state by vm.state.collectAsStateWithLifecycle()
     // Opened from the search: straight to that movement.
     var tab by rememberSaveable { mutableStateOf(if (initialMovement != null) FinanceTab.Movements else FinanceTab.Summary) }
@@ -80,15 +96,23 @@ fun FinancesScreen(vm: FinancesViewModel, onOpenDebt: (String) -> Unit, onBack: 
     val savedMessage = stringResource(R.string.movement_saved)
     val drafts = rememberDrafts()
 
+    val newCategory: @Composable ColumnScope.(() -> Unit) -> Unit = { close ->
+        DropdownMenuItem(text = { Text(stringResource(R.string.new_category)) }, onClick = { close(); category = NEW })
+    }
     Scaffold(
+        modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.finances)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.back)) }
-                },
-            )
+            if (onBack != null) {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.finances)) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.back)) }
+                    },
+                )
+            }
         },
+        // As a tab, the main screen already handled the system bars.
+        contentWindowInsets = if (onBack == null) WindowInsets(0, 0, 0, 0) else ScaffoldDefaults.contentWindowInsets,
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
             val debts = tab == FinanceTab.Debts
@@ -99,6 +123,7 @@ fun FinancesScreen(vm: FinancesViewModel, onOpenDebt: (String) -> Unit, onBack: 
     ) { padding ->
         val s = state ?: return@Scaffold
         Column(Modifier.padding(padding)) {
+            if (onBack == null) ScreenHeader(R.string.finances, onSearch, menu = newCategory)
             PrimaryTabRow(selectedTabIndex = tab.ordinal) {
                 FinanceTab.entries.forEach {
                     Tab(selected = it == tab, onClick = { tab = it }, text = { CappedLabel(stringResource(it.label)) })
@@ -235,9 +260,7 @@ private fun SummaryTab(s: FinancesState, vm: FinancesViewModel, onEditCategory: 
                 }
             }
         }
-        heading(R.string.expenses_by_category) {
-            TextButton(onClick = { onEditCategory(NEW) }) { Text(stringResource(R.string.new_category)) }
-        }
+        heading(R.string.expenses_by_category)
         items(summary.lines, key = { it.category.id }) { line ->
             ListItem(
                 onClick = { onEditCategory(line.category.id) },
@@ -271,23 +294,38 @@ private fun MovementsTab(s: FinancesState, vm: FinancesViewModel, onEdit: (Strin
                 Text(stringResource(R.string.empty_movements), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(24.dp))
             }
         }
-        items(s.movements, key = { it.id }) { m ->
-            val income = m.kind == MoneyKind.INCOME
-            ListItem(
-                onClick = { onEdit(m.id) },
-                overlineContent = { Text(m.date.label(today)) },
-                supportingContent = m.note?.let { { Text(it, maxLines = 1) } },
-                trailingContent = {
-                    // The sign says it too, not only the color.
-                    Text(
-                        (if (income) "+" else "-") + formatMoney(m.amountCents),
-                        color = if (income) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                },
-            ) { Text(names[m.categoryId].orEmpty()) }
+        // Grouped by day: the date is said once (with the day's balance when it has several), instead of on every row.
+        s.movements.groupBy { it.date }.forEach { (date, day) ->
+            item(key = "day-$date") {
+                val net = day.sumOf { if (it.kind == MoneyKind.INCOME) it.amountCents else -it.amountCents }
+                Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(date.label(today), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f).asHeading())
+                    // With a single movement the total would repeat its amount.
+                    if (day.size > 1) {
+                        Text((if (net > 0) "+" else "") + formatMoney(net), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+            items(day, key = { it.id }) { m -> MovementRow(m, names[m.categoryId].orEmpty(), onClick = { onEdit(m.id) }) }
         }
     }
+}
+
+@Composable
+private fun MovementRow(m: Movement, categoryName: String, onClick: () -> Unit) {
+    val income = m.kind == MoneyKind.INCOME
+    ListItem(
+        onClick = onClick,
+        supportingContent = m.note?.let { { Text(it, maxLines = 1) } },
+        trailingContent = {
+            // The sign says it too, not only the color.
+            Text(
+                (if (income) "+" else "-") + formatMoney(m.amountCents),
+                color = if (income) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.titleMedium,
+            )
+        },
+    ) { Text(categoryName) }
 }
 
 @Composable

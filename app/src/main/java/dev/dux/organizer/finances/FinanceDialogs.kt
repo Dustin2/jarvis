@@ -55,7 +55,9 @@ import dev.dux.organizer.ui.Choice
 import dev.dux.organizer.ui.ChoiceChips
 import dev.dux.organizer.ui.DatePickDialog
 import dev.dux.organizer.ui.Drafts
-import dev.dux.organizer.ui.Field
+import dev.dux.organizer.ui.PlanRow
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
 import dev.dux.organizer.ui.label
 import dev.dux.organizer.ui.rememberToday
 import java.time.LocalDate
@@ -96,7 +98,10 @@ fun MoneyField(value: String, onValueChange: (String) -> Unit, @StringRes label:
 private fun DateButton(@StringRes title: Int, date: LocalDate?, canRemove: Boolean, onChange: (LocalDate?) -> Unit) {
     var picking by rememberSaveable { mutableStateOf(false) }
     val today by rememberToday()
-    Field(title, date?.label(today) ?: stringResource(R.string.no_date), onClick = { picking = true })
+    // Same row as the task detail (docs/design/task-detail.md).
+    Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+        PlanRow(R.drawable.ic_today, title, date?.label(today) ?: stringResource(R.string.no_date), isSet = date != null, onClick = { picking = true })
+    }
     if (picking) {
         DatePickDialog(date ?: today, if (canRemove) R.string.remove_date else R.string.cancel, canRemove = true, onDismiss = { picking = false }) { picked ->
             picking = false

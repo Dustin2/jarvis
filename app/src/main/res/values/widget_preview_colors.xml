@@ -6,5 +6,4 @@
     <color name="widget_preview_text_secondary">@android:color/system_neutral2_700</color>
     <color name="widget_preview_accent">@android:color/system_accent1_600</color>
     <color name="widget_preview_on_accent">@android:color/system_accent1_0</color>
-    <color name="widget_preview_error">#B3261E</color>
 </resources>

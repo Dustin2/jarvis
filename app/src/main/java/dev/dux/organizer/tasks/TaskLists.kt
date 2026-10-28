@@ -1,13 +1,14 @@
 package dev.dux.organizer.tasks
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -20,62 +21,77 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.res.painterResource
 import dev.dux.organizer.R
 import dev.dux.organizer.data.TaskStatus
-import dev.dux.organizer.ui.asHeading
+import dev.dux.organizer.ui.ChoiceChips
+import dev.dux.organizer.ui.ScreenHeader
+import dev.dux.organizer.ui.SwipeToDelete
 
-@Composable
-fun InboxScreen(vm: TaskListViewModel, onOpen: (String) -> Unit, modifier: Modifier = Modifier) {
-    val inbox by vm.inbox.collectAsStateWithLifecycle()
-    val items = inbox ?: return
-    LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
-        header(R.string.tab_inbox)
-        if (items.isEmpty()) emptyMessage(R.string.empty_inbox)
-        items(items, key = { it.id }) { task ->
-            TaskRow(
-                task,
-                onOpen = { onOpen(task.id) },
-                onToggleDone = null,
-                trailing = {
-                    TextButton(onClick = { vm.setStatus(task.id, TaskStatus.TODO) }) {
-                        Text(stringResource(R.string.plan))
-                    }
-                },
-            )
-        }
-    }
+/** The Bandeja is the first step of a task, so it lives here as a view (docs/design/navigation.md). */
+enum class TaskView(@StringRes val label: Int) {
+    Inbox(R.string.view_inbox),
+    Pending(R.string.view_pending),
+    Finished(R.string.view_finished),
 }
 
 @Composable
-fun TasksScreen(vm: TaskListViewModel, onOpen: (String) -> Unit, onSearch: () -> Unit, modifier: Modifier = Modifier) {
+/** [offerUndo] shows a message with "Deshacer" after completing a task or deleting one from the Bandeja. */
+fun TasksScreen(
+    vm: TaskListViewModel,
+    onOpen: (String) -> Unit,
+    onSearch: () -> Unit,
+    offerUndo: (String, () -> Unit) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val resources = LocalResources.current
+    val inbox by vm.inbox.collectAsStateWithLifecycle()
     val lists by vm.lists.collectAsStateWithLifecycle()
-    val (pending, finished) = lists ?: return
     val projectNames by vm.projectNames.collectAsStateWithLifecycle()
-    var showFinished by rememberSaveable { mutableStateOf(false) }
+    val inboxTasks = inbox ?: return
+    val (pending, finished) = lists ?: return
+    var view by rememberSaveable { mutableStateOf(TaskView.Pending) }
+    val counts = mapOf(TaskView.Inbox to inboxTasks.size, TaskView.Pending to pending.size, TaskView.Finished to finished.size)
+
     LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
-        header(R.string.tab_tasks) {
-            IconButton(onClick = onSearch) { Icon(painterResource(R.drawable.ic_search), stringResource(R.string.search)) }
-        }
-        if (pending.isEmpty()) emptyMessage(R.string.empty_tasks)
-        items(pending, key = { it.id }) { task ->
-            TaskRow(task, onOpen = { onOpen(task.id) }, onToggleDone = { vm.setStatus(task.id, TaskStatus.DONE) }, projectName = projectNames[task.projectId])
-        }
-        if (finished.isNotEmpty()) {
-            item {
-                FilterChip(
-                    selected = showFinished,
-                    onClick = { showFinished = !showFinished },
-                    label = { Text(stringResource(R.string.show_finished, finished.size)) },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
+        item { ScreenHeader(R.string.tab_tasks, onSearch) }
+        item {
+            Box(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)) {
+                ChoiceChips(TaskView.entries, view, { stringResource(it.label, counts.getValue(it)) }) { view = it }
             }
-            if (showFinished) {
+        }
+        when (view) {
+            TaskView.Inbox -> {
+                if (inboxTasks.isEmpty()) emptyMessage(R.string.empty_inbox)
+                items(inboxTasks, key = { it.id }) { task ->
+                    val delete = {
+                        vm.delete(task)
+                        offerUndo(resources.getString(R.string.task_deleted, task.title)) { vm.restore(task) }
+                    }
+                    SwipeToDelete(onDelete = delete) {
+                        TaskRow(
+                            task,
+                            onOpen = { onOpen(task.id) },
+                            onToggleDone = { vm.complete(task) { undo -> offerUndo(resources.getString(R.string.task_completed, task.title), undo) } },
+                            trailing = {
+                                TextButton(onClick = { vm.setStatus(task.id, TaskStatus.TODO) }) { Text(stringResource(R.string.plan)) }
+                            },
+                        )
+                    }
+                }
+            }
+            TaskView.Pending -> {
+                if (pending.isEmpty()) emptyMessage(R.string.empty_tasks)
+                items(pending, key = { it.id }) { task ->
+                    TaskRow(
+                        task,
+                        onOpen = { onOpen(task.id) },
+                        onToggleDone = { vm.complete(task) { undo -> offerUndo(resources.getString(R.string.task_completed, task.title), undo) } },
+                        projectName = projectNames[task.projectId],
+                    )
+                }
+            }
+            TaskView.Finished -> {
+                if (finished.isEmpty()) emptyMessage(R.string.empty_finished)
                 items(finished, key = { it.id }) { task ->
                     TaskRow(task, onOpen = { onOpen(task.id) }, onToggleDone = { vm.setStatus(task.id, TaskStatus.TODO) }, projectName = projectNames[task.projectId])
                 }
@@ -84,18 +100,11 @@ fun TasksScreen(vm: TaskListViewModel, onOpen: (String) -> Unit, onSearch: () ->
     }
 }
 
-private fun LazyListScope.header(@StringRes title: Int, action: (@Composable () -> Unit)? = null) = item {
-    Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, top = 16.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(stringResource(title), style = MaterialTheme.typography.displaySmall, modifier = Modifier.weight(1f).asHeading())
-        action?.invoke()
-    }
-}
-
 private fun LazyListScope.emptyMessage(@StringRes message: Int) = item {
     Text(
         stringResource(message),
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 24.dp),
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
     )
 }

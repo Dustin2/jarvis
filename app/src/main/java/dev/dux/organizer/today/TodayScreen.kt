@@ -4,13 +4,13 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -20,8 +20,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -40,9 +40,9 @@ import dev.dux.organizer.finances.MonthSummary
 import dev.dux.organizer.finances.monthSummary
 import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TaskRepository
-import dev.dux.organizer.data.TaskStatus
 import dev.dux.organizer.tasks.TaskRow
 import dev.dux.organizer.ui.SPANISH
+import dev.dux.organizer.ui.ScreenHeader
 import dev.dux.organizer.ui.rememberToday
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -68,13 +68,25 @@ class TodayViewModel(private val tasks: TaskRepository, projects: ProjectReposit
     val backupOverdue = autoBackup.state.map { backupOverdue(it.lastSuccess, it.enabledAt, Instant.now()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
-    fun complete(id: String) {
-        viewModelScope.launch { tasks.setStatus(id, TaskStatus.DONE) }
+    /** Completes the task and hands back an undo for the "Deshacer" message. */
+    fun complete(task: Task, onCompleted: (undo: () -> Unit) -> Unit) {
+        viewModelScope.launch {
+            tasks.complete(task.id)?.let { undo -> onCompleted { viewModelScope.launch { undo() } } }
+        }
     }
 }
 
 @Composable
-fun TodayScreen(vm: TodayViewModel, onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onOpenFinances: () -> Unit, onSearch: () -> Unit, modifier: Modifier = Modifier) {
+fun TodayScreen(
+    vm: TodayViewModel,
+    onOpen: (String) -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenFinances: () -> Unit,
+    onSearch: () -> Unit,
+    offerUndo: (String, () -> Unit) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val resources = LocalResources.current
     val state by vm.state.collectAsStateWithLifecycle()
     val month by vm.month.collectAsStateWithLifecycle()
     val backupOverdue by vm.backupOverdue.collectAsStateWithLifecycle()
@@ -82,19 +94,17 @@ fun TodayScreen(vm: TodayViewModel, onOpen: (String) -> Unit, onOpenSettings: ()
     val (open, projectNames) = state ?: return
     val plan = remember(open, today) { planDay(open, today) }
     val row: @Composable (Task) -> Unit = { task ->
-        TaskRow(task, onOpen = { onOpen(task.id) }, onToggleDone = { vm.complete(task.id) }, projectName = projectNames[task.projectId])
+        TaskRow(task, onOpen = { onOpen(task.id) }, onToggleDone = { vm.complete(task) { undo -> offerUndo(resources.getString(R.string.task_completed, task.title), undo) } }, projectName = projectNames[task.projectId])
     }
 
     LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
         item {
-            Column(Modifier.padding(horizontal = 24.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.tab_today), style = MaterialTheme.typography.displaySmall, modifier = Modifier.weight(1f).asHeading())
-                    IconButton(onClick = onSearch) { Icon(painterResource(R.drawable.ic_search), stringResource(R.string.search)) }
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(painterResource(R.drawable.ic_settings), stringResource(R.string.settings))
-                    }
-                }
+            ScreenHeader(R.string.tab_today, onSearch, extra = {
+                IconButton(onClick = onOpenSettings) { Icon(painterResource(R.drawable.ic_settings), stringResource(R.string.settings)) }
+            })
+        }
+        item {
+            Column(Modifier.padding(start = 24.dp, end = 24.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     today.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(SPANISH)).replaceFirstChar { it.uppercase() },
                     style = MaterialTheme.typography.titleMedium,
@@ -109,21 +119,33 @@ fun TodayScreen(vm: TodayViewModel, onOpen: (String) -> Unit, onOpenSettings: ()
             }
         }
         if (backupOverdue) item { BackupWarningCard(onOpenSettings) }
-        item { NextStepCard(plan.nextStep, onOpen) }
+        val next = plan.nextStep
+        item {
+            NextStepCard(next, onOpen, onComplete = { task ->
+                vm.complete(task) { undo -> offerUndo(resources.getString(R.string.task_completed, task.title), undo) }
+            })
+        }
         month?.let { item { MonthCard(it, onOpenFinances) } }
-        section(R.string.overdue, plan.overdue, row)
-        section(R.string.today, plan.today, row)
+        // The next step already has its own card: listing it again below repeated it.
+        section(R.string.overdue, plan.overdue - setOfNotNull(next), row)
+        section(R.string.today, plan.today - setOfNotNull(next), row)
         section(R.string.upcoming, plan.upcoming, row)
     }
 }
 
 @Composable
-private fun NextStepCard(task: Task?, onOpen: (String) -> Unit) {
+private fun NextStepCard(task: Task?, onOpen: (String) -> Unit, onComplete: (Task) -> Unit) {
     val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
     val content: @Composable () -> Unit = {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(stringResource(R.string.next_step), style = MaterialTheme.typography.labelLarge)
             Text(task?.title ?: stringResource(R.string.empty_today), style = MaterialTheme.typography.headlineSmall)
+            if (task != null) {
+                Button(onClick = { onComplete(task) }, modifier = Modifier.padding(top = 8.dp)) {
+                    Icon(painterResource(R.drawable.ic_check), contentDescription = null)
+                    Text(stringResource(R.string.complete), Modifier.padding(start = 8.dp))
+                }
+            }
         }
     }
     val modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
