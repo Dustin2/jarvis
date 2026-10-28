@@ -1,14 +1,16 @@
 package dev.dux.organizer.ui
 
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import dev.dux.organizer.TestHostActivity
 import androidx.compose.ui.test.onNodeWithText
 import org.junit.Rule
 import org.junit.Test
 
 class SavedIndicatorTest {
     @get:Rule
-    val compose = createComposeRule()
+    // Shows over the lock screen and turns the screen on, so the test does not depend on the phone's state.
+    val compose = createAndroidComposeRule<TestHostActivity>()
 
     @Test fun showsOnlyAfterASaveAndThenFades() {
         val version = mutableStateOf<Long?>(null)

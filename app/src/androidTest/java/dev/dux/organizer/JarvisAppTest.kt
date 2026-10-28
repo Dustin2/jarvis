@@ -3,7 +3,8 @@ package dev.dux.organizer
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
-import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import dev.dux.organizer.TestHostActivity
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import dev.dux.organizer.ui.JarvisApp
@@ -13,7 +14,8 @@ import org.junit.Test
 
 class JarvisAppTest {
     @get:Rule
-    val compose = createComposeRule()
+    // Shows over the lock screen and turns the screen on, so the test does not depend on the phone's state.
+    val compose = createAndroidComposeRule<TestHostActivity>()
 
     @Test
     fun startsOnTodayAndSwitchesTabsAndTaskViews() {
