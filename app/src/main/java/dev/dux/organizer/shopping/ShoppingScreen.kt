@@ -34,6 +34,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -55,7 +56,7 @@ private enum class ListDialog { Create, Rename, Delete }
 @Composable
 /** [offerUndo] shows a message with "Deshacer" after something is deleted. */
 fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Unit, onSearch: () -> Unit, modifier: Modifier = Modifier) {
-    val resources = LocalContext.current.resources
+    val resources = LocalResources.current
     val state by vm.state.collectAsStateWithLifecycle()
     var dialog by rememberSaveable { mutableStateOf<ListDialog?>(null) }
     val context = LocalContext.current

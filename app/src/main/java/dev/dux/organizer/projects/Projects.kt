@@ -56,7 +56,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.remember
@@ -162,7 +162,7 @@ fun ProjectDetailScreen(vm: ProjectDetailViewModel, onOpenTask: (String) -> Unit
     val drafts = rememberDrafts()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val resources = LocalContext.current.resources
+    val resources = LocalResources.current
     val undoLabel = stringResource(R.string.undo)
 
     Scaffold(
