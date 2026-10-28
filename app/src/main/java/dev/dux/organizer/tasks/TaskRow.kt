@@ -84,7 +84,8 @@ private fun Supporting(task: Task, projectName: String?) {
     val parts = buildList {
         if (task.priority != Priority.NONE) add(stringResource(task.priority.label))
         task.dueDate?.let { add(stringResource(R.string.due_label, it.inlineLabel(today))) }
-            ?: task.scheduledDate?.let { add(stringResource(R.string.scheduled_label, it.inlineLabel(today))) }
+            // Planned for a past day and not done yet: it carries over ("Desde ayer"), it is not overdue.
+            ?: task.scheduledDate?.let { add(stringResource(if (it < today) R.string.scheduled_since else R.string.scheduled_label, it.inlineLabel(today))) }
         if (task.recurrence != null) add(stringResource(R.string.repeats))
         projectName?.let { add(it) }
         task.notes?.let { add(it) }

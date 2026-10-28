@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -118,21 +119,33 @@ fun TodayScreen(
             }
         }
         if (backupOverdue) item { BackupWarningCard(onOpenSettings) }
-        item { NextStepCard(plan.nextStep, onOpen) }
+        val next = plan.nextStep
+        item {
+            NextStepCard(next, onOpen, onComplete = { task ->
+                vm.complete(task) { undo -> offerUndo(resources.getString(R.string.task_completed, task.title), undo) }
+            })
+        }
         month?.let { item { MonthCard(it, onOpenFinances) } }
-        section(R.string.overdue, plan.overdue, row)
-        section(R.string.today, plan.today, row)
+        // The next step already has its own card: listing it again below repeated it.
+        section(R.string.overdue, plan.overdue - setOfNotNull(next), row)
+        section(R.string.today, plan.today - setOfNotNull(next), row)
         section(R.string.upcoming, plan.upcoming, row)
     }
 }
 
 @Composable
-private fun NextStepCard(task: Task?, onOpen: (String) -> Unit) {
+private fun NextStepCard(task: Task?, onOpen: (String) -> Unit, onComplete: (Task) -> Unit) {
     val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
     val content: @Composable () -> Unit = {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(stringResource(R.string.next_step), style = MaterialTheme.typography.labelLarge)
             Text(task?.title ?: stringResource(R.string.empty_today), style = MaterialTheme.typography.headlineSmall)
+            if (task != null) {
+                Button(onClick = { onComplete(task) }, modifier = Modifier.padding(top = 8.dp)) {
+                    Icon(painterResource(R.drawable.ic_check), contentDescription = null)
+                    Text(stringResource(R.string.complete), Modifier.padding(start = 8.dp))
+                }
+            }
         }
     }
     val modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
