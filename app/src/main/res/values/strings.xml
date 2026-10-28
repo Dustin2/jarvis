@@ -261,4 +261,7 @@
     <string name="view_pending">Pendientes (%1$d)</string>
     <string name="view_finished">Terminadas (%1$d)</string>
     <string name="empty_finished">Todavía no has terminado ninguna tarea.</string>
+
+    <string name="task_completed">Se completó «%1$s»</string>
+    <string name="task_deleted">Se eliminó «%1$s»</string>
 </resources>
