@@ -35,6 +35,14 @@ class TaskListViewModel(private val repo: TaskRepository, projects: ProjectRepos
     fun setStatus(id: String, status: TaskStatus) {
         viewModelScope.launch { repo.setStatus(id, status) }
     }
+
+    fun delete(task: Task) {
+        viewModelScope.launch { repo.delete(task.id) }
+    }
+
+    fun restore(task: Task) {
+        viewModelScope.launch { repo.restore(task) }
+    }
 }
 
 class TaskDetailViewModel(
