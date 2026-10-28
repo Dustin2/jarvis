@@ -288,5 +288,14 @@
     <string name="ask_send">Preguntar</string>
     <string name="ask_thinking">Pensando…</string>
     <string name="ask_failed">No pude responder. Intenta de nuevo.</string>
-    <string name="ask_no_model">El modelo de IA todavía no está instalado en este teléfono.</string>
+    <string name="ask_no_model">Para preguntarle a Jarvis, primero descarga su modelo en Ajustes. Se descarga una vez y después funciona sin internet.</string>
+    <string name="model_explanation">Jarvis responde preguntas sobre tus pendientes y gastos con un modelo que corre en tu teléfono: tus datos no salen de él. Se descarga una vez (%1$.1f GB), solo con Wi-Fi.</string>
+    <string name="model_download">Descargar modelo</string>
+    <string name="model_starting">Iniciando descarga…</string>
+    <string name="model_downloading">Descargando modelo · %1$d %%</string>
+    <string name="model_waiting_wifi">Esperando Wi-Fi para descargar</string>
+    <string name="model_installed">Modelo instalado. Pregúntale desde Mi día con ✨.</string>
+    <string name="model_delete">Borrar modelo</string>
+    <string name="model_download_failed">La descarga falló. Revisa tu conexión y espacio libre, y vuelve a intentar.</string>
+    <string name="model_failed">No se pudo cambiar el modelo</string>
 </resources>

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,7 +39,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AskSheet(ask: AskJarvis, facts: () -> String, onDismiss: () -> Unit) {
+fun AskSheet(ask: AskJarvis, facts: () -> String, onOpenSettings: () -> Unit, onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
     var question by remember { mutableStateOf("") }
     var answer by remember { mutableStateOf("") }
@@ -62,6 +63,7 @@ fun AskSheet(ask: AskJarvis, facts: () -> String, onDismiss: () -> Unit) {
             Text(stringResource(R.string.ask_jarvis), style = MaterialTheme.typography.titleLarge)
             if (!ask.installed) {
                 Text(stringResource(R.string.ask_no_model), style = MaterialTheme.typography.bodyLarge)
+                Button(onClick = { onDismiss(); onOpenSettings() }) { Text(stringResource(R.string.settings)) }
                 return@Column
             }
             OutlinedTextField(

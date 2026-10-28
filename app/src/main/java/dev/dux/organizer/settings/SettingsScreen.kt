@@ -1,5 +1,12 @@
 package dev.dux.organizer.settings
 
+import dev.dux.organizer.ask.ModelState
+import dev.dux.organizer.ask.MODEL_BYTES
+import dev.dux.organizer.ask.AskJarvis
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.material3.LinearProgressIndicator
 import android.content.ContentResolver
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -68,6 +75,7 @@ class SettingsViewModel(
     private val backups: BackupRepository,
     private val resolver: ContentResolver,
     private val autoBackup: AutoBackup,
+    private val ask: AskJarvis,
 ) : ViewModel() {
     /** null = still loading. */
     val auto = autoBackup.state.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
@@ -132,6 +140,12 @@ class SettingsViewModel(
         message = Message(R.string.auto_backup_disabled)
     }
 
+    val model = ask.state.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun downloadModel() = run(R.string.model_failed) { ask.download() }
+
+    fun deleteModel() = run(R.string.model_failed) { ask.delete() }
+
     fun messageShown() {
         message = null
     }
@@ -167,6 +181,7 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
         uri?.let(vm::enableAutoBackup)
     }
     val auto by vm.auto.collectAsStateWithLifecycle()
+    val model by vm.model.collectAsStateWithLifecycle()
 
     vm.message?.let { message ->
         val text = stringResource(message.text) + (message.detail?.let { "\n$it" } ?: "")
@@ -193,6 +208,7 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
         ) {
             // Automatic first: it is the one that protects the data without remembering to do anything.
             auto?.let { AutoBackupSection(it, vm, onPickFolder = { folderLauncher.launch(null) }) }
+            model?.let { ModelSection(it, vm) }
             Text(stringResource(R.string.backup), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp).asHeading())
             Text(stringResource(R.string.backup_explanation), color = MaterialTheme.colorScheme.onSurfaceVariant)
             OutlinedButton(
@@ -247,4 +263,33 @@ private fun AutoBackupSection(state: AutoBackupState, vm: SettingsViewModel, onP
     OutlinedButton(onClick = vm::backUpNow, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.back_up_now)) }
     OutlinedButton(onClick = onPickFolder, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.change_folder)) }
     TextButton(onClick = vm::disableAutoBackup, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.turn_off_auto_backup)) }
+}
+
+@Composable
+private fun ModelSection(state: ModelState, vm: SettingsViewModel) {
+    Text(stringResource(R.string.ask_jarvis), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp).asHeading())
+    Text(stringResource(R.string.model_explanation, MODEL_BYTES / 1_000_000_000.0), color = MaterialTheme.colorScheme.onSurfaceVariant)
+    when (state) {
+        ModelState.NotInstalled, ModelState.Failed -> {
+            if (state == ModelState.Failed) Text(stringResource(R.string.model_download_failed), color = MaterialTheme.colorScheme.error)
+            Button(onClick = vm::downloadModel, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.model_download)) }
+        }
+        is ModelState.Downloading -> {
+            val progress = state.progress
+            Text(
+                when {
+                    state.waitingForWifi -> stringResource(R.string.model_waiting_wifi)
+                    progress == null -> stringResource(R.string.model_starting)
+                    else -> stringResource(R.string.model_downloading, (progress * 100).toInt())
+                },
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+            if (progress != null) LinearProgressIndicator({ progress }, Modifier.fillMaxWidth()) else LinearProgressIndicator(Modifier.fillMaxWidth())
+            TextButton(onClick = vm::deleteModel, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.cancel)) }
+        }
+        ModelState.Installed -> {
+            Text(stringResource(R.string.model_installed))
+            TextButton(onClick = vm::deleteModel, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.model_delete)) }
+        }
+    }
 }

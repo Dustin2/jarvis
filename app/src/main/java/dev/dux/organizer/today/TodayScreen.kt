@@ -127,7 +127,7 @@ fun TodayScreen(
     var asking by rememberSaveable { mutableStateOf(false) }
     if (asking) {
         val context = LocalContext.current
-        AskSheet(context.app.askJarvis, { askFacts(open, projectNames, month, today) }, onDismiss = { asking = false })
+        AskSheet(context.app.askJarvis, { askFacts(open, projectNames, month, today) }, onOpenSettings, onDismiss = { asking = false })
     }
     val row: @Composable (Task, Modifier) -> Unit = { task, blockModifier ->
         TaskRow(
