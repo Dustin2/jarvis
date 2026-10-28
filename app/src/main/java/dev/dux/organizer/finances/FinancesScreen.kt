@@ -47,6 +47,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Surface
 import dev.dux.organizer.ui.ChoiceChips
+import dev.dux.organizer.ui.blockRowShapes
 import dev.dux.organizer.ui.inBlock
 import dev.dux.organizer.R
 import dev.dux.organizer.data.Category
@@ -325,6 +326,7 @@ private fun CategoryRow(category: Category, amountCents: Long?, modifier: Modifi
     ListItem(
         onClick = onClick,
         modifier = modifier,
+        shapes = blockRowShapes(),
         colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         leadingContent = {
             Box(Modifier.size(40.dp).background(MaterialTheme.colorScheme.secondaryContainer, CircleShape), contentAlignment = Alignment.Center) {
