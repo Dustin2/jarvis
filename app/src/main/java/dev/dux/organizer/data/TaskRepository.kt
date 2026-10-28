@@ -34,11 +34,15 @@ class TaskRepository(
 
     fun observeByProject(projectId: String): Flow<List<Task>> = dao.observeByProject(projectId)
 
-    /** Quick capture to the Inbox. Returns false if the title is not valid. */
-    suspend fun capture(title: String, notes: String = ""): Boolean {
+    /**
+     * Quick capture to the Inbox; with [projectId] (added from a project) it is already sorted, so it goes
+     * straight to Pendientes in that project. Returns false if the title is not valid.
+     */
+    suspend fun capture(title: String, notes: String = "", projectId: String? = null): Boolean {
         val clean = cleanTitle(title) ?: return false
         val now = clock.instant()
-        dao.insert(Task(title = clean, notes = notes.trim().ifEmpty { null }, createdAt = now, updatedAt = now))
+        val status = if (projectId == null) TaskStatus.INBOX else TaskStatus.TODO
+        dao.insert(Task(title = clean, notes = notes.trim().ifEmpty { null }, status = status, projectId = projectId, createdAt = now, updatedAt = now))
         return true
     }
 
