@@ -1,6 +1,19 @@
 package dev.dux.organizer.ui
 
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -65,4 +78,50 @@ fun DatePickDialog(initial: LocalDate, removeLabel: Int, canRemove: Boolean, onD
             TextButton(onClick = { onResult(null) }, enabled = canRemove) { Text(stringResource(removeLabel)) }
         },
     ) { DatePicker(state) }
+}
+
+/**
+ * One planning option of a task (date, priority, project…): icon in a circle, name above, value below.
+ * Every row has the same shape, so the list reads evenly; the circle is filled when the option has a
+ * value and outlined when it is empty, so what is planned shows at a glance (docs/design/task-detail.md).
+ * [menu] is anchored to the row, for options picked from a dropdown.
+ */
+@Composable
+fun PlanRow(
+    @DrawableRes icon: Int,
+    @StringRes label: Int,
+    value: String,
+    isSet: Boolean,
+    onClick: () -> Unit,
+    menu: @Composable () -> Unit = {},
+) {
+    val name = stringResource(label)
+    Box {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 64.dp)
+                .clickable(role = Role.Button, onClick = onClick)
+                // Announced as "Fecha límite: Hoy", not as two separate texts.
+                .semantics(mergeDescendants = true) { contentDescription = "$name: $value" }
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            val colors = MaterialTheme.colorScheme
+            Box(
+                Modifier.size(40.dp).then(
+                    if (isSet) Modifier.background(colors.secondaryContainer, CircleShape) else Modifier.border(1.dp, colors.outline, CircleShape)
+                ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(painterResource(icon), contentDescription = null, Modifier.size(22.dp), tint = if (isSet) colors.onSecondaryContainer else colors.onSurfaceVariant)
+            }
+            Column(Modifier.weight(1f)) {
+                Text(name, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                Text(value, style = MaterialTheme.typography.bodyLarge, color = if (isSet) colors.onSurface else colors.onSurfaceVariant)
+            }
+        }
+        menu()
+    }
 }

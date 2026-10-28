@@ -1,6 +1,20 @@
 package dev.dux.organizer.tasks
 
 import android.Manifest
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import android.text.format.DateFormat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,7 +33,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -32,7 +45,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -43,13 +55,12 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.dux.organizer.R
 import dev.dux.organizer.ui.DatePickDialog
-import dev.dux.organizer.ui.Field
+import dev.dux.organizer.ui.PlanRow
 import dev.dux.organizer.data.Priority
 import dev.dux.organizer.data.Project
 import dev.dux.organizer.data.Recurrence
 import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TaskStatus
-import dev.dux.organizer.ui.Choice
 import dev.dux.organizer.ui.SPANISH
 import dev.dux.organizer.ui.SavedIndicator
 import dev.dux.organizer.ui.label
@@ -64,6 +75,7 @@ import java.time.format.DateTimeFormatter
 fun TaskDetailScreen(vm: TaskDetailViewModel, onBack: () -> Unit) {
     val task by vm.task.collectAsStateWithLifecycle()
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    var menuOpen by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -75,11 +87,42 @@ fun TaskDetailScreen(vm: TaskDetailViewModel, onBack: () -> Unit) {
                     }
                 },
                 actions = {
-                    IconButton(onClick = { confirmDelete = true }, enabled = task != null) {
-                        Icon(painterResource(R.drawable.ic_delete), stringResource(R.string.delete))
+                    // Status changes other than completing, and deleting, live here (docs/design/task-detail.md).
+                    task?.let { current ->
+                        IconButton(onClick = { menuOpen = true }) {
+                            Icon(painterResource(R.drawable.ic_more), stringResource(R.string.more_options))
+                            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                                if (current.status == TaskStatus.INBOX) {
+                                    DropdownMenuItem(text = { Text(stringResource(R.string.move_to_todo)) }, onClick = { menuOpen = false; vm.setStatus(TaskStatus.TODO) })
+                                }
+                                if (current.status == TaskStatus.TODO) {
+                                    DropdownMenuItem(text = { Text(stringResource(R.string.back_to_inbox)) }, onClick = { menuOpen = false; vm.setStatus(TaskStatus.INBOX) })
+                                }
+                                if (current.status in OPEN_STATUSES) {
+                                    DropdownMenuItem(text = { Text(stringResource(R.string.cancel_task)) }, onClick = { menuOpen = false; vm.setStatus(TaskStatus.CANCELLED) })
+                                }
+                                DropdownMenuItem(text = { Text(stringResource(R.string.delete)) }, onClick = { menuOpen = false; confirmDelete = true })
+                            }
+                        }
                     }
                 },
             )
+        },
+        bottomBar = {
+            task?.let { current ->
+                Box(Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    if (current.status in OPEN_STATUSES) {
+                        Button(onClick = { vm.setStatus(TaskStatus.DONE) }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                            Icon(painterResource(R.drawable.ic_check), contentDescription = null)
+                            Text(stringResource(R.string.complete), Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleMedium)
+                        }
+                    } else {
+                        OutlinedButton(onClick = { vm.setStatus(TaskStatus.TODO) }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                            Text(stringResource(R.string.reopen), style = MaterialTheme.typography.titleMedium)
+                        }
+                    }
+                }
+            }
         },
     ) { padding ->
         task?.let { TaskForm(it, vm, Modifier.padding(padding)) }
@@ -107,43 +150,78 @@ private fun TaskForm(task: Task, vm: TaskDetailViewModel, modifier: Modifier) {
     var notes by rememberSaveable { mutableStateOf(task.notes.orEmpty()) }
     var titleError by rememberSaveable { mutableStateOf(false) }
 
+    // Title and notes without boxes: the planning options below are the only framed block.
+    val plain = TextFieldDefaults.colors(
+        focusedContainerColor = Color.Transparent,
+        unfocusedContainerColor = Color.Transparent,
+        errorContainerColor = Color.Transparent,
+        unfocusedIndicatorColor = Color.Transparent,
+    )
+    val titleLabel = stringResource(R.string.title)
+    val notesLabel = stringResource(R.string.notes)
     Column(
-        modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).imePadding(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier.verticalScroll(rememberScrollState()).padding(horizontal = 12.dp).imePadding(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        OutlinedTextField(
+        TextField(
             value = title,
             onValueChange = { title = it; vm.rename(it) { ok -> titleError = !ok } },
-            label = { Text(stringResource(R.string.title)) },
+            placeholder = { Text(titleLabel) },
             isError = titleError,
             supportingText = if (titleError) ({ Text(stringResource(R.string.title_invalid)) }) else null,
-            textStyle = MaterialTheme.typography.titleLarge,
+            textStyle = MaterialTheme.typography.headlineSmall,
+            colors = plain,
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().semantics { contentDescription = titleLabel },
         )
-        OutlinedTextField(
+        if (task.status !in OPEN_STATUSES) {
+            Text(
+                stringResource(task.status.label),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
+        TextField(
             value = notes,
             onValueChange = { notes = it; vm.setNotes(it) },
-            label = { Text(stringResource(R.string.notes)) },
-            minLines = 3,
+            placeholder = { Text(stringResource(R.string.add_notes)) },
+            colors = plain,
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().semantics { contentDescription = notesLabel },
         )
-        Choice(R.string.status, TaskStatus.entries, task.status, { it.label }, vm::setStatus)
-        Choice(R.string.priority, Priority.entries, task.priority, { it.label }, vm::setPriority)
-        DateField(R.string.due_date, task.dueDate, vm::setDueDate)
-        DateField(R.string.scheduled_date, task.scheduledDate, vm::setScheduledDate)
-        val projects by vm.projects.collectAsStateWithLifecycle()
-        ProjectField(projects.orEmpty(), task.projectId, vm::setProject)
-        ReminderField(task.reminderAt, vm::setReminder)
-        RepeatField(task, vm::setRecurrence)
+        Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.padding(bottom = 16.dp)) {
+            Column(Modifier.padding(vertical = 4.dp)) {
+                DateField(R.drawable.ic_today, R.string.due_date, task.dueDate, vm::setDueDate)
+                DateField(R.drawable.ic_event, R.string.scheduled_date, task.scheduledDate, vm::setScheduledDate)
+                PriorityField(task.priority, vm::setPriority)
+                val projects by vm.projects.collectAsStateWithLifecycle()
+                ProjectField(projects.orEmpty(), task.projectId, vm::setProject)
+                ReminderField(task.reminderAt, vm::setReminder)
+                RepeatField(task, vm::setRecurrence)
+            }
+        }
+    }
+}
+
+private val OPEN_STATUSES = setOf(TaskStatus.INBOX, TaskStatus.TODO)
+
+@Composable
+private fun PriorityField(priority: Priority, onSelect: (Priority) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    PlanRow(R.drawable.ic_flag, R.string.priority, stringResource(priority.label), isSet = priority != Priority.NONE, onClick = { open = true }) {
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            Priority.entries.forEach { option ->
+                DropdownMenuItem(text = { Text(stringResource(option.label)) }, onClick = { open = false; onSelect(option) })
+            }
+        }
     }
 }
 
 @Composable
 private fun RepeatField(task: Task, onChange: (Recurrence?) -> Unit) {
     var editing by rememberSaveable { mutableStateOf(false) }
-    Field(R.string.repeat, task.recurrence.describe(), onClick = { editing = true })
+    PlanRow(R.drawable.ic_repeat, R.string.repeat, task.recurrence.describe(), isSet = task.recurrence != null, onClick = { editing = true })
     if (editing) {
         RepeatDialog(
             initial = task.recurrence,
@@ -155,10 +233,10 @@ private fun RepeatField(task: Task, onChange: (Recurrence?) -> Unit) {
 }
 
 @Composable
-private fun DateField(title: Int, date: LocalDate?, onChange: (LocalDate?) -> Unit) {
+private fun DateField(@DrawableRes icon: Int, @StringRes title: Int, date: LocalDate?, onChange: (LocalDate?) -> Unit) {
     var picking by rememberSaveable { mutableStateOf(false) }
     val today by rememberToday()
-    Field(title, date?.label(today) ?: stringResource(R.string.no_date), onClick = { picking = true })
+    PlanRow(icon, title, date?.label(today) ?: stringResource(R.string.no_date), isSet = date != null, onClick = { picking = true })
     if (picking) {
         DatePickDialog(date ?: today, R.string.remove_date, canRemove = date != null, onDismiss = { picking = false }) {
             picking = false
@@ -188,14 +266,15 @@ private fun ReminderField(at: LocalDateTime?, onChange: (LocalDateTime?) -> Unit
     // Same 12/24-hour format the user chose on the phone (and the picker uses).
     val timeFormat = remember { DateTimeFormatter.ofPattern(if (DateFormat.is24HourFormat(context)) "H:mm" else "h:mm a", SPANISH) }
     val label = at?.let { "${it.toLocalDate().label(today)}, ${it.toLocalTime().format(timeFormat)}" } ?: stringResource(R.string.no_reminder)
-    Field(R.string.reminder, label, onClick = {
+    PlanRow(R.drawable.ic_bell, R.string.reminder, label, isSet = at != null, onClick = {
         inPast = false
         pickingDate = true
         if (notificationsOff) askPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
     })
-    if (inPast) Text(stringResource(R.string.reminder_in_past), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+    val warning = Modifier.padding(start = 72.dp, end = 16.dp, bottom = 8.dp)
+    if (inPast) Text(stringResource(R.string.reminder_in_past), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = warning)
     if (at != null && notificationsOff) {
-        Text(stringResource(R.string.notifications_off), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.notifications_off), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = warning)
     }
 
     if (pickingDate) {
@@ -231,7 +310,7 @@ private fun ProjectField(projects: List<Project>, selectedId: String?, onSelect:
         // An archived project is not listed, but the task is still linked to it.
         else -> projects.find { it.id == selectedId }?.name ?: stringResource(R.string.project_status_archived)
     }
-    Field(R.string.project, name, onClick = { open = true }) {
+    PlanRow(R.drawable.ic_projects, R.string.project, name, isSet = selectedId != null, onClick = { open = true }) {
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(text = { Text(stringResource(R.string.no_project)) }, onClick = { open = false; onSelect(null) })
             projects.forEach { project ->
