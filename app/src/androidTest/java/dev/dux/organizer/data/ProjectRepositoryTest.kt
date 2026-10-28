@@ -55,4 +55,13 @@ class ProjectRepositoryTest {
         assertEquals(listOf("abierta", "hecha"), list.map { it.title })
         assertEquals(LocalDate.of(2026, 11, 1), list[0].dueDate)
     }
+
+    @Test fun taskAddedFromAProjectSkipsTheInbox() = runBlocking {
+        projects.create("Pro-Hielo")
+        val projectId = projects.visible.first().single().id
+        assertTrue(tasks.capture("Llamar al contador", projectId = projectId))
+        assertTrue(tasks.inbox.first().isEmpty())
+        val task = tasks.observeByProject(projectId).first().single()
+        assertEquals(TaskStatus.TODO, task.status)
+    }
 }

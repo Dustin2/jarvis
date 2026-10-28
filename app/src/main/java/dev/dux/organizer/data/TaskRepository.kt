@@ -34,15 +34,33 @@ class TaskRepository(
 
     fun observeByProject(projectId: String): Flow<List<Task>> = dao.observeByProject(projectId)
 
-    /** Quick capture to the Inbox. Returns false if the title is not valid. */
-    suspend fun capture(title: String, notes: String = ""): Boolean {
+    /**
+     * Quick capture to the Inbox; with [projectId] (added from a project) it is already sorted, so it goes
+     * straight to Pendientes in that project. Returns false if the title is not valid.
+     */
+    suspend fun capture(title: String, notes: String = "", projectId: String? = null): Boolean {
         val clean = cleanTitle(title) ?: return false
         val now = clock.instant()
-        dao.insert(Task(title = clean, notes = notes.trim().ifEmpty { null }, createdAt = now, updatedAt = now))
+        val status = if (projectId == null) TaskStatus.INBOX else TaskStatus.TODO
+        dao.insert(Task(title = clean, notes = notes.trim().ifEmpty { null }, status = status, projectId = projectId, createdAt = now, updatedAt = now))
         return true
     }
 
-    suspend fun setStatus(id: String, status: TaskStatus) = edit(id) { it.withStatus(status, clock.instant()) }
+    /** Returns the next occurrence it created, if finishing a recurring task created one. */
+    suspend fun setStatus(id: String, status: TaskStatus): Task? = edit(id) { it.withStatus(status, clock.instant()) }
+
+    /**
+     * Completes a task and returns how to undo it ("Deshacer"): back to its previous status, and without the
+     * next occurrence that completing a recurring task created (otherwise the series would have two open).
+     */
+    suspend fun complete(id: String): (suspend () -> Unit)? {
+        val before = dao.get(id) ?: return null
+        val next = setStatus(id, TaskStatus.DONE)
+        return {
+            setStatus(id, before.status)
+            next?.let { delete(it.id) }
+        }
+    }
 
     suspend fun setPriority(id: String, priority: Priority) = edit(id) { it.copy(priority = priority) }
 
@@ -93,10 +111,11 @@ class TaskRepository(
     // Serialized read-modify-write: typing fast in the detail screen must not let two edits overwrite each other.
     private val writeLock = Mutex()
 
-    private suspend fun edit(id: String, change: (Task) -> Task) = writeLock.withLock {
-        val current = dao.get(id) ?: return@withLock
+    /** Returns the next occurrence it inserted, if any. */
+    private suspend fun edit(id: String, change: (Task) -> Task): Task? = writeLock.withLock {
+        val current = dao.get(id) ?: return@withLock null
         val changed = change(current)
-        if (changed == current) return@withLock
+        if (changed == current) return@withLock null
         val saved = changed.copy(updatedAt = clock.instant())
         val rule = saved.recurrence
         val next = if (rule != null && current.status in OPEN && saved.status !in OPEN) nextOccurrence(saved, rule) else null
@@ -104,6 +123,7 @@ class TaskRepository(
         // Completing, cancelling or changing the time decides whether the alarm stays; other fields do not matter to it.
         if (saved.reminderAt != current.reminderAt || saved.status != current.status) reminders?.sync(saved)
         if (nextInserted) reminders?.sync(next!!)
+        if (nextInserted) next else null
     }
 
     /** The occurrence after [task]: next date per the rule, other date shifted by the same days, same reminder time. */

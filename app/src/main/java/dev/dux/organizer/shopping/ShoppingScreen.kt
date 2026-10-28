@@ -47,6 +47,7 @@ import dev.dux.organizer.R
 import dev.dux.organizer.data.ShoppingItem
 import dev.dux.organizer.ui.NameDialog
 import dev.dux.organizer.ui.ScreenHeader
+import dev.dux.organizer.ui.SwipeToDelete
 import dev.dux.organizer.ui.asHeading
 
 private enum class ListDialog { Create, Rename, Delete }
@@ -115,9 +116,12 @@ fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Uni
             }
         }
         items(current.pending, key = { it.id }) { item ->
-            ItemRow(item, onToggle = { vm.toggle(item) }, onDelete = {
+            // Swipe to remove, like the Bandeja: a trash icon on every row was easy to hit by mistake in the store.
+            SwipeToDelete(onDelete = {
                 vm.delete(item) { deleted -> offerUndo(resources.getString(R.string.item_removed, deleted.name)) { vm.restore(listOf(deleted)) } }
-            })
+            }, label = R.string.remove) {
+                ItemRow(item, onToggle = { vm.toggle(item) })
+            }
         }
         if (current.inCart.isNotEmpty()) {
             item {
@@ -128,7 +132,7 @@ fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Uni
                 )
             }
             items(current.inCart, key = { it.id }) { item ->
-                ItemRow(item, onToggle = { vm.toggle(item) }, onDelete = null)
+                ItemRow(item, onToggle = { vm.toggle(item) })
             }
             item {
                 FlowRow(
@@ -177,7 +181,7 @@ fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Uni
 
 /** The whole row toggles the check mark: easy to hit with one hand in the store. */
 @Composable
-private fun ItemRow(item: ShoppingItem, onToggle: () -> Unit, onDelete: (() -> Unit)?) {
+private fun ItemRow(item: ShoppingItem, onToggle: () -> Unit) {
     ListItem(
         headlineContent = {
             Text(
@@ -190,10 +194,5 @@ private fun ItemRow(item: ShoppingItem, onToggle: () -> Unit, onDelete: (() -> U
         modifier = Modifier.toggleable(value = item.checked, role = Role.Checkbox, onValueChange = { onToggle() }),
         supportingContent = item.quantity?.let { { Text(it) } },
         leadingContent = { Checkbox(checked = item.checked, onCheckedChange = null) },
-        trailingContent = onDelete?.let { delete ->
-            {
-                IconButton(onClick = delete) { Icon(painterResource(R.drawable.ic_delete), stringResource(R.string.remove_item, item.name)) }
-            }
-        },
     )
 }

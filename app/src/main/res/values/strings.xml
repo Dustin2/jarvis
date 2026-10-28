@@ -45,6 +45,7 @@
     <string name="scheduled_date">Programada para</string>
     <string name="due_label">Vence %1$s</string>
     <string name="scheduled_label">Para %1$s</string>
+    <string name="scheduled_since">Desde %1$s</string>
     <string name="no_date">Sin fecha</string>
     <string name="remove_date">Quitar fecha</string>
     <string name="accept">Aceptar</string>
@@ -143,7 +144,6 @@
     <string name="in_cart">En el carrito (%1$d)</string>
     <string name="remove_checked">Quitar comprados</string>
     <string name="uncheck_all">Desmarcar todo</string>
-    <string name="remove_item">Quitar «%1$s»</string>
     <string name="empty_shopping_list">La lista está vacía. Toca Agregar para anotar lo que falta.</string>
     <string name="new_list">Nueva lista</string>
     <string name="list_name">Nombre de la lista</string>
@@ -271,4 +271,9 @@
 
     <string name="task_completed">Se completó «%1$s»</string>
     <string name="task_deleted">Se eliminó «%1$s»</string>
+
+    <string name="add_task">Agregar tarea</string>
+    <string name="add_task_to">Nueva tarea en «%1$s»</string>
+
+    <string name="remove">Quitar</string>
 </resources>

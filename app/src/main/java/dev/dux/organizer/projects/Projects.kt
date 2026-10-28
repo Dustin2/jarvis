@@ -14,7 +14,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -44,8 +43,26 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import dev.dux.organizer.ui.Choice
 import dev.dux.organizer.ui.NameDialog
+import dev.dux.organizer.ui.AddButton
+import dev.dux.organizer.ui.PlanRow
+import dev.dux.organizer.ui.rememberDrafts
+import dev.dux.organizer.inbox.CaptureSheet
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.Surface
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import dev.dux.organizer.ui.ScreenHeader
 import androidx.compose.material3.DropdownMenuItem
 import dev.dux.organizer.ui.SavedIndicator
@@ -77,8 +94,16 @@ class ProjectDetailViewModel(private val id: String, private val projects: Proje
         viewModelScope.launch { projects.setStatus(id, status) }
     }
 
-    fun toggleDone(task: Task) {
-        viewModelScope.launch { tasks.setStatus(task.id, if (task.status == TaskStatus.DONE) TaskStatus.TODO else TaskStatus.DONE) }
+    fun addTask(title: String, notes: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch { onResult(tasks.capture(title, notes, projectId = id)) }
+    }
+
+    /** Reopens a finished task, or completes an open one and hands back an undo for the "Deshacer" message. */
+    fun toggleDone(task: Task, onCompleted: (undo: () -> Unit) -> Unit) {
+        viewModelScope.launch {
+            if (task.status == TaskStatus.DONE) tasks.setStatus(task.id, TaskStatus.TODO)
+            else tasks.complete(task.id)?.let { undo -> onCompleted { viewModelScope.launch { undo() } } }
+        }
     }
 }
 
@@ -133,6 +158,12 @@ fun ProjectsScreen(vm: ProjectsViewModel, onOpen: (String) -> Unit, onSearch: ()
 fun ProjectDetailScreen(vm: ProjectDetailViewModel, onOpenTask: (String) -> Unit, onBack: () -> Unit) {
     val project by vm.project.collectAsStateWithLifecycle()
     val tasks by vm.projectTasks.collectAsStateWithLifecycle()
+    var adding by rememberSaveable { mutableStateOf(false) }
+    val drafts = rememberDrafts()
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val resources = LocalResources.current
+    val undoLabel = stringResource(R.string.undo)
 
     Scaffold(
         topBar = {
@@ -143,10 +174,29 @@ fun ProjectDetailScreen(vm: ProjectDetailViewModel, onOpenTask: (String) -> Unit
                 },
             )
         },
+        snackbarHost = { SnackbarHost(snackbar) },
+        // Adds the task already in this project, instead of the Bandeja.
+        floatingActionButton = { if (project != null) AddButton(stringResource(R.string.add_task)) { adding = true } },
     ) { padding ->
         val current = project ?: return@Scaffold
         val list = tasks ?: return@Scaffold
-        LazyColumn(Modifier.padding(padding).imePadding(), contentPadding = PaddingValues(bottom = 24.dp)) {
+        if (adding) {
+            CaptureSheet(
+                drafts = drafts,
+                heading = stringResource(R.string.add_task_to, current.name),
+                draftKey = "project-task",
+                onDismiss = { adding = false },
+                onSave = { title, notes ->
+                    vm.addTask(title, notes) { ok ->
+                        if (ok) {
+                            adding = false
+                            drafts.clear("project-task.")
+                        }
+                    }
+                },
+            )
+        }
+        LazyColumn(Modifier.padding(padding).imePadding(), contentPadding = PaddingValues(bottom = 88.dp)) {
             item { ProjectHeader(current, vm) }
             item {
                 Text(
@@ -165,7 +215,14 @@ fun ProjectDetailScreen(vm: ProjectDetailViewModel, onOpenTask: (String) -> Unit
                 }
             }
             items(list, key = { it.id }) { task ->
-                TaskRow(task, onOpen = { onOpenTask(task.id) }, onToggleDone = { vm.toggleDone(task) })
+                TaskRow(task, onOpen = { onOpenTask(task.id) }, onToggleDone = {
+                    vm.toggleDone(task) { undo ->
+                        scope.launch {
+                            val result = snackbar.showSnackbar(resources.getString(R.string.task_completed, task.title), undoLabel, duration = SnackbarDuration.Long)
+                            if (result == SnackbarResult.ActionPerformed) undo()
+                        }
+                    }
+                })
             }
         }
     }
@@ -176,17 +233,34 @@ private fun ProjectHeader(project: Project, vm: ProjectDetailViewModel) {
     // Same as the task detail: local text, saved instantly, never overwritten by the database.
     var name by rememberSaveable { mutableStateOf(project.name) }
     var error by rememberSaveable { mutableStateOf(false) }
-    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        OutlinedTextField(
+    var statusMenu by remember { mutableStateOf(false) }
+    val nameLabel = stringResource(R.string.project_name)
+    // Same look as the task detail (docs/design/task-detail.md): name without a box, options as rows.
+    Column(Modifier.padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        TextField(
             value = name,
             onValueChange = { name = it; vm.rename(it) { ok -> error = !ok } },
-            label = { Text(stringResource(R.string.project_name)) },
+            placeholder = { Text(nameLabel) },
             isError = error,
             supportingText = if (error) ({ Text(stringResource(R.string.title_invalid)) }) else null,
-            textStyle = MaterialTheme.typography.titleLarge,
+            textStyle = MaterialTheme.typography.headlineSmall,
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                errorContainerColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+            ),
+            modifier = Modifier.fillMaxWidth().semantics { contentDescription = nameLabel },
         )
-        Choice(R.string.status, ProjectStatus.entries, project.status, { it.label }, vm::setStatus)
+        Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+            PlanRow(R.drawable.ic_tasks, R.string.status, stringResource(project.status.label), isSet = true, onClick = { statusMenu = true }) {
+                DropdownMenu(expanded = statusMenu, onDismissRequest = { statusMenu = false }) {
+                    ProjectStatus.entries.forEach { status ->
+                        DropdownMenuItem(text = { Text(stringResource(status.label)) }, onClick = { statusMenu = false; vm.setStatus(status) })
+                    }
+                }
+            }
+        }
     }
 }
