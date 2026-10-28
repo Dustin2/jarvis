@@ -31,7 +31,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -39,12 +38,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.clip
 import dev.dux.organizer.ui.blockRowShapes
 import dev.dux.organizer.ui.inBlock
 import dev.dux.organizer.ui.inlineLabel
 import java.time.LocalDate
 import java.time.ZoneId
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import dev.dux.organizer.R
 import dev.dux.organizer.backup.AutoBackup
 import dev.dux.organizer.backup.backupOverdue
@@ -179,6 +179,7 @@ private fun ProgressCard(done: Int, total: Int, overdue: Int) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun NextStepCard(task: Task?, onOpen: (String) -> Unit, onComplete: (Task) -> Unit) {
     val today by rememberToday()
@@ -188,13 +189,18 @@ private fun NextStepCard(task: Task?, onOpen: (String) -> Unit, onComplete: (Tas
             Text(stringResource(R.string.next_step), style = MaterialTheme.typography.labelLarge)
             Text(task?.title ?: stringResource(R.string.empty_today), style = MaterialTheme.typography.headlineSmall)
             if (task != null) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // Wraps: at large font sizes a Row squeezed "Completar" into one letter per line.
+                FlowRow(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    itemVerticalAlignment = Alignment.CenterVertically,
+                ) {
                     whenLabel(task, today)?.let {
                         Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f)) {
                             Text(it, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
                         }
                     }
-                    Spacer(Modifier.weight(1f))
                     Button(onClick = { onComplete(task) }) {
                         Icon(painterResource(R.drawable.ic_check), contentDescription = null)
                         Text(stringResource(R.string.complete), Modifier.padding(start = 8.dp))

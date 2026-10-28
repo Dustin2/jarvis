@@ -49,6 +49,9 @@ import androidx.compose.material3.Surface
 import dev.dux.organizer.ui.ChoiceChips
 import dev.dux.organizer.ui.blockRowShapes
 import dev.dux.organizer.ui.inBlock
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import dev.dux.organizer.R
 import dev.dux.organizer.data.Category
 import dev.dux.organizer.data.DebtDirection
@@ -283,6 +286,7 @@ private fun SummaryTab(s: FinancesState, vm: FinancesViewModel, onEditCategory: 
 }
 
 /** "Te queda" first: the month's balance, with what came in and went out, and the month arrows. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun BalanceHero(month: YearMonth, summary: MonthSummary, vm: FinancesViewModel) {
     val onContainer = MaterialTheme.colorScheme.onPrimaryContainer
@@ -297,7 +301,13 @@ private fun BalanceHero(month: YearMonth, summary: MonthSummary, vm: FinancesVie
                 Text(stringResource(R.string.balance), style = MaterialTheme.typography.bodyMedium)
                 Text(formatMoney(summary.balanceCents), style = MaterialTheme.typography.displaySmall)
                 if (summary.balanceCents < 0) Text(stringResource(R.string.negative_balance), style = MaterialTheme.typography.bodyMedium)
-                Row(Modifier.padding(top = 8.dp, bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Two tiles side by side; one per line at large font sizes, where a split amount wraps mid-number.
+                FlowRow(
+                    Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    maxItemsInEachRow = if (LocalDensity.current.fontScale > 1.5f) 1 else 2,
+                ) {
                     Tile(stringResource(R.string.income_in), "+" + formatMoney(summary.incomeCents), onContainer, Modifier.weight(1f))
                     Tile(stringResource(R.string.expense_out), "-" + formatMoney(summary.expenseCents), onContainer, Modifier.weight(1f))
                 }
@@ -311,7 +321,7 @@ private fun Tile(label: String, amount: String, onContainer: Color, modifier: Mo
     Surface(shape = RoundedCornerShape(16.dp), color = onContainer.copy(alpha = 0.10f), modifier = modifier) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
             Text(label, style = MaterialTheme.typography.labelMedium)
-            Text(amount, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+            Text(amount, style = MaterialTheme.typography.titleMedium)
         }
     }
 }

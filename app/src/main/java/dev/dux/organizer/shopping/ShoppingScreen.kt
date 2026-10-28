@@ -192,12 +192,20 @@ fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Uni
     }
 }
 
-/** A section title with optional actions at its end ("Desmarcar todo", "Quitar comprados"). */
+/**
+ * A section title with optional actions at its end ("Desmarcar todo", "Quitar comprados"). The actions
+ * wrap below at large font sizes; in a Row they crushed the title into one letter per line.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SectionTitle(text: String, actions: @Composable () -> Unit = {}) {
-    Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 8.dp, top = 16.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(text, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f).asHeading())
-        actions()
+    FlowRow(
+        Modifier.fillMaxWidth().padding(start = 24.dp, end = 8.dp, top = 16.dp, bottom = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(end = 8.dp).asHeading())
+        Row { actions() }
     }
 }
 
