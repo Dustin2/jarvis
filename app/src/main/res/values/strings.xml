@@ -296,6 +296,9 @@
     <string name="model_waiting_wifi">Esperando Wi-Fi para descargar</string>
     <string name="model_installed">Modelo instalado. Pregúntale desde Mi día con ✨.</string>
     <string name="model_delete">Borrar modelo</string>
+    <string name="model_delete_title">¿Borrar el modelo?</string>
+    <string name="model_delete_body">Liberas 2 GB, pero para volver a preguntarle a Jarvis tendrás que descargarlo de nuevo.</string>
+    <string name="model_credit">Modelo Gemma 4 E2B de Google, licencia Apache 2.0.</string>
     <string name="model_download_failed">La descarga falló. Revisa tu conexión y espacio libre, y vuelve a intentar.</string>
     <string name="model_failed">No se pudo cambiar el modelo</string>
 </resources>

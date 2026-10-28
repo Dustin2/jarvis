@@ -15,6 +15,8 @@ import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.SamplerConfig
 import dev.dux.organizer.data.Priority
+import dev.dux.organizer.data.ShoppingItem
+import dev.dux.organizer.data.ShoppingList
 import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.formatMoney
 import dev.dux.organizer.finances.MonthSummary
@@ -151,7 +153,14 @@ private val dayFormat = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale.f
  * The user's data as plain text for the model. Overdue tasks and over-budget categories are worked out
  * here: in the spike the model missed some when it had to compare dates or amounts itself.
  */
-fun askFacts(open: List<Task>, projectNames: Map<String, String>, month: MonthSummary?, today: LocalDate): String = buildString {
+fun askFacts(
+    open: List<Task>,
+    projectNames: Map<String, String>,
+    month: MonthSummary?,
+    today: LocalDate,
+    lists: List<ShoppingList> = emptyList(),
+    items: List<ShoppingItem> = emptyList(),
+): String = buildString {
     fun line(t: Task) = buildString {
         append("- ").append(t.title)
         t.dueDate?.let { append(" (vence ").append(it.format(dayFormat)).append(")") }
@@ -166,6 +175,12 @@ fun askFacts(open: List<Task>, projectNames: Map<String, String>, month: MonthSu
     for ((title, list) in listOf("Tareas vencidas" to overdue, "Tareas para hoy" to dueToday, "Tareas de los próximos 7 días" to week, "Otras tareas pendientes" to rest)) {
         appendLine("$title (${list.size}):")
         list.forEach { appendLine(line(it)) }
+    }
+    val byList = items.groupBy { it.listId }
+    for (list in lists) {
+        fun names(checked: Boolean) = byList[list.id].orEmpty().filter { it.checked == checked }
+            .joinToString { i -> i.name + (i.quantity?.let { " ($it)" } ?: "") }.ifEmpty { "nada" }
+        appendLine("Lista de compras ${list.name}: por comprar: ${names(false)}. Ya en el carrito: ${names(true)}.")
     }
     if (month != null) {
         appendLine("Finanzas de este mes: entró ${formatMoney(month.incomeCents)}, salió ${formatMoney(month.expenseCents)}, te queda ${formatMoney(month.balanceCents)}.")

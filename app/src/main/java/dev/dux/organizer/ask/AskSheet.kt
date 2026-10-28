@@ -39,7 +39,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AskSheet(ask: AskJarvis, facts: () -> String, onOpenSettings: () -> Unit, onDismiss: () -> Unit) {
+fun AskSheet(ask: AskJarvis, facts: suspend () -> String, onOpenSettings: () -> Unit, onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
     var question by remember { mutableStateOf("") }
     var answer by remember { mutableStateOf("") }

@@ -288,8 +288,18 @@ private fun ModelSection(state: ModelState, vm: SettingsViewModel) {
             TextButton(onClick = vm::deleteModel, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.cancel)) }
         }
         ModelState.Installed -> {
+            var confirmDelete by remember { mutableStateOf(false) }
             Text(stringResource(R.string.model_installed))
-            TextButton(onClick = vm::deleteModel, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.model_delete)) }
+            TextButton(onClick = { confirmDelete = true }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.model_delete)) }
+            // Getting it back means another 2 GB download.
+            if (confirmDelete) AlertDialog(
+                onDismissRequest = { confirmDelete = false },
+                title = { Text(stringResource(R.string.model_delete_title)) },
+                text = { Text(stringResource(R.string.model_delete_body)) },
+                confirmButton = { TextButton(onClick = { confirmDelete = false; vm.deleteModel() }) { Text(stringResource(R.string.model_delete)) } },
+                dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.cancel)) } },
+            )
         }
     }
+    Text(stringResource(R.string.model_credit), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
