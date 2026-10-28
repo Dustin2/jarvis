@@ -21,3 +21,6 @@ fun backupOverdue(lastSuccess: Instant?, enabledAt: Instant?, now: Instant): Boo
     val since = lastSuccess ?: enabledAt ?: return false
     return Duration.between(since, now) > OVERDUE_AFTER
 }
+
+/** Phone storage works offline; any other provider (Drive, OneDrive…) needs a connection, so the work waits for one. */
+fun needsNetwork(folderAuthority: String?) = folderAuthority != "com.android.externalstorage.documents"

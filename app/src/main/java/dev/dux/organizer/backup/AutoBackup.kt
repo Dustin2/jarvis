@@ -12,6 +12,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -59,15 +60,26 @@ class AutoBackup(private val context: Context, private val backups: BackupReposi
             it.remove(LAST_FAILURE)
         }
         if (previous != null && previous != folder.toString()) release(previous)
-        // KEEP: re-enabling does not push the next run further away.
+        schedule(folder)
+        return runNow()
+    }
+
+    /** At app start: applies the current scheduling rules to a backup enabled by an older version. */
+    suspend fun scheduleIfEnabled() {
+        store.data.first()[FOLDER]?.let { schedule(it.toUri()) }
+    }
+
+    private fun schedule(folder: Uri) {
+        val constraints = Constraints.Builder()
+            .setRequiresBatteryNotLow(true)
+            .setRequiredNetworkType(if (needsNetwork(folder.authority)) NetworkType.CONNECTED else NetworkType.NOT_REQUIRED)
+            .build()
+        // UPDATE: a new folder may change the constraints, but the next run is not pushed further away.
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             WORK,
-            ExistingPeriodicWorkPolicy.KEEP,
-            PeriodicWorkRequestBuilder<AutoBackupWorker>(1, TimeUnit.DAYS)
-                .setConstraints(Constraints.Builder().setRequiresBatteryNotLow(true).build())
-                .build(),
+            ExistingPeriodicWorkPolicy.UPDATE,
+            PeriodicWorkRequestBuilder<AutoBackupWorker>(1, TimeUnit.DAYS).setConstraints(constraints).build(),
         )
-        return runNow()
     }
 
     suspend fun disable() {

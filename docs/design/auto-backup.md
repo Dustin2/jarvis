@@ -9,11 +9,12 @@ All data lives only on the phone. The manual JSON export depends on remembering 
 ## Behavior
 
 - In Ajustes → Respaldo automático the user picks a folder once (Storage Access Framework, `OpenDocumentTree`). The app keeps a persistable permission for that folder only.
-- Once a day (WorkManager periodic work, battery not low) it writes `jarvis-auto-YYYY-MM-DD.json` in the normal backup format, replacing a file from earlier the same day.
+- Once a day (WorkManager periodic work, battery not low; for folders outside phone storage, such as Google Drive, it also waits for a connection) it writes `jarvis-auto-YYYY-MM-DD.json` in the normal backup format, replacing a file from earlier the same day.
 - It keeps the newest 14. Cleanup only matches `jarvis-auto-YYYY-MM-DD.json`: manual exports (`jarvis-respaldo-…`) and any other file are never deleted.
 - Ajustes shows the folder, the last successful backup and whether the last attempt failed, with "Respaldar ahora", "Cambiar carpeta" and "Desactivar".
 - If it is on and nothing was saved for more than 3 days (counted from when it was enabled if it never worked), "Mi día" shows a warning card that opens Ajustes.
 - Restoring is unchanged: the user picks one of these files.
+- The app never depends on the backup: everything works offline, and a backup that cannot run yet simply runs later (a failed attempt is retried with backoff).
 
 ## Getting the backup off the phone
 

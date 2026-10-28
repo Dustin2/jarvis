@@ -25,4 +25,9 @@ class AutoBackupRulesTest {
         assertFalse(backupOverdue(null, Instant.parse("2026-10-26T12:00:00Z"), now))
         assertTrue(backupOverdue(null, Instant.parse("2026-10-20T12:00:00Z"), now))
     }
+
+    @Test fun onlyCloudFoldersWaitForANetwork() {
+        assertFalse(needsNetwork("com.android.externalstorage.documents"))
+        assertTrue(needsNetwork("com.google.android.apps.docs.storage"))
+    }
 }
