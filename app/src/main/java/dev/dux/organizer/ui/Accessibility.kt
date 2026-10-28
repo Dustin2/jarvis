@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import dev.dux.organizer.R
 import androidx.compose.ui.semantics.heading
@@ -19,13 +20,14 @@ fun Modifier.asHeading(): Modifier = semantics { heading() }
 
 /**
  * A short label in a row of equal slots (bottom bar, tabs). At 200 % font size they do not fit the phone
- * width and break or get cut ("Movimie"): these grow up to 130 %; the rest of the app follows the system size.
+ * width and break or get cut ("Movimie"): these grow only up to [maxScale]; the rest of the app follows the
+ * system size. "…" if a label still does not fit.
  */
 @Composable
-fun CappedLabel(text: String) {
+fun CappedLabel(text: String, maxScale: Float = 1.3f) {
     val density = LocalDensity.current
-    CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f))) {
-        Text(text, maxLines = 1)
+    CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(maxScale))) {
+        Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

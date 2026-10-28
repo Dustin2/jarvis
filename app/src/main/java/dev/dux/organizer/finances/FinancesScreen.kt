@@ -65,6 +65,9 @@ private enum class FinanceTab(@StringRes val label: Int) {
 
 private const val NEW = "new"
 
+// Three tabs share the width: "Movimientos" is cut above this on a phone (checked on the S25 at 200 %).
+private const val TAB_MAX_FONT_SCALE = 1.1f
+
 @Composable
 fun FinancesScreen(vm: FinancesViewModel, onOpenDebt: (String) -> Unit, onBack: () -> Unit, initialMovement: String? = null) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -100,7 +103,7 @@ fun FinancesScreen(vm: FinancesViewModel, onOpenDebt: (String) -> Unit, onBack: 
         Column(Modifier.padding(padding)) {
             PrimaryTabRow(selectedTabIndex = tab.ordinal) {
                 FinanceTab.entries.forEach {
-                    Tab(selected = it == tab, onClick = { tab = it }, text = { CappedLabel(stringResource(it.label)) })
+                    Tab(selected = it == tab, onClick = { tab = it }, text = { CappedLabel(stringResource(it.label), maxScale = TAB_MAX_FONT_SCALE) })
                 }
             }
             when (tab) {
