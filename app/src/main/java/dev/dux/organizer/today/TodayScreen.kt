@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -38,7 +39,6 @@ import dev.dux.organizer.finances.MonthSummary
 import dev.dux.organizer.finances.monthSummary
 import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TaskRepository
-import dev.dux.organizer.data.TaskStatus
 import dev.dux.organizer.tasks.TaskRow
 import dev.dux.organizer.ui.SPANISH
 import dev.dux.organizer.ui.ScreenHeader
@@ -67,13 +67,25 @@ class TodayViewModel(private val tasks: TaskRepository, projects: ProjectReposit
     val backupOverdue = autoBackup.state.map { backupOverdue(it.lastSuccess, it.enabledAt, Instant.now()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
-    fun complete(id: String) {
-        viewModelScope.launch { tasks.setStatus(id, TaskStatus.DONE) }
+    /** Completes the task and hands back an undo for the "Deshacer" message. */
+    fun complete(task: Task, onCompleted: (undo: () -> Unit) -> Unit) {
+        viewModelScope.launch {
+            tasks.complete(task.id)?.let { undo -> onCompleted { viewModelScope.launch { undo() } } }
+        }
     }
 }
 
 @Composable
-fun TodayScreen(vm: TodayViewModel, onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onOpenFinances: () -> Unit, onSearch: () -> Unit, modifier: Modifier = Modifier) {
+fun TodayScreen(
+    vm: TodayViewModel,
+    onOpen: (String) -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenFinances: () -> Unit,
+    onSearch: () -> Unit,
+    offerUndo: (String, () -> Unit) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val resources = LocalContext.current.resources
     val state by vm.state.collectAsStateWithLifecycle()
     val month by vm.month.collectAsStateWithLifecycle()
     val backupOverdue by vm.backupOverdue.collectAsStateWithLifecycle()
@@ -81,7 +93,7 @@ fun TodayScreen(vm: TodayViewModel, onOpen: (String) -> Unit, onOpenSettings: ()
     val (open, projectNames) = state ?: return
     val plan = remember(open, today) { planDay(open, today) }
     val row: @Composable (Task) -> Unit = { task ->
-        TaskRow(task, onOpen = { onOpen(task.id) }, onToggleDone = { vm.complete(task.id) }, projectName = projectNames[task.projectId])
+        TaskRow(task, onOpen = { onOpen(task.id) }, onToggleDone = { vm.complete(task) { undo -> offerUndo(resources.getString(R.string.task_completed, task.title), undo) } }, projectName = projectNames[task.projectId])
     }
 
     LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {

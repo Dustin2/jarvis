@@ -51,6 +51,12 @@ import dev.dux.organizer.inbox.CaptureSheet
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.remember
@@ -92,8 +98,12 @@ class ProjectDetailViewModel(private val id: String, private val projects: Proje
         viewModelScope.launch { onResult(tasks.capture(title, notes, projectId = id)) }
     }
 
-    fun toggleDone(task: Task) {
-        viewModelScope.launch { tasks.setStatus(task.id, if (task.status == TaskStatus.DONE) TaskStatus.TODO else TaskStatus.DONE) }
+    /** Reopens a finished task, or completes an open one and hands back an undo for the "Deshacer" message. */
+    fun toggleDone(task: Task, onCompleted: (undo: () -> Unit) -> Unit) {
+        viewModelScope.launch {
+            if (task.status == TaskStatus.DONE) tasks.setStatus(task.id, TaskStatus.TODO)
+            else tasks.complete(task.id)?.let { undo -> onCompleted { viewModelScope.launch { undo() } } }
+        }
     }
 }
 
@@ -150,6 +160,10 @@ fun ProjectDetailScreen(vm: ProjectDetailViewModel, onOpenTask: (String) -> Unit
     val tasks by vm.projectTasks.collectAsStateWithLifecycle()
     var adding by rememberSaveable { mutableStateOf(false) }
     val drafts = rememberDrafts()
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val resources = LocalContext.current.resources
+    val undoLabel = stringResource(R.string.undo)
 
     Scaffold(
         topBar = {
@@ -160,6 +174,7 @@ fun ProjectDetailScreen(vm: ProjectDetailViewModel, onOpenTask: (String) -> Unit
                 },
             )
         },
+        snackbarHost = { SnackbarHost(snackbar) },
         // Adds the task already in this project, instead of the Bandeja.
         floatingActionButton = { if (project != null) AddButton(stringResource(R.string.add_task)) { adding = true } },
     ) { padding ->
@@ -200,7 +215,14 @@ fun ProjectDetailScreen(vm: ProjectDetailViewModel, onOpenTask: (String) -> Unit
                 }
             }
             items(list, key = { it.id }) { task ->
-                TaskRow(task, onOpen = { onOpenTask(task.id) }, onToggleDone = { vm.toggleDone(task) })
+                TaskRow(task, onOpen = { onOpenTask(task.id) }, onToggleDone = {
+                    vm.toggleDone(task) { undo ->
+                        scope.launch {
+                            val result = snackbar.showSnackbar(resources.getString(R.string.task_completed, task.title), undoLabel, duration = SnackbarDuration.Long)
+                            if (result == SnackbarResult.ActionPerformed) undo()
+                        }
+                    }
+                })
             }
         }
     }
