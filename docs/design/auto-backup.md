@@ -10,7 +10,8 @@ All data lives only on the phone. The manual JSON export depends on remembering 
 
 - In Ajustes → Respaldo automático the user picks a folder once (Storage Access Framework, `OpenDocumentTree`). The app keeps a persistable permission for that folder only.
 - Once a day (WorkManager periodic work, battery not low; for folders outside phone storage, such as Google Drive, it also waits for a connection) it writes `jarvis-auto-YYYY-MM-DD.json` in the normal backup format, replacing a file from earlier the same day.
-- It keeps the newest 14. Cleanup only matches `jarvis-auto-YYYY-MM-DD.json`: manual exports (`jarvis-respaldo-…`) and any other file are never deleted.
+- It keeps the newest 14. The app records the exact document of each file it creates (DataStore) and only ever rewrites or deletes those, instead of listing the folder by name: Google Drive does not list new files reliably and allows duplicate names, which produced two files for the same day. Manual exports and any other file are never touched.
+- If today's file cannot be rewritten, it is deleted and created again, so a day never has two files.
 - Ajustes shows the folder, the last successful backup and whether the last attempt failed, with "Respaldar ahora", "Cambiar carpeta" and "Desactivar".
 - If it is on and nothing was saved for more than 3 days (counted from when it was enabled if it never worked), "Mi día" shows a warning card that opens Ajustes.
 - Restoring is unchanged: the user picks one of these files.
@@ -23,7 +24,7 @@ A folder on the phone does not survive losing the phone. Recommended: sync the f
 ## Technical
 
 - New dependencies: WorkManager (daily work that survives restarts and runs with the app closed) and DataStore (folder, enabled time, last success, last failure).
-- Files are listed, created and deleted with `DocumentsContract`, so no extra library is needed.
+- Files are created and deleted with `DocumentsContract`, so no extra library is needed.
 - No database or backup format changes.
 
 ## Out of scope
