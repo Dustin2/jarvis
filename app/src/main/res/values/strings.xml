@@ -214,7 +214,6 @@
     <string name="delete_payment_confirm">¿Eliminar este abono?</string>
     <string name="delete_debt">Eliminar deuda</string>
     <string name="delete_debt_confirm">¿Eliminar esta deuda y sus abonos?</string>
-    <string name="month_spending">Este mes</string>
     <string name="month_spent">Gastado: %1$s</string>
 
     <string name="auto_backup">Respaldo automático</string>
@@ -276,4 +275,10 @@
     <string name="add_task_to">Nueva tarea en «%1$s»</string>
 
     <string name="remove">Quitar</string>
+
+    <plurals name="progress_done">
+        <item quantity="one">%1$d de %2$d hecha</item>
+        <item quantity="other">%1$d de %2$d hechas</item>
+    </plurals>
+    <string name="overdue_label">Vencida %1$s</string>
 </resources>

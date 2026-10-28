@@ -8,6 +8,9 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.expressiveLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 /**
@@ -27,9 +30,16 @@ fun JarvisTheme(
         darkTheme -> darkColorScheme()
         else -> expressiveLightColorScheme()
     }
-    MaterialExpressiveTheme(
-        colorScheme = colorScheme,
-        motionScheme = MotionScheme.expressive(),
-        content = content,
-    )
+    // Over budget is a warning, not an error: orange, told apart from blue by lightness too, and always with text.
+    val warning = if (darkTheme) Color(0xFFFFB68A) else Color(0xFF8B4A00)
+    CompositionLocalProvider(LocalWarningColor provides warning) {
+        MaterialExpressiveTheme(
+            colorScheme = colorScheme,
+            motionScheme = MotionScheme.expressive(),
+            content = content,
+        )
+    }
 }
+
+/** Orange for "watch out" states (over budget); Material's error red is kept for real errors. */
+val LocalWarningColor = staticCompositionLocalOf { Color(0xFF8B4A00) }

@@ -1,6 +1,7 @@
 package dev.dux.organizer.ui
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -34,13 +35,17 @@ fun ScreenHeader(
     onSearch: () -> Unit,
     extra: @Composable RowScope.() -> Unit = {},
     menu: (@Composable ColumnScope.(close: () -> Unit) -> Unit)? = null,
+    overline: String? = null,
 ) {
     var open by rememberSaveable { mutableStateOf(false) }
     Row(
         Modifier.fillMaxWidth().padding(start = 24.dp, end = 4.dp, top = 16.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(stringResource(title), style = MaterialTheme.typography.displaySmall, modifier = Modifier.weight(1f).asHeading())
+        Column(Modifier.weight(1f)) {
+            overline?.let { Text(it, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary) }
+            Text(stringResource(title), style = MaterialTheme.typography.displaySmall, modifier = Modifier.asHeading())
+        }
         IconButton(onClick = onSearch) { Icon(painterResource(R.drawable.ic_search), stringResource(R.string.search)) }
         extra()
         if (menu != null) {

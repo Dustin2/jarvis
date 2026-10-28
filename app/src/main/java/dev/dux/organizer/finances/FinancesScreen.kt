@@ -49,6 +49,7 @@ import dev.dux.organizer.data.formatMoney
 import dev.dux.organizer.ui.AddButton
 import dev.dux.organizer.ui.CappedLabel
 import dev.dux.organizer.ui.SPANISH
+import dev.dux.organizer.ui.theme.LocalWarningColor
 import dev.dux.organizer.ui.ScreenHeader
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
@@ -220,11 +221,11 @@ fun BudgetProgress(spentCents: Long, budgetCents: Long, total: Boolean = false) 
         Text(
             stringResource(if (total) R.string.spent_of_budget_total else R.string.spent_of_budget, formatMoney(spentCents), formatMoney(budgetCents)) +
                 if (over > 0) " · " + stringResource(R.string.over_budget, formatMoney(over)) else "",
-            color = if (over > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (over > 0) LocalWarningColor.current else MaterialTheme.colorScheme.onSurfaceVariant,
         )
         LinearProgressIndicator(
             progress = { (spentCents.toFloat() / budgetCents).coerceIn(0f, 1f) },
-            color = if (over > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+            color = if (over > 0) LocalWarningColor.current else MaterialTheme.colorScheme.primary,
             modifier = Modifier.fillMaxWidth(),
         )
     }
