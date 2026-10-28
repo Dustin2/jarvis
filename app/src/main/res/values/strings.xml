@@ -244,4 +244,8 @@
     <string name="widget_name">Mi día</string>
     <string name="widget_description">Tus pendientes de hoy: palomea sin abrir la app o captura algo nuevo.</string>
     <string name="widget_overdue">Vencida</string>
+    <!-- Sample content for the widget picker preview only. -->
+    <string name="widget_preview_summary">2 abiertas · 1 vencida</string>
+    <string name="widget_preview_task_overdue">Pagar el internet</string>
+    <string name="widget_preview_task_today">Revisar facturas</string>
 </resources>
