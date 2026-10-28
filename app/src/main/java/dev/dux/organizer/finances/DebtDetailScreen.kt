@@ -31,6 +31,7 @@ import dev.dux.organizer.R
 import dev.dux.organizer.data.formatMoney
 import dev.dux.organizer.ui.SavedIndicator
 import dev.dux.organizer.ui.asHeading
+import dev.dux.organizer.ui.inlineLabel
 import dev.dux.organizer.ui.label
 import dev.dux.organizer.ui.rememberToday
 
@@ -78,7 +79,7 @@ fun DebtDetailScreen(vm: DebtDetailViewModel, onBack: () -> Unit) {
                     debt.dueDate?.let { due ->
                         val overdue = !settled && due < today
                         Text(
-                            stringResource(R.string.due_label, due.label(today)),
+                            stringResource(if (overdue) R.string.debt_overdue else R.string.due_label, due.inlineLabel(today)),
                             color = if (overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }

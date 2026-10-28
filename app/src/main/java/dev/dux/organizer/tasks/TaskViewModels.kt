@@ -11,6 +11,7 @@ import dev.dux.organizer.data.TaskStatus
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -21,8 +22,10 @@ import java.time.LocalDateTime
 private fun <T> Flow<T>.state(vm: ViewModel): StateFlow<T?> =
     stateIn(vm.viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-class TaskListViewModel(private val repo: TaskRepository) : ViewModel() {
+class TaskListViewModel(private val repo: TaskRepository, projects: ProjectRepository) : ViewModel() {
     val inbox = repo.inbox.state(this)
+    val projectNames = projects.visible.map { list -> list.associate { it.id to it.name } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
     val lists = combine(repo.pending, repo.finished) { pending, finished -> pending to finished }.state(this)
 
     fun capture(title: String, notes: String, onResult: (Boolean) -> Unit) {

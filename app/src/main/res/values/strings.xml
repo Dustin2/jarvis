@@ -75,14 +75,14 @@
     <string name="empty_project_tasks">Asigna tareas a este proyecto desde su detalle.</string>
 
     <string name="settings">Ajustes</string>
-    <string name="backup">Respaldo</string>
-    <string name="backup_explanation">Tus datos solo viven en este teléfono. Exporta un respaldo de vez en cuando y guárdalo fuera del teléfono (computadora, nube o USB).</string>
+    <string name="backup">Respaldo manual</string>
+    <string name="backup_explanation">Guarda una copia cuando quieras en el lugar que elijas, o vuelve a un respaldo anterior.</string>
     <string name="export_backup">Exportar respaldo</string>
     <string name="restore_backup">Restaurar desde un respaldo</string>
     <string name="undo_restore">Deshacer la última restauración</string>
     <string name="restore">Restaurar</string>
     <string name="restore_confirm_title">¿Reemplazar todos tus datos?</string>
-    <string name="restore_confirm_body">Contenido del respaldo — tareas: %1$d, proyectos: %2$d. Tus datos actuales se reemplazarán por completo. Podrás deshacerlo desde esta pantalla.</string>
+    <string name="restore_confirm_body">Contenido del respaldo — tareas: %1$d, proyectos: %2$d, artículos de compras: %3$d, movimientos: %4$d, deudas: %5$d. Todos tus datos actuales, incluidas compras y finanzas, se reemplazarán por completo. Podrás deshacerlo desde esta pantalla.</string>
     <string name="export_done">Respaldo guardado</string>
     <string name="export_failed">No se pudo guardar el respaldo</string>
     <string name="restore_done">Datos restaurados</string>
@@ -184,7 +184,7 @@
     <string name="balance">Te queda</string>
     <string name="negative_balance">Este mes gastaste más de lo que entró.</string>
     <string name="spent_of_budget">%1$s de %2$s</string>
-    <string name="over_budget">Te pasaste por %1$s</string>
+    <string name="over_budget">te pasaste por %1$s</string>
     <string name="expenses_by_category">Gastos por categoría</string>
     <string name="income_by_category">Ingresos por categoría</string>
     <string name="archived_categories">Archivadas</string>
@@ -220,7 +220,7 @@
     <string name="month_spent">Gastado: %1$s</string>
 
     <string name="auto_backup">Respaldo automático</string>
-    <string name="auto_backup_explanation">Cada día guarda una copia en la carpeta que elijas y conserva las últimas 14. Para protegerte si pierdes el teléfono, sincroniza esa carpeta con tu computadora (por ejemplo, con Syncthing).</string>
+    <string name="auto_backup_explanation">Cada día guarda una copia en la carpeta que elijas y conserva las últimas 14. Elige una carpeta de Google Drive (o una que se sincronice con tu computadora) para no perder nada aunque pierdas el teléfono.</string>
     <string name="choose_folder">Elegir carpeta</string>
     <string name="change_folder">Cambiar carpeta</string>
     <string name="back_up_now">Respaldar ahora</string>
@@ -248,4 +248,14 @@
     <string name="widget_preview_summary">2 abiertas · 1 vencida</string>
     <string name="widget_preview_task_overdue">Pagar el internet</string>
     <string name="widget_preview_task_today">Revisar facturas</string>
+
+    <string name="undo">Deshacer</string>
+    <string name="item_removed">Se quitó «%1$s»</string>
+    <plurals name="items_removed">
+        <item quantity="one">Se quitó %1$d artículo</item>
+        <item quantity="other">Se quitaron %1$d artículos</item>
+    </plurals>
+
+    <string name="spent_of_budget_total">Gastado: %1$s de %2$s</string>
+    <string name="debt_overdue">Vencida: %1$s</string>
 </resources>

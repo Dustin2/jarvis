@@ -53,6 +53,13 @@ interface ShoppingDao {
     @Query("DELETE FROM shopping_items WHERE listId = :listId AND checked = 1")
     suspend fun deleteChecked(listId: String)
 
+    @Query("SELECT * FROM shopping_items WHERE listId = :listId AND checked = 1")
+    suspend fun getChecked(listId: String): List<ShoppingItem>
+
+    /** Returns what it deleted, so it can be undone. */
+    @Transaction
+    suspend fun removeChecked(listId: String): List<ShoppingItem> = getChecked(listId).also { deleteChecked(listId) }
+
     @Query("UPDATE shopping_items SET checked = 0, updatedAt = :now WHERE listId = :listId AND checked = 1")
     suspend fun uncheckAll(listId: String, now: Instant)
 

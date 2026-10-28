@@ -83,4 +83,23 @@ class ShoppingRepositoryTest {
         assertNull(shopping.createList(""))
         assertEquals(listOf("Despensa"), shopping.lists.first().map { it.name })
     }
+
+    @Test fun deletedItemsCanBeRestored() = runBlocking {
+        shopping.seedIfEmpty()
+        val id = firstListId()
+        listOf("Leche", "Pan", "Huevo").forEach { shopping.addItem(id, it) }
+        val (leche, pan, huevo) = items(id)
+
+        val deleted = shopping.deleteItem(pan.id)!!
+        shopping.restore(listOf(deleted))
+        assertEquals("same place in the list", listOf("Leche", "Pan", "Huevo"), items(id).map { it.name })
+
+        shopping.setChecked(leche.id, true)
+        shopping.setChecked(huevo.id, true)
+        val removed = shopping.removeChecked(id)
+        assertEquals(listOf("Pan"), items(id).map { it.name })
+        shopping.restore(removed)
+        assertEquals(listOf("Leche", "Pan", "Huevo"), items(id).map { it.name })
+        assertTrue(items(id).first().checked)
+    }
 }

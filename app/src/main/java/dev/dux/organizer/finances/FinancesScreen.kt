@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -47,8 +46,12 @@ import dev.dux.organizer.data.DebtDirection
 import dev.dux.organizer.data.DebtWithPaid
 import dev.dux.organizer.data.MoneyKind
 import dev.dux.organizer.data.formatMoney
+import dev.dux.organizer.ui.AddButton
+import dev.dux.organizer.ui.CappedLabel
 import dev.dux.organizer.ui.SPANISH
+import dev.dux.organizer.ui.rememberDrafts
 import dev.dux.organizer.ui.asHeading
+import dev.dux.organizer.ui.inlineLabel
 import dev.dux.organizer.ui.label
 import dev.dux.organizer.ui.rememberToday
 import kotlinx.coroutines.launch
@@ -75,6 +78,7 @@ fun FinancesScreen(vm: FinancesViewModel, onOpenDebt: (String) -> Unit, onBack: 
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val savedMessage = stringResource(R.string.movement_saved)
+    val drafts = rememberDrafts()
 
     Scaffold(
         topBar = {
@@ -88,18 +92,16 @@ fun FinancesScreen(vm: FinancesViewModel, onOpenDebt: (String) -> Unit, onBack: 
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
             val debts = tab == FinanceTab.Debts
-            ExtendedFloatingActionButton(
-                onClick = { if (debts) creatingDebt = true else movement = NEW },
-                icon = { Icon(painterResource(R.drawable.ic_add), contentDescription = null) },
-                text = { Text(stringResource(if (debts) R.string.new_debt else R.string.register)) },
-            )
+            AddButton(stringResource(if (debts) R.string.new_debt else R.string.register)) {
+                if (debts) creatingDebt = true else movement = NEW
+            }
         },
     ) { padding ->
         val s = state ?: return@Scaffold
         Column(Modifier.padding(padding)) {
             PrimaryTabRow(selectedTabIndex = tab.ordinal) {
                 FinanceTab.entries.forEach {
-                    Tab(selected = it == tab, onClick = { tab = it }, text = { Text(stringResource(it.label), maxLines = 1) })
+                    Tab(selected = it == tab, onClick = { tab = it }, text = { CappedLabel(stringResource(it.label)) })
                 }
             }
             when (tab) {
@@ -114,12 +116,14 @@ fun FinancesScreen(vm: FinancesViewModel, onOpenDebt: (String) -> Unit, onBack: 
             MovementSheet(
                 categories = s.categories,
                 initial = editing,
+                drafts = drafts,
                 onDismiss = { movement = null },
                 onSave = { cents, categoryId, date, note, done ->
                     vm.saveMovement(editing?.id, cents, categoryId, date, note) { ok ->
                         done(ok)
                         if (ok) {
                             movement = null
+                            drafts.clear("movement.")
                             scope.launch { snackbar.showSnackbar(savedMessage) }
                         }
                     }
@@ -140,9 +144,16 @@ fun FinancesScreen(vm: FinancesViewModel, onOpenDebt: (String) -> Unit, onBack: 
         if (creatingDebt) {
             DebtSheet(
                 initial = null,
+                drafts = drafts,
                 onDismiss = { creatingDebt = false },
                 onSave = { person, direction, cents, due, note, done ->
-                    vm.addDebt(person, direction, cents, due, note) { ok -> done(ok); if (ok) creatingDebt = false }
+                    vm.addDebt(person, direction, cents, due, note) { ok ->
+                        done(ok)
+                        if (ok) {
+                            creatingDebt = false
+                            drafts.clear("debt.")
+                        }
+                    }
                 },
             )
         }
@@ -173,13 +184,17 @@ private fun AmountRow(@StringRes label: Int, cents: Long, color: Color = Color.U
     }
 }
 
-/** Spent against the budget: the bar fills up to the budget; going over is said in words, not only in red. */
+/**
+ * Spent against the budget: the bar fills up to the budget; going over is said in words, not only in red.
+ * [total]: the month's whole budget, labelled ("Gastado: …") since it has no category name above it.
+ */
 @Composable
-fun BudgetProgress(spentCents: Long, budgetCents: Long) {
+fun BudgetProgress(spentCents: Long, budgetCents: Long, total: Boolean = false) {
     val over = spentCents - budgetCents
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            if (over > 0) stringResource(R.string.over_budget, formatMoney(over)) else stringResource(R.string.spent_of_budget, formatMoney(spentCents), formatMoney(budgetCents)),
+            stringResource(if (total) R.string.spent_of_budget_total else R.string.spent_of_budget, formatMoney(spentCents), formatMoney(budgetCents)) +
+                if (over > 0) " · " + stringResource(R.string.over_budget, formatMoney(over)) else "",
             color = if (over > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
         )
         LinearProgressIndicator(
@@ -216,7 +231,7 @@ private fun SummaryTab(s: FinancesState, vm: FinancesViewModel, onEditCategory: 
                     AmountRow(R.string.expense_total, summary.expenseCents)
                     AmountRow(R.string.balance, summary.balanceCents, if (summary.balanceCents < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
                     if (summary.balanceCents < 0) Text(stringResource(R.string.negative_balance), color = MaterialTheme.colorScheme.error)
-                    summary.budgetCents?.let { BudgetProgress(summary.expenseCents, it) }
+                    summary.budgetCents?.let { BudgetProgress(summary.expenseCents, it, total = true) }
                 }
             }
         }
@@ -227,7 +242,8 @@ private fun SummaryTab(s: FinancesState, vm: FinancesViewModel, onEditCategory: 
             ListItem(
                 onClick = { onEditCategory(line.category.id) },
                 supportingContent = line.category.monthlyBudgetCents?.let { budget -> { BudgetProgress(line.spentCents, budget) } },
-                trailingContent = { Text(formatMoney(line.spentCents)) },
+                // With a budget the amount is already in the line below.
+                trailingContent = if (line.category.monthlyBudgetCents == null) ({ Text(formatMoney(line.spentCents)) }) else null,
             ) { Text(categoryName(line.category)) }
         }
         heading(R.string.income_by_category)
@@ -315,13 +331,13 @@ private fun DebtRow(item: DebtWithPaid, onClick: () -> Unit) {
             if (debt.settledAt != null) stringResource(R.string.debt_settled)
             else stringResource(R.string.remaining_of, formatMoney(item.remainingCents), formatMoney(debt.amountCents))
         )
-        debt.dueDate?.let { add(stringResource(R.string.due_label, it.label(today))) }
+        // Overdue is said in words too, not only in red.
+        debt.dueDate?.let { add(stringResource(if (overdue) R.string.debt_overdue else R.string.due_label, it.inlineLabel(today))) }
     }
     ListItem(
         onClick = onClick,
         supportingContent = {
             Text(parts.joinToString(" · "), color = if (overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
         },
-        trailingContent = { Text(formatMoney(if (debt.settledAt != null) debt.amountCents else item.remainingCents)) },
     ) { Text(debt.person) }
 }
