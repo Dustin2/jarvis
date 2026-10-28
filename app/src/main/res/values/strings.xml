@@ -143,7 +143,6 @@
     <string name="in_cart">En el carrito (%1$d)</string>
     <string name="remove_checked">Quitar comprados</string>
     <string name="uncheck_all">Desmarcar todo</string>
-    <string name="remove_item">Quitar «%1$s»</string>
     <string name="empty_shopping_list">La lista está vacía. Toca Agregar para anotar lo que falta.</string>
     <string name="new_list">Nueva lista</string>
     <string name="list_name">Nombre de la lista</string>
@@ -274,4 +273,6 @@
 
     <string name="add_task">Agregar tarea</string>
     <string name="add_task_to">Nueva tarea en «%1$s»</string>
+
+    <string name="remove">Quitar</string>
 </resources>

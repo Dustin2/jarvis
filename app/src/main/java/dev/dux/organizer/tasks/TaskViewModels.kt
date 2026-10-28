@@ -36,6 +36,13 @@ class TaskListViewModel(private val repo: TaskRepository, projects: ProjectRepos
         viewModelScope.launch { repo.setStatus(id, status) }
     }
 
+    /** Completes the task and hands back an undo for the "Deshacer" message. */
+    fun complete(task: Task, onCompleted: (undo: () -> Unit) -> Unit) {
+        viewModelScope.launch {
+            repo.complete(task.id)?.let { undo -> onCompleted { viewModelScope.launch { undo() } } }
+        }
+    }
+
     fun delete(task: Task) {
         viewModelScope.launch { repo.delete(task.id) }
     }

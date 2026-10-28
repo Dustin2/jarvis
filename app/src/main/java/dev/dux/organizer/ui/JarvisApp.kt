@@ -251,7 +251,7 @@ private fun MainScreen(
     ) { padding ->
         val modifier = Modifier.padding(padding)
         when (tab) {
-            Tab.Today -> TodayScreen(todayVm, onOpenTask, onOpenSettings, onOpenFinances, onSearch, modifier)
+            Tab.Today -> TodayScreen(todayVm, onOpenTask, onOpenSettings, onOpenFinances, onSearch, offerUndo, modifier)
             Tab.Tasks -> TasksScreen(tasksVm, onOpenTask, onSearch, offerUndo, modifier)
             Tab.Projects -> ProjectsScreen(projectsVm, onOpenProject, onSearch, modifier)
             Tab.Shopping -> ShoppingScreen(shoppingVm, offerUndo, onSearch, modifier)
