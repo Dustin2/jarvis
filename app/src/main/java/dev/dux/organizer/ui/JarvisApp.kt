@@ -99,7 +99,7 @@ fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}) {
             entry<Main> {
                 MainScreen(
                     tasksVm = viewModel { TaskListViewModel(app.tasks) },
-                    todayVm = viewModel { TodayViewModel(app.tasks, app.projects, app.finance) },
+                    todayVm = viewModel { TodayViewModel(app.tasks, app.projects, app.finance, app.autoBackup) },
                     projectsVm = viewModel { ProjectsViewModel(app.projects, app.tasks) },
                     shoppingVm = viewModel { ShoppingViewModel(app.shopping) },
                     onOpenTask = openTask,
@@ -112,7 +112,7 @@ fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}) {
                 TaskDetailScreen(viewModel { TaskDetailViewModel(key.id, app.tasks, app.projects) }, onBack = { backStack.removeLastOrNull() })
             }
             entry<Settings> {
-                SettingsScreen(viewModel { SettingsViewModel(app.backups, app.contentResolver) }, onBack = { backStack.removeLastOrNull() })
+                SettingsScreen(viewModel { SettingsViewModel(app.backups, app.contentResolver, app.autoBackup) }, onBack = { backStack.removeLastOrNull() })
             }
             entry<Finances> {
                 FinancesScreen(

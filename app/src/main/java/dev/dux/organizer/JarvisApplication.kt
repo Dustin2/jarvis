@@ -2,6 +2,7 @@ package dev.dux.organizer
 
 import android.app.Application
 import android.content.Context
+import dev.dux.organizer.backup.AutoBackup
 import dev.dux.organizer.data.AppDatabase
 import dev.dux.organizer.data.BackupRepository
 import dev.dux.organizer.data.FinanceRepository
@@ -22,6 +23,7 @@ class JarvisApplication : Application() {
     val shopping by lazy { ShoppingRepository(database.shopping()) }
     val finance by lazy { FinanceRepository(database.finance()) }
     val backups by lazy { BackupRepository(database, File(filesDir, "backups"), reminders = reminders) }
+    val autoBackup by lazy { AutoBackup(this, backups) }
 
     override fun onCreate() {
         super.onCreate()

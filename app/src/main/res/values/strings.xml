@@ -218,4 +218,19 @@
     <string name="delete_debt_confirm">¿Eliminar esta deuda y sus abonos?</string>
     <string name="month_spending">Este mes</string>
     <string name="month_spent">Gastado: %1$s</string>
+
+    <string name="auto_backup">Respaldo automático</string>
+    <string name="auto_backup_explanation">Cada día guarda una copia en la carpeta que elijas y conserva las últimas 14. Para protegerte si pierdes el teléfono, sincroniza esa carpeta con tu computadora (por ejemplo, con Syncthing).</string>
+    <string name="choose_folder">Elegir carpeta</string>
+    <string name="change_folder">Cambiar carpeta</string>
+    <string name="back_up_now">Respaldar ahora</string>
+    <string name="turn_off_auto_backup">Desactivar respaldo automático</string>
+    <string name="auto_backup_folder">Carpeta: %1$s</string>
+    <string name="auto_backup_never">Todavía no se ha hecho ningún respaldo.</string>
+    <string name="auto_backup_last">Último respaldo: %1$s, %2$s</string>
+    <string name="auto_backup_problem">El último intento falló. Revisa que la carpeta todavía exista o elígela de nuevo.</string>
+    <string name="auto_backup_enabled">Respaldo automático activado</string>
+    <string name="auto_backup_disabled">Respaldo automático desactivado</string>
+    <string name="auto_backup_failed">No se pudo guardar el respaldo en la carpeta</string>
+    <string name="backup_overdue">El respaldo automático no se ha hecho en más de 3 días. Toca para revisarlo en Ajustes.</string>
 </resources>
