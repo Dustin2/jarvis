@@ -14,6 +14,8 @@ import dev.dux.organizer.ui.theme.JarvisTheme
 class MainActivity : ComponentActivity() {
     /** Task to open after tapping a notification; consumed once opened. */
     private val taskToOpen = mutableStateOf<String?>(null)
+    /** The widget's "+": open the capture sheet; consumed once shown. */
+    private val capture = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,22 +24,33 @@ class MainActivity : ComponentActivity() {
             if (applicationLocales.isEmpty) applicationLocales = LocaleList.forLanguageTags("es-MX")
         }
         // First launch only: on recreation (rotation) the task screen is already in the back stack.
-        if (savedInstanceState == null) taskToOpen.value = intent.getStringExtra(EXTRA_TASK_ID)
+        if (savedInstanceState == null) read(intent)
         enableEdgeToEdge()
         setContent {
             JarvisTheme {
-                JarvisApp(taskToOpen = taskToOpen.value, onTaskOpened = { taskToOpen.value = null })
+                JarvisApp(
+                    taskToOpen = taskToOpen.value,
+                    onTaskOpened = { taskToOpen.value = null },
+                    capture = capture.value,
+                    onCaptureShown = { capture.value = false },
+                )
             }
         }
     }
 
-    // The app was already open and a notification was tapped.
+    // The app was already open and a notification or the widget was tapped.
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        read(intent)
+    }
+
+    private fun read(intent: Intent) {
         taskToOpen.value = intent.getStringExtra(EXTRA_TASK_ID)
+        capture.value = intent.getBooleanExtra(EXTRA_CAPTURE, false)
     }
 
     companion object {
         const val EXTRA_TASK_ID = "taskId"
+        const val EXTRA_CAPTURE = "capture"
     }
 }

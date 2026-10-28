@@ -82,13 +82,19 @@ enum class Tab(@StringRes val label: Int, @DrawableRes val icon: Int) {
 }
 
 @Composable
-fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}) {
+fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}, capture: Boolean = false, onCaptureShown: () -> Unit = {}) {
     // The back stack saves itself (rotation, process death); that is why the keys are @Serializable.
     val backStack = rememberNavBackStack(Main)
     LaunchedEffect(taskToOpen) {
         if (taskToOpen != null) {
             backStack.add(TaskDetail(taskToOpen))
             onTaskOpened()
+        }
+    }
+    LaunchedEffect(capture) {
+        if (capture) {
+            // The capture sheet lives on the main screen: go back to it first.
+            while (backStack.size > 1) backStack.removeLastOrNull()
         }
     }
     val app = LocalContext.current.app
@@ -120,6 +126,8 @@ fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}) {
                     onTabChange = { tab = it },
                     listToOpen = listToOpen,
                     onListOpened = { listToOpen = null },
+                    captureRequested = capture,
+                    onCaptureShown = onCaptureShown,
                 )
             }
             entry<TaskDetail> { key ->
@@ -185,6 +193,8 @@ private fun MainScreen(
     onTabChange: (Tab) -> Unit,
     listToOpen: String?,
     onListOpened: () -> Unit,
+    captureRequested: Boolean,
+    onCaptureShown: () -> Unit,
 ) {
     LaunchedEffect(listToOpen) {
         if (listToOpen != null) {
@@ -193,6 +203,12 @@ private fun MainScreen(
         }
     }
     var capturing by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(captureRequested) {
+        if (captureRequested) {
+            capturing = true
+            onCaptureShown()
+        }
+    }
     var addingItem by rememberSaveable { mutableStateOf(false) }
     val shopping by shoppingVm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
