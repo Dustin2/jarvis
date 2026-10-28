@@ -262,6 +262,13 @@
     <string name="view_finished">Terminadas (%1$d)</string>
     <string name="empty_finished">Todavía no has terminado ninguna tarea.</string>
 
+    <string name="complete">Completar</string>
+    <string name="reopen">Reabrir</string>
+    <string name="cancel_task">Cancelar tarea</string>
+    <string name="move_to_todo">Mover a Pendientes</string>
+    <string name="back_to_inbox">Regresar a la Bandeja</string>
+    <string name="add_notes">Agregar notas</string>
+
     <string name="task_completed">Se completó «%1$s»</string>
     <string name="task_deleted">Se eliminó «%1$s»</string>
 </resources>
