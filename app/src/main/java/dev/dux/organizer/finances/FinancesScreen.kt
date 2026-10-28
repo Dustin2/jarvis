@@ -17,11 +17,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -39,6 +37,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.Surface
+import dev.dux.organizer.ui.ChoiceChips
+import dev.dux.organizer.ui.inBlock
 import dev.dux.organizer.R
 import dev.dux.organizer.data.Category
 import dev.dux.organizer.data.DebtDirection
@@ -47,7 +56,6 @@ import dev.dux.organizer.data.MoneyKind
 import dev.dux.organizer.data.Movement
 import dev.dux.organizer.data.formatMoney
 import dev.dux.organizer.ui.AddButton
-import dev.dux.organizer.ui.CappedLabel
 import dev.dux.organizer.ui.SPANISH
 import dev.dux.organizer.ui.theme.LocalWarningColor
 import dev.dux.organizer.ui.ScreenHeader
@@ -125,10 +133,9 @@ fun FinancesScreen(
         val s = state ?: return@Scaffold
         Column(Modifier.padding(padding)) {
             if (onBack == null) ScreenHeader(R.string.finances, onSearch, menu = newCategory)
-            PrimaryTabRow(selectedTabIndex = tab.ordinal) {
-                FinanceTab.entries.forEach {
-                    Tab(selected = it == tab, onClick = { tab = it }, text = { CappedLabel(stringResource(it.label)) })
-                }
+            // Chips, not tabs: at large font sizes they wrap instead of cutting "Movimientos".
+            Box(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)) {
+                ChoiceChips(FinanceTab.entries, tab, { stringResource(it.label) }) { tab = it }
             }
             when (tab) {
                 FinanceTab.Summary -> SummaryTab(s, vm, onEditCategory = { category = it })
@@ -249,35 +256,99 @@ private fun SummaryTab(s: FinancesState, vm: FinancesViewModel, onEditCategory: 
     val archived = s.categories.filter { it.archived && it.id !in shown }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
-        item { MonthBar(s.month, vm) }
-        item {
-            Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AmountRow(R.string.income_total, summary.incomeCents)
-                    AmountRow(R.string.expense_total, summary.expenseCents)
-                    AmountRow(R.string.balance, summary.balanceCents, if (summary.balanceCents < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
-                    if (summary.balanceCents < 0) Text(stringResource(R.string.negative_balance), color = MaterialTheme.colorScheme.error)
-                    summary.budgetCents?.let { BudgetProgress(summary.expenseCents, it, total = true) }
+        item { BalanceHero(s.month, summary, vm) }
+        summary.budgetCents?.let { budget ->
+            item {
+                Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    Box(Modifier.padding(16.dp)) { BudgetProgress(summary.expenseCents, budget, total = true) }
                 }
             }
         }
         heading(R.string.expenses_by_category)
-        items(summary.lines, key = { it.category.id }) { line ->
-            ListItem(
-                onClick = { onEditCategory(line.category.id) },
-                supportingContent = line.category.monthlyBudgetCents?.let { budget -> { BudgetProgress(line.spentCents, budget) } },
-                // With a budget the amount is already in the line below.
-                trailingContent = if (line.category.monthlyBudgetCents == null) ({ Text(formatMoney(line.spentCents)) }) else null,
-            ) { Text(categoryName(line.category)) }
+        itemsIndexed(summary.lines, key = { _, line -> line.category.id }) { index, line ->
+            CategoryRow(line.category, line.spentCents, Modifier.inBlock(index, summary.lines.lastIndex)) { onEditCategory(line.category.id) }
         }
         heading(R.string.income_by_category)
-        items(incomeCategories, key = { it.id }) { c ->
-            ListItem(onClick = { onEditCategory(c.id) }, trailingContent = { Text(formatMoney(incomeByCategory[c.id] ?: 0)) }) { Text(categoryName(c)) }
+        itemsIndexed(incomeCategories, key = { _, c -> c.id }) { index, c ->
+            CategoryRow(c, incomeByCategory[c.id] ?: 0, Modifier.inBlock(index, incomeCategories.lastIndex)) { onEditCategory(c.id) }
         }
         if (archived.isNotEmpty()) {
             heading(R.string.archived_categories)
-            items(archived, key = { it.id }) { c -> ListItem(onClick = { onEditCategory(c.id) }) { Text(c.name) } }
+            itemsIndexed(archived, key = { _, c -> c.id }) { index, c ->
+                CategoryRow(c, null, Modifier.inBlock(index, archived.lastIndex)) { onEditCategory(c.id) }
+            }
         }
+    }
+}
+
+/** "Te queda" first: the month's balance, with what came in and went out, and the month arrows. */
+@Composable
+private fun BalanceHero(month: YearMonth, summary: MonthSummary, vm: FinancesViewModel) {
+    val onContainer = MaterialTheme.colorScheme.onPrimaryContainer
+    Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = vm::previousMonth) { Icon(painterResource(R.drawable.ic_chevron_left), stringResource(R.string.previous_month)) }
+                Text(month.format(monthFormat).replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center, modifier = Modifier.weight(1f).asHeading())
+                IconButton(onClick = vm::nextMonth) { Icon(painterResource(R.drawable.ic_chevron_right), stringResource(R.string.next_month)) }
+            }
+            Column(Modifier.padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(stringResource(R.string.balance), style = MaterialTheme.typography.bodyMedium)
+                Text(formatMoney(summary.balanceCents), style = MaterialTheme.typography.displaySmall)
+                if (summary.balanceCents < 0) Text(stringResource(R.string.negative_balance), style = MaterialTheme.typography.bodyMedium)
+                Row(Modifier.padding(top = 8.dp, bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Tile(stringResource(R.string.income_in), "+" + formatMoney(summary.incomeCents), onContainer, Modifier.weight(1f))
+                    Tile(stringResource(R.string.expense_out), "-" + formatMoney(summary.expenseCents), onContainer, Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Tile(label: String, amount: String, onContainer: Color, modifier: Modifier) {
+    Surface(shape = RoundedCornerShape(16.dp), color = onContainer.copy(alpha = 0.10f), modifier = modifier) {
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Text(label, style = MaterialTheme.typography.labelMedium)
+            Text(amount, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+        }
+    }
+}
+
+/**
+ * A category with its icon. Expense categories with a budget show "gastado / presupuesto" and a bar
+ * (over budget in orange, with text); others show only the amount. [amountCents] null: no amount (archived).
+ */
+@Composable
+private fun CategoryRow(category: Category, amountCents: Long?, modifier: Modifier, onClick: () -> Unit) {
+    val budget = category.monthlyBudgetCents
+    ListItem(
+        onClick = onClick,
+        modifier = modifier,
+        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        leadingContent = {
+            Box(Modifier.size(40.dp).background(MaterialTheme.colorScheme.secondaryContainer, CircleShape), contentAlignment = Alignment.Center) {
+                Icon(painterResource(categoryIcon(category)), contentDescription = null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSecondaryContainer)
+            }
+        },
+        supportingContent = if (budget != null && amountCents != null) ({ BudgetProgress(amountCents, budget) }) else null,
+        trailingContent = if (budget == null && amountCents != null) ({ Text(formatMoney(amountCents)) }) else null,
+    ) { Text(categoryName(category)) }
+}
+
+// shortcut: icons follow the names of the categories Jarvis creates; a renamed or new category gets the
+// generic tag. Store an icon per category if people want to choose them.
+@DrawableRes
+private fun categoryIcon(category: Category): Int = when {
+    category.kind == MoneyKind.INCOME -> R.drawable.ic_cat_income
+    else -> when (category.name.lowercase()) {
+        "comida" -> R.drawable.ic_cat_food
+        "transporte" -> R.drawable.ic_cat_car
+        "casa" -> R.drawable.ic_cat_home
+        "servicios" -> R.drawable.ic_cat_bolt
+        "salud" -> R.drawable.ic_cat_health
+        "entretenimiento" -> R.drawable.ic_cat_fun
+        else -> R.drawable.ic_cat_other
     }
 }
 
