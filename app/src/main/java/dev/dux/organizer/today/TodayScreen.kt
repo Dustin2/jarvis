@@ -40,6 +40,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import dev.dux.organizer.ui.inBlock
 import dev.dux.organizer.ui.inlineLabel
 import java.time.LocalDate
 import java.time.ZoneId
@@ -254,9 +255,5 @@ private fun LazyListScope.section(@StringRes title: Int, tasks: List<Task>, row:
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 8.dp).asHeading(),
         )
     }
-    itemsIndexed(tasks, key = { _, task -> "$title-${task.id}" }) { index, task ->
-        val top = if (index == 0) 24.dp else 0.dp
-        val bottom = if (index == tasks.lastIndex) 24.dp else 0.dp
-        row(task, Modifier.padding(horizontal = 16.dp).clip(RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom)))
-    }
+    itemsIndexed(tasks, key = { _, task -> "$title-${task.id}" }) { index, task -> row(task, Modifier.inBlock(index, tasks.lastIndex)) }
 }
