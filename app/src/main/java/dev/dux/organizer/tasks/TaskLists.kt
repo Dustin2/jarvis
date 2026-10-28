@@ -56,6 +56,7 @@ fun InboxScreen(vm: TaskListViewModel, onOpen: (String) -> Unit, modifier: Modif
 fun TasksScreen(vm: TaskListViewModel, onOpen: (String) -> Unit, onSearch: () -> Unit, modifier: Modifier = Modifier) {
     val lists by vm.lists.collectAsStateWithLifecycle()
     val (pending, finished) = lists ?: return
+    val projectNames by vm.projectNames.collectAsStateWithLifecycle()
     var showFinished by rememberSaveable { mutableStateOf(false) }
     LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
         header(R.string.tab_tasks) {
@@ -63,7 +64,7 @@ fun TasksScreen(vm: TaskListViewModel, onOpen: (String) -> Unit, onSearch: () ->
         }
         if (pending.isEmpty()) emptyMessage(R.string.empty_tasks)
         items(pending, key = { it.id }) { task ->
-            TaskRow(task, onOpen = { onOpen(task.id) }, onToggleDone = { vm.setStatus(task.id, TaskStatus.DONE) })
+            TaskRow(task, onOpen = { onOpen(task.id) }, onToggleDone = { vm.setStatus(task.id, TaskStatus.DONE) }, projectName = projectNames[task.projectId])
         }
         if (finished.isNotEmpty()) {
             item {
@@ -76,7 +77,7 @@ fun TasksScreen(vm: TaskListViewModel, onOpen: (String) -> Unit, onSearch: () ->
             }
             if (showFinished) {
                 items(finished, key = { it.id }) { task ->
-                    TaskRow(task, onOpen = { onOpen(task.id) }, onToggleDone = { vm.setStatus(task.id, TaskStatus.TODO) })
+                    TaskRow(task, onOpen = { onOpen(task.id) }, onToggleDone = { vm.setStatus(task.id, TaskStatus.TODO) }, projectName = projectNames[task.projectId])
                 }
             }
         }

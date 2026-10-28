@@ -39,7 +39,7 @@ import dev.dux.organizer.R
 import dev.dux.organizer.backup.AutoBackup
 import dev.dux.organizer.backup.AutoBackupState
 import dev.dux.organizer.ui.SPANISH
-import dev.dux.organizer.ui.label
+import dev.dux.organizer.ui.inlineLabel
 import dev.dux.organizer.ui.rememberToday
 import android.provider.DocumentsContract
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -191,9 +191,11 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
             Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(stringResource(R.string.backup), style = MaterialTheme.typography.titleLarge, modifier = Modifier.asHeading())
+            // Automatic first: it is the one that protects the data without remembering to do anything.
+            auto?.let { AutoBackupSection(it, vm, onPickFolder = { folderLauncher.launch(null) }) }
+            Text(stringResource(R.string.backup), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp).asHeading())
             Text(stringResource(R.string.backup_explanation), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Button(
+            OutlinedButton(
                 onClick = { exportLauncher.launch("jarvis-respaldo-${LocalDate.now()}.json") },
                 enabled = !vm.busy,
                 modifier = Modifier.fillMaxWidth(),
@@ -208,7 +210,6 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
                     Text(stringResource(R.string.undo_restore))
                 }
             }
-            auto?.let { AutoBackupSection(it, vm, onPickFolder = { folderLauncher.launch(null) }) }
         }
     }
 
@@ -228,11 +229,7 @@ private val time = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLoca
 @Composable
 private fun AutoBackupSection(state: AutoBackupState, vm: SettingsViewModel, onPickFolder: () -> Unit) {
     val today by rememberToday()
-    Text(
-        stringResource(R.string.auto_backup),
-        style = MaterialTheme.typography.titleLarge,
-        modifier = Modifier.padding(top = 16.dp).asHeading(),
-    )
+    Text(stringResource(R.string.auto_backup), style = MaterialTheme.typography.titleLarge, modifier = Modifier.asHeading())
     Text(stringResource(R.string.auto_backup_explanation), color = MaterialTheme.colorScheme.onSurfaceVariant)
     val folder = state.folder
     if (folder == null) {
@@ -244,7 +241,7 @@ private fun AutoBackupSection(state: AutoBackupState, vm: SettingsViewModel, onP
     val last = state.lastSuccess?.atZone(ZoneId.systemDefault())
     Text(
         if (last == null) stringResource(R.string.auto_backup_never)
-        else stringResource(R.string.auto_backup_last, last.toLocalDate().label(today), last.format(time)),
+        else stringResource(R.string.auto_backup_last, last.toLocalDate().inlineLabel(today), last.format(time)),
     )
     if (state.lastFailure != null) Text(stringResource(R.string.auto_backup_problem), color = MaterialTheme.colorScheme.error)
     OutlinedButton(onClick = vm::backUpNow, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.back_up_now)) }

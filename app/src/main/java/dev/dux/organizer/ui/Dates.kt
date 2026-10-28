@@ -27,6 +27,10 @@ fun LocalDate.label(today: LocalDate): String = when (this) {
     else -> format(shortDate)
 }
 
+/** The same label inside a sentence: "Vence ayer", not "Vence Ayer". */
+@Composable
+fun LocalDate.inlineLabel(today: LocalDate): String = label(today).replaceFirstChar { it.lowercase(SPANISH) }
+
 /** Today's date, which updates itself at midnight even if the app stays open. */
 @Composable
 fun rememberToday(): State<LocalDate> {

@@ -17,7 +17,7 @@ import dev.dux.organizer.R
 import dev.dux.organizer.data.Priority
 import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TaskStatus
-import dev.dux.organizer.ui.label
+import dev.dux.organizer.ui.inlineLabel
 import dev.dux.organizer.ui.rememberToday
 
 @get:StringRes
@@ -83,8 +83,8 @@ private fun Supporting(task: Task, projectName: String?) {
     val overdue = task.dueDate?.let { it < today } == true && task.status in OPEN
     val parts = buildList {
         if (task.priority != Priority.NONE) add(stringResource(task.priority.label))
-        task.dueDate?.let { add(stringResource(R.string.due_label, it.label(today))) }
-            ?: task.scheduledDate?.let { add(stringResource(R.string.scheduled_label, it.label(today))) }
+        task.dueDate?.let { add(stringResource(R.string.due_label, it.inlineLabel(today))) }
+            ?: task.scheduledDate?.let { add(stringResource(R.string.scheduled_label, it.inlineLabel(today))) }
         if (task.recurrence != null) add(stringResource(R.string.repeats))
         projectName?.let { add(it) }
         task.notes?.let { add(it) }

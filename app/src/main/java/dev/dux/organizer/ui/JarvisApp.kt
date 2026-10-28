@@ -111,7 +111,7 @@ fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}, capture
         entryProvider = entryProvider {
             entry<Main> {
                 MainScreen(
-                    tasksVm = viewModel { TaskListViewModel(app.tasks) },
+                    tasksVm = viewModel { TaskListViewModel(app.tasks, app.projects) },
                     todayVm = viewModel { TodayViewModel(app.tasks, app.projects, app.finance, app.autoBackup) },
                     projectsVm = viewModel { ProjectsViewModel(app.projects, app.tasks) },
                     shoppingVm = viewModel { ShoppingViewModel(app.shopping) },

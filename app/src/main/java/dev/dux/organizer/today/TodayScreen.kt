@@ -147,7 +147,7 @@ private fun MonthCard(summary: MonthSummary, onClick: () -> Unit) {
             Text(stringResource(R.string.month_spending) + " · " + stringResource(R.string.finances), style = MaterialTheme.typography.labelLarge)
             val budget = summary.budgetCents
             if (budget == null) Text(stringResource(R.string.month_spent, formatMoney(summary.expenseCents)), style = MaterialTheme.typography.titleLarge)
-            else BudgetProgress(summary.expenseCents, budget)
+            else BudgetProgress(summary.expenseCents, budget, total = true)
         }
     }
 }
