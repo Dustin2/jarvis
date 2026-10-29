@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Android clears alarms on reboot: they have to be scheduled again. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Only to download the on-device model (Pregúntale a Jarvis); questions and data never leave the phone. -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- allowBackup=false: data is not uploaded to Google backup; the JSON export is the backup. -->
     <application
@@ -18,6 +20,9 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.NoActionBar">
+        <!-- GPU backend for the on-device model (Pregúntale a Jarvis). -->
+        <uses-native-library android:name="libvndksupport.so" android:required="false" />
+        <uses-native-library android:name="libOpenCL.so" android:required="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true">

@@ -15,10 +15,14 @@ android {
         // 33: required for USE_EXACT_ALARM and POST_NOTIFICATIONS (milestone 4).
         minSdk = 33
         targetSdk = 37
-        versionCode = 14
-        versionName = "0.10.1"
+        versionCode = 15
+        versionName = "0.11.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Only 64-bit ARM phones: LiteRT-LM's native libs for x86_64 (emulators) add ~26 MB.
+        ndk { abiFilters += "arm64-v8a" }
     }
+    // Phone-only app: no ChromeOS (x86_64) build, see abiFilters.
+    lint { disable += "ChromeOsAbiSupport" }
 
     buildTypes {
         debug {
@@ -30,7 +34,7 @@ android {
             // R8 removes unused code and optimizes: Compose in debug is noticeably slower.
             isMinifyEnabled = true
             isShrinkResources = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             // shortcut: signed with the debug key so it installs over the debug build without losing data.
             // If the APK is ever published or shared, create a dedicated key (and back it up).
             signingConfig = signingConfigs.getByName("debug")
@@ -68,6 +72,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
+    implementation(libs.litertlm.android)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
