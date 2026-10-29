@@ -286,6 +286,8 @@
     <string name="ask_jarvis">Pregúntale a Jarvis</string>
     <string name="ask_hint">¿Qué tengo pendiente hoy?</string>
     <string name="ask_send">Preguntar</string>
+    <string name="ask_voice">Preguntar con voz</string>
+    <string name="ask_voice_missing">Este teléfono no tiene dictado por voz. Escribe tu pregunta.</string>
     <string name="ask_thinking">Pensando…</string>
     <string name="ask_failed">No pude responder. Intenta de nuevo.</string>
     <string name="ask_no_model">Para preguntarle a Jarvis, primero descarga su modelo en Ajustes. Se descarga una vez y después funciona sin internet.</string>
