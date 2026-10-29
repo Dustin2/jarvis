@@ -51,28 +51,54 @@ class LocalLlmBenchmark {
         "Dame un resumen corto de mi día.",
     )
 
+    private val actionSystem = """
+        Eres Jarvis. Convierte la orden del usuario en UNA acción JSON, sin texto extra. Acciones posibles:
+        {"accion":"agregar_compra","articulo":"...","cantidad":"... o null","lista":"nombre exacto de la lista o null"}
+        {"accion":"completar_tarea","tarea":"título exacto de la tarea"}
+        {"accion":"crear_tarea","titulo":"...","vence":"AAAA-MM-DD o null"}
+        {"accion":"ninguna"}  (si es una pregunta o no es ninguna de las anteriores)
+        Usa solo nombres de tareas y listas que aparecen en los datos.
+    """.trimIndent()
+
+    private val commands = listOf(
+        "Agrega leche a la lista del súper",
+        "Apunta 2 kilos de tomate en el súper",
+        "Necesito comprar clavos en la ferretería",
+        "Ya pagué el internet",
+        "Marca como hecha la de las facturas",
+        "Recuérdame llamar a Juan mañana",
+        "Crea una tarea: comprar boletos para el viernes",
+        "Tengo que lavar el carro",
+        "¿Qué tengo pendiente para hoy?",
+        "¿Cuánto dinero me queda?",
+    )
+
     @Test
-    fun answerQuestions() = runBlocking {
+    fun answerQuestions() = bench("respuestas", "Eres Jarvis, el asistente de una app de organización personal. Responde en español, breve y claro, " +
+        "usando solo estos datos del usuario. Si no está en los datos, dilo.", questions, "")
+
+    @Test
+    fun parseActions() = bench("acciones", actionSystem, commands, "\nListas de compras: Súper, Ferretería.")
+
+    private fun bench(kind: String, instruction: String, prompts: List<String>, extra: String) = runBlocking {
         val args = InstrumentationRegistry.getArguments()
         val modelPath = args.getString("model")
         assumeTrue("no model given", modelPath != null)
+        assumeTrue("other kind", args.getString("kind", kind) == kind)
         val gpu = args.getString("backend", "gpu") == "gpu"
         val suffix = args.getString("suffix", "")
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val report = StringBuilder("# ${File(modelPath!!).name} · ${if (gpu) "GPU" else "CPU"}\n\n")
+        val report = StringBuilder("# ${File(modelPath!!).name} · ${if (gpu) "GPU" else "CPU"} · $kind\n\n")
 
         var start = SystemClock.elapsedRealtime()
         Engine(EngineConfig(modelPath = modelPath, backend = if (gpu) Backend.GPU() else Backend.CPU(), cacheDir = context.cacheDir.path)).use { engine ->
             engine.initialize()
             report.append("Carga del modelo: ${SystemClock.elapsedRealtime() - start} ms\n\n")
             val config = ConversationConfig(
-                systemInstruction = Contents.of(
-                    "Eres Jarvis, el asistente de una app de organización personal. Responde en español, breve y claro, " +
-                        "usando solo estos datos del usuario. Si no está en los datos, dilo.\n\n$data",
-                ),
+                systemInstruction = Contents.of("$instruction\n\n$data$extra"),
                 samplerConfig = SamplerConfig(topK = 40, topP = 0.95, temperature = 0.3),
             )
-            for (q in questions) {
+            for (q in prompts) {
                 engine.createConversation(config).use { conversation ->
                     start = SystemClock.elapsedRealtime()
                     var first = -1L
@@ -87,6 +113,6 @@ class LocalLlmBenchmark {
                 }
             }
         }
-        File(context.getExternalFilesDir(null), "llm-${File(modelPath).nameWithoutExtension}-${if (gpu) "gpu" else "cpu"}.md").writeText(report.toString())
+        File(context.getExternalFilesDir(null), "llm-${File(modelPath).nameWithoutExtension}-${if (gpu) "gpu" else "cpu"}-$kind.md").writeText(report.toString())
     }
 }
