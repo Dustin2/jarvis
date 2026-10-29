@@ -2,6 +2,10 @@ package dev.dux.organizer
 
 import android.app.Application
 import android.content.Context
+import android.graphics.drawable.Icon
+import android.content.pm.ShortcutManager
+import android.content.pm.ShortcutInfo
+import android.content.Intent
 import dev.dux.organizer.ask.AskJarvis
 import dev.dux.organizer.backup.AutoBackup
 import dev.dux.organizer.data.AppDatabase
@@ -34,6 +38,7 @@ class JarvisApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         reminders.createChannel()
+        addAskShortcut()
         MainScope().launch {
             projects.seedIfEmpty()
             shopping.seedIfEmpty()
@@ -47,6 +52,16 @@ class JarvisApplication : Application() {
             tasks.open.drop(1).collectLatest { TodayWidget().updateAll(this@JarvisApplication) }
         }
     }
+}
+
+/** Long-press on the app icon → "Hablar con Jarvis". Dynamic, not XML, so it targets this build's package (".debug" too). */
+private fun Context.addAskShortcut() {
+    val shortcut = ShortcutInfo.Builder(this, "ask_voice")
+        .setShortLabel(getString(R.string.ask_shortcut))
+        .setIcon(Icon.createWithResource(this, R.drawable.ic_shortcut_ask))
+        .setIntent(Intent(this, MainActivity::class.java).setAction(MainActivity.ACTION_ASK_VOICE))
+        .build()
+    getSystemService(ShortcutManager::class.java).dynamicShortcuts = listOf(shortcut)
 }
 
 val Context.app: JarvisApplication get() = applicationContext as JarvisApplication

@@ -56,7 +56,8 @@ import kotlinx.coroutines.launch
 fun AskSheet(
     ask: AskJarvis,
     data: suspend () -> AskData,
-    onAction: suspend (JarvisAction) -> Unit,
+    onAction: suspend (JarvisAction) -> (suspend () -> Unit)?,
+    startListening: Boolean = false,
     onOpenSettings: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -66,13 +67,15 @@ fun AskSheet(
     var answer by remember { mutableStateOf("") }
     var job by remember { mutableStateOf<Job?>(null) }
     val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { if (ask.installed) focus.requestFocus() }
     val thinking = stringResource(R.string.ask_thinking)
     val failed = stringResource(R.string.ask_failed)
     val voiceMissing = stringResource(R.string.ask_voice_missing)
     val speaker = rememberSpeaker()
     /** An action waiting for the user to confirm it; nothing changes until "Hacer". */
     var proposal by remember { mutableStateOf<JarvisAction?>(null) }
+    /** Undo for the action just done; cleared by the next question. */
+    var undo by remember { mutableStateOf<(suspend () -> Unit)?>(null) }
+    val undone = stringResource(R.string.action_undone)
     /** This turn started by voice, so what Jarvis says is read aloud too. */
     var spoken by remember { mutableStateOf(false) }
     fun say(text: String) {
@@ -91,6 +94,7 @@ fun AskSheet(
         if (question.isBlank() || job?.isActive == true) return
         speaker.stop()
         proposal = null
+        undo = null
         spoken = byVoice
         answer = thinking
         launch {
@@ -108,8 +112,8 @@ fun AskSheet(
     fun confirm(action: JarvisAction) {
         proposal = null
         launch {
-            onAction(action)
-            say(actionTexts(action, resources).second)
+            undo = onAction(action)
+            say(if (undo != null) actionTexts(action, resources).second else failed)
         }
     }
     fun notAnAction() {
@@ -137,6 +141,8 @@ fun AskSheet(
             answer = voiceMissing
         }
     }
+    // From the widget or the app shortcut: straight to dictation; otherwise ready to type.
+    LaunchedEffect(Unit) { if (ask.installed) { if (startListening) dictate() else focus.requestFocus() } }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberBottomSheetState(SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))) {
         Column(Modifier.padding(start = 24.dp, end = 24.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(stringResource(R.string.ask_jarvis), style = MaterialTheme.typography.titleLarge)
@@ -159,6 +165,12 @@ fun AskSheet(
                 keyboardActions = KeyboardActions(onSend = { send() }),
             )
             if (answer.isNotEmpty()) Text(answer, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+            undo?.let { revert ->
+                TextButton(onClick = {
+                    undo = null
+                    launch { revert(); say(undone) }
+                }) { Text(stringResource(R.string.undo)) }
+            }
             proposal?.let { action ->
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { confirm(action) }) { Text(stringResource(R.string.action_do)) }
