@@ -1,5 +1,7 @@
 package dev.dux.organizer.ask
 
+import dev.dux.organizer.data.Category
+import dev.dux.organizer.data.MoneyKind
 import dev.dux.organizer.data.ShoppingList
 import dev.dux.organizer.data.Task
 import java.time.Instant
@@ -78,6 +80,31 @@ class ActionsTest {
         assertEquals(LocalDate.of(2026, 11, 5), relativeDate("jueves", today)) // next week, not today
         assertEquals(LocalDate.of(2026, 11, 2), relativeDate("2026-11-02", today))
         assertNull(relativeDate("29-10-2026", today))
+    }
+
+    private val food = Category(name = "Comida", kind = MoneyKind.EXPENSE, createdAt = now, updatedAt = now)
+    private val salary = Category(name = "Sueldo", kind = MoneyKind.INCOME, createdAt = now, updatedAt = now)
+    private val oldCategory = Category(name = "Gimnasio", kind = MoneyKind.EXPENSE, archived = true, createdAt = now, updatedAt = now)
+    private fun money(output: String, command: String) = parseAction(output, command, open, lists, today, listOf(food, salary, oldCategory))
+
+    @Test
+    fun recordsMovementsTheUserSaid() {
+        assertEquals(
+            JarvisAction.RecordMovement(food, 250_00, "tacos"),
+            money("""{"accion":"registrar_movimiento","monto":"250","categoria":"comida","nota":"tacos"}""", "Gasté 250 en tacos"),
+        )
+        assertEquals(
+            JarvisAction.RecordMovement(salary, 5_000_00, null),
+            money("""{"accion":"registrar_movimiento","monto":"5000","categoria":"Sueldo","nota":null}""", "Me pagaron 5,000 de sueldo"),
+        )
+    }
+
+    @Test
+    fun madeUpAmountsAndUnknownCategoriesGiveNoAction() {
+        // 5 is not 500: only an amount the user actually said counts.
+        assertNull(money("""{"accion":"registrar_movimiento","monto":"5","categoria":"Comida"}""", "Gasté 500 en comida"))
+        assertNull(money("""{"accion":"registrar_movimiento","monto":"250","categoria":"Viajes"}""", "Gasté 250 en el viaje"))
+        assertNull(money("""{"accion":"registrar_movimiento","monto":"250","categoria":"Gimnasio"}""", "Pagué 250 del gimnasio"))
     }
 
     @Test

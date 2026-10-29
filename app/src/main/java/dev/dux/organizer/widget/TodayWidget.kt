@@ -11,6 +11,8 @@ import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.ImageProvider
+import androidx.glance.layout.width
+import androidx.glance.layout.Spacer
 import androidx.glance.LocalContext
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionParametersOf
@@ -97,6 +99,14 @@ private fun Content(plan: DayPlan) {
                 Text(context.getString(R.string.tab_today), style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = GlanceTheme.colors.onSurface))
                 Text(summary, style = TextStyle(fontSize = 13.sp, color = GlanceTheme.colors.onSurfaceVariant))
             }
+            SquareIconButton(
+                imageProvider = ImageProvider(R.drawable.ic_mic),
+                contentDescription = context.getString(R.string.ask_shortcut),
+                onClick = actionStartActivity(appIntent(context).setAction(MainActivity.ACTION_ASK_VOICE)),
+                backgroundColor = GlanceTheme.colors.secondaryContainer,
+                contentColor = GlanceTheme.colors.onSecondaryContainer,
+            )
+            Spacer(GlanceModifier.width(8.dp))
             SquareIconButton(
                 imageProvider = ImageProvider(R.drawable.ic_add),
                 contentDescription = context.getString(R.string.capture),

@@ -76,7 +76,14 @@ enum class Tab(@StringRes val label: Int, @DrawableRes val icon: Int) {
 }
 
 @Composable
-fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}, capture: Boolean = false, onCaptureShown: () -> Unit = {}) {
+fun JarvisApp(
+    taskToOpen: String? = null,
+    onTaskOpened: () -> Unit = {},
+    capture: Boolean = false,
+    onCaptureShown: () -> Unit = {},
+    askByVoice: Boolean = false,
+    onAskShown: () -> Unit = {},
+) {
     // The back stack saves itself (rotation, process death); that is why the keys are @Serializable.
     val backStack = rememberNavBackStack(Main)
     LaunchedEffect(taskToOpen) {
@@ -94,6 +101,13 @@ fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}, capture
     val app = LocalContext.current.app
     // Hoisted so the search can open Compras on a given list.
     var tab by rememberSaveable { mutableStateOf(Tab.Today) }
+    LaunchedEffect(askByVoice) {
+        if (askByVoice) {
+            // Pregúntale a Jarvis lives in Mi día.
+            while (backStack.size > 1) backStack.removeLastOrNull()
+            tab = Tab.Today
+        }
+    }
     var listToOpen by rememberSaveable { mutableStateOf<String?>(null) }
     val openTask: (String) -> Unit = { backStack.add(TaskDetail(it)) }
     NavDisplay(
@@ -123,6 +137,8 @@ fun JarvisApp(taskToOpen: String? = null, onTaskOpened: () -> Unit = {}, capture
                     listToOpen = listToOpen,
                     onListOpened = { listToOpen = null },
                     captureRequested = capture,
+                    askByVoice = askByVoice,
+                    onAskShown = onAskShown,
                     onCaptureShown = onCaptureShown,
                 )
             }
@@ -194,6 +210,8 @@ private fun MainScreen(
     onListOpened: () -> Unit,
     captureRequested: Boolean,
     onCaptureShown: () -> Unit,
+    askByVoice: Boolean,
+    onAskShown: () -> Unit,
 ) {
     LaunchedEffect(listToOpen) {
         if (listToOpen != null) {
@@ -245,7 +263,7 @@ private fun MainScreen(
     ) { padding ->
         val modifier = Modifier.padding(padding)
         when (tab) {
-            Tab.Today -> TodayScreen(todayVm, onOpenTask, onOpenSettings, onOpenFinances, onSearch, offerUndo, modifier)
+            Tab.Today -> TodayScreen(todayVm, onOpenTask, onOpenSettings, onOpenFinances, onSearch, offerUndo, modifier, askByVoice, onAskShown)
             Tab.Tasks -> TasksScreen(tasksVm, onOpenTask, onSearch, offerUndo, modifier)
             Tab.Projects -> ProjectsScreen(projectsVm, onOpenProject, onSearch, modifier)
             Tab.Shopping -> ShoppingScreen(shoppingVm, offerUndo, onSearch, modifier)

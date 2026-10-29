@@ -17,6 +17,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -117,6 +118,8 @@ fun TodayScreen(
     onSearch: () -> Unit,
     offerUndo: (String, () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
+    askByVoice: Boolean = false,
+    onAskShown: () -> Unit = {},
 ) {
     val resources = LocalResources.current
     val state by vm.state.collectAsStateWithLifecycle()
@@ -127,15 +130,27 @@ fun TodayScreen(
     val (open, projectNames) = state ?: return
     val plan = remember(open, today) { planDay(open, today) }
     var asking by rememberSaveable { mutableStateOf(false) }
+    var listening by remember { mutableStateOf(false) }
+    LaunchedEffect(askByVoice) {
+        if (askByVoice) {
+            asking = true
+            listening = true
+            onAskShown()
+        }
+    }
     if (asking) {
         val app = LocalContext.current.app
         // Shopping is read only when asking: Mi día does not show it, so it is not observed here.
         AskSheet(
             app.askJarvis,
-            data = { AskData(open, projectNames, month, today, app.shopping.lists.first(), app.shopping.allItems.first()) },
-            onAction = { it.run(app.tasks, app.shopping) },
+            data = { AskData(open, projectNames, month, today, app.shopping.lists.first(), app.shopping.allItems.first(), app.finance.categories.first()) },
+            onAction = { it.run(app.tasks, app.shopping, app.finance, today) },
+            startListening = listening,
             onOpenSettings = onOpenSettings,
-            onDismiss = { asking = false },
+            onDismiss = {
+                asking = false
+                listening = false
+            },
         )
     }
     val row: @Composable (Task, Modifier) -> Unit = { task, blockModifier ->

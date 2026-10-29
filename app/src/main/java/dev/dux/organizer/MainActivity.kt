@@ -16,6 +16,8 @@ class MainActivity : ComponentActivity() {
     private val taskToOpen = mutableStateOf<String?>(null)
     /** The widget's "+": open the capture sheet; consumed once shown. */
     private val capture = mutableStateOf(false)
+    /** The widget's microphone or the "Hablar con Jarvis" shortcut: ask by voice; consumed once shown. */
+    private val askByVoice = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,6 +35,8 @@ class MainActivity : ComponentActivity() {
                     onTaskOpened = { taskToOpen.value = null },
                     capture = capture.value,
                     onCaptureShown = { capture.value = false },
+                    askByVoice = askByVoice.value,
+                    onAskShown = { askByVoice.value = false },
                 )
             }
         }
@@ -47,10 +51,13 @@ class MainActivity : ComponentActivity() {
     private fun read(intent: Intent) {
         taskToOpen.value = intent.getStringExtra(EXTRA_TASK_ID)
         capture.value = intent.getBooleanExtra(EXTRA_CAPTURE, false)
+        askByVoice.value = intent.action == ACTION_ASK_VOICE
     }
 
     companion object {
         const val EXTRA_TASK_ID = "taskId"
         const val EXTRA_CAPTURE = "capture"
+        // An action, not an extra: launcher shortcuts carry the intent action reliably.
+        const val ACTION_ASK_VOICE = "dev.dux.organizer.ASK_VOICE"
     }
 }
