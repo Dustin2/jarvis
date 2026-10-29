@@ -24,7 +24,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import dev.dux.organizer.app
 import dev.dux.organizer.ask.AskSheet
-import dev.dux.organizer.ask.askFacts
+import dev.dux.organizer.ask.AskData
+import dev.dux.organizer.ask.run
 import kotlinx.coroutines.flow.first
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -129,7 +130,13 @@ fun TodayScreen(
     if (asking) {
         val app = LocalContext.current.app
         // Shopping is read only when asking: Mi día does not show it, so it is not observed here.
-        AskSheet(app.askJarvis, { askFacts(open, projectNames, month, today, app.shopping.lists.first(), app.shopping.allItems.first()) }, onOpenSettings, onDismiss = { asking = false })
+        AskSheet(
+            app.askJarvis,
+            data = { AskData(open, projectNames, month, today, app.shopping.lists.first(), app.shopping.allItems.first()) },
+            onAction = { it.run(app.tasks, app.shopping) },
+            onOpenSettings = onOpenSettings,
+            onDismiss = { asking = false },
+        )
     }
     val row: @Composable (Task, Modifier) -> Unit = { task, blockModifier ->
         TaskRow(
