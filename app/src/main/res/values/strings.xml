@@ -287,6 +287,15 @@
     <string name="ask_hint">¿Qué tengo pendiente hoy?</string>
     <string name="ask_send">Preguntar</string>
     <string name="ask_voice">Preguntar con voz</string>
+    <string name="action_do">Hacer</string>
+    <string name="action_not">No, era una pregunta</string>
+    <string name="action_add_shopping">¿Agrego %1$s a %2$s?</string>
+    <string name="action_added_shopping">Listo, agregué %1$s a %2$s.</string>
+    <string name="action_complete_task">¿Marco como hecha «%1$s»?</string>
+    <string name="action_completed_task">Listo, marqué como hecha «%1$s».</string>
+    <string name="action_create_task">¿Creo la tarea «%1$s»?</string>
+    <string name="action_create_task_due">¿Creo la tarea «%1$s» para el %2$s?</string>
+    <string name="action_created_task">Listo, creé la tarea «%1$s».</string>
     <string name="ask_voice_missing">Este teléfono no tiene dictado por voz. Escribe tu pregunta.</string>
     <string name="ask_thinking">Pensando…</string>
     <string name="ask_failed">No pude responder. Intenta de nuevo.</string>
