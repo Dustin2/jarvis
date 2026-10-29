@@ -10,6 +10,13 @@
     <!-- Only to download the on-device model (Pregúntale a Jarvis); questions and data never leave the phone. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Android 11+ hides other apps by default: without this, text to speech cannot find the voice engine. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <!-- allowBackup=false: data is not uploaded to Google backup; the JSON export is the backup. -->
     <application
         android:name=".JarvisApplication"
