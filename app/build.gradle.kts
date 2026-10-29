@@ -15,8 +15,8 @@ android {
         // 33: required for USE_EXACT_ALARM and POST_NOTIFICATIONS (milestone 4).
         minSdk = 33
         targetSdk = 37
-        versionCode = 16
-        versionName = "0.12.0"
+        versionCode = 17
+        versionName = "0.13.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Only 64-bit ARM phones: LiteRT-LM's native libs for x86_64 (emulators) add ~26 MB.
         ndk { abiFilters += "arm64-v8a" }
