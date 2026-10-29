@@ -1,5 +1,8 @@
 package dev.dux.organizer.ask
 
+import dev.dux.organizer.data.parseMoney
+import dev.dux.organizer.data.FinanceRepository
+import dev.dux.organizer.data.Category
 import java.util.UUID
 import dev.dux.organizer.data.ShoppingList
 import dev.dux.organizer.data.ShoppingRepository
@@ -15,6 +18,8 @@ sealed interface JarvisAction {
     data class AddShopping(val list: ShoppingList, val item: String, val quantity: String?) : JarvisAction
     data class CompleteTask(val task: Task) : JarvisAction
     data class CreateTask(val title: String, val due: LocalDate?) : JarvisAction
+    /** Expense or income: the category decides, as in the Finanzas screen. Dated today. */
+    data class RecordMovement(val category: Category, val amountCents: Long, val note: String?) : JarvisAction
 }
 
 /** Prompt for turning a command into one action. Dates come back as words; [relativeDate] turns them into days. */
@@ -22,14 +27,22 @@ const val ACTION_INSTRUCTION = """Eres Jarvis. Convierte la orden del usuario en
 {"accion":"agregar_compra","articulo":"...","cantidad":"... o null","lista":"nombre exacto de la lista o null"}
 {"accion":"completar_tarea","tarea":"título exacto de la tarea"}
 {"accion":"crear_tarea","titulo":"...","vence":"hoy, mañana, pasado mañana, un día de la semana, o null"}
+{"accion":"registrar_movimiento","monto":"solo el número","categoria":"nombre exacto de una categoría de gasto o de ingreso","nota":"en qué fue, o null"}
 {"accion":"ninguna"}  (si es una pregunta o no es ninguna de las anteriores)
-Algo que hay que hacer (lavar, llamar, pagar) es una tarea, no una compra. Usa solo nombres de tareas y listas que aparecen en los datos."""
+Algo que hay que hacer (lavar, llamar, pagar) es una tarea, no una compra. Dinero que ya se gastó o se recibió es un movimiento. Usa solo nombres de tareas y listas que aparecen en los datos."""
 
 /**
  * Reads the model's answer and checks it against the user's data: unknown tasks or lists give null,
  * so a made-up name never becomes an action. [command] is what the user said.
  */
-fun parseAction(output: String, command: String, open: List<Task>, lists: List<ShoppingList>, today: LocalDate): JarvisAction? {
+fun parseAction(
+    output: String,
+    command: String,
+    open: List<Task>,
+    lists: List<ShoppingList>,
+    today: LocalDate,
+    categories: List<Category> = emptyList(),
+): JarvisAction? {
     val fields = jsonFields(output)
     return when (fields["accion"]) {
         "agregar_compra" -> {
@@ -50,6 +63,14 @@ fun parseAction(output: String, command: String, open: List<Task>, lists: List<S
         "crear_tarea" -> {
             val title = fields["titulo"]?.trim()?.takeIf { it.isNotEmpty() } ?: return null
             JarvisAction.CreateTask(title.replaceFirstChar { it.uppercase() }, fields["vence"]?.let { relativeDate(it, today) })
+        }
+        "registrar_movimiento" -> {
+            val amount = fields["monto"]?.let(::parseMoney) ?: return null
+            // A made-up amount is the costly mistake here: the user must have said those digits.
+            if (Regex("""\d[\d,.]*""").findAll(command).none { parseMoney(it.value.trimEnd('.', ',')) == amount }) return null
+            val wanted = fold(fields["categoria"] ?: return null)
+            val category = categories.filter { !it.archived }.find { fold(it.name) == wanted } ?: return null
+            JarvisAction.RecordMovement(category, amount, fields["nota"]?.trim()?.takeIf { it.isNotEmpty() })
         }
         else -> null
     }
@@ -80,11 +101,13 @@ private fun jsonFields(text: String): Map<String, String> =
     Regex(""""(\w+)"\s*:\s*"([^"]*)"""").findAll(text).associate { it.groupValues[1] to it.groupValues[2] }
 
 /** Does the action and returns how to undo it; null if nothing was changed. */
-suspend fun JarvisAction.run(tasks: TaskRepository, shopping: ShoppingRepository): (suspend () -> Unit)? {
+suspend fun JarvisAction.run(tasks: TaskRepository, shopping: ShoppingRepository, finance: FinanceRepository, today: LocalDate): (suspend () -> Unit)? {
     val id = UUID.randomUUID().toString()
     return when (this) {
         is JarvisAction.AddShopping -> if (shopping.addItem(list.id, item, quantity.orEmpty(), id)) ({ shopping.deleteItem(id) }) else null
         is JarvisAction.CompleteTask -> tasks.complete(task.id)
         is JarvisAction.CreateTask -> if (tasks.capture(title, dueDate = due, id = id)) ({ tasks.delete(id) }) else null
+        is JarvisAction.RecordMovement ->
+            if (finance.addMovement(amountCents, category.id, today, note.orEmpty(), id)) ({ finance.deleteMovement(id) }) else null
     }
 }

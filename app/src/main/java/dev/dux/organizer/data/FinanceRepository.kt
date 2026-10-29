@@ -1,5 +1,6 @@
 package dev.dux.organizer.data
 
+import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import java.time.Clock
 import java.time.LocalDate
@@ -45,12 +46,12 @@ class FinanceRepository(private val dao: FinanceDao, private val clock: Clock = 
     }
 
     /** The kind comes from the category, so an expense can never land in an income category. */
-    suspend fun addMovement(amountCents: Long, categoryId: String, date: LocalDate, note: String = ""): Boolean {
+    suspend fun addMovement(amountCents: Long, categoryId: String, date: LocalDate, note: String = "", id: String = UUID.randomUUID().toString()): Boolean {
         if (!validAmount(amountCents)) return false
         val category = dao.getCategory(categoryId) ?: return false
         val now = clock.instant()
         dao.insertMovement(
-            Movement(kind = category.kind, amountCents = amountCents, categoryId = categoryId, date = date, note = cleanNote(note), createdAt = now, updatedAt = now)
+            Movement(id = id, kind = category.kind, amountCents = amountCents, categoryId = categoryId, date = date, note = cleanNote(note), createdAt = now, updatedAt = now)
         )
         return true
     }
