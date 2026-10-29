@@ -143,8 +143,8 @@ fun TodayScreen(
         // Shopping is read only when asking: Mi día does not show it, so it is not observed here.
         AskSheet(
             app.askJarvis,
-            data = { AskData(open, projectNames, month, today, app.shopping.lists.first(), app.shopping.allItems.first()) },
-            onAction = { it.run(app.tasks, app.shopping) },
+            data = { AskData(open, projectNames, month, today, app.shopping.lists.first(), app.shopping.allItems.first(), app.finance.categories.first()) },
+            onAction = { it.run(app.tasks, app.shopping, app.finance, today) },
             startListening = listening,
             onOpenSettings = onOpenSettings,
             onDismiss = {

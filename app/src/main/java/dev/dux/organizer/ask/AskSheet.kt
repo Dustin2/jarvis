@@ -1,5 +1,7 @@
 package dev.dux.organizer.ask
 
+import dev.dux.organizer.data.formatMoney
+import dev.dux.organizer.data.MoneyKind
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.material3.TextButton
@@ -101,7 +103,7 @@ fun AskSheet(
             val q = question.trim()
             val d = data()
             // A question mark means a question: no need to look for an action.
-            val action = if (q.endsWith("?")) null else parseAction(ask.proposeAction(q, d.facts()), q, d.open, d.lists, d.today)
+            val action = if (q.endsWith("?")) null else parseAction(ask.proposeAction(q, d.facts()), q, d.open, d.lists, d.today, d.categories)
             if (action == null) answerQuestion(q, d.facts())
             else {
                 proposal = action
@@ -204,6 +206,14 @@ private fun actionTexts(action: JarvisAction, res: Resources): Pair<String, Stri
     }
     is JarvisAction.CompleteTask ->
         res.getString(R.string.action_complete_task, action.task.title) to res.getString(R.string.action_completed_task, action.task.title)
+    is JarvisAction.RecordMovement -> {
+        val what = res.getString(
+            if (action.category.kind == MoneyKind.INCOME) R.string.action_income else R.string.action_expense,
+            formatMoney(action.amountCents),
+            action.category.name,
+        )
+        res.getString(R.string.action_record, what) to res.getString(R.string.action_recorded, what)
+    }
     is JarvisAction.CreateTask -> {
         val ask = action.due?.let { res.getString(R.string.action_create_task_due, action.title, it.format(dueFormat)) }
             ?: res.getString(R.string.action_create_task, action.title)

@@ -1,5 +1,7 @@
 package dev.dux.organizer.ask
 
+import dev.dux.organizer.data.MoneyKind
+import dev.dux.organizer.data.Category
 import android.app.DownloadManager
 import android.content.Context
 import android.net.Uri
@@ -164,8 +166,17 @@ data class AskData(
     val today: LocalDate,
     val lists: List<ShoppingList>,
     val items: List<ShoppingItem>,
+    val categories: List<Category> = emptyList(),
 ) {
-    fun facts() = askFacts(open, projectNames, month, today, lists, items)
+    fun facts() = askFacts(open, projectNames, month, today, lists, items) + categoryFacts(categories)
+}
+
+/** Names the model may use for a movement; Finanzas decides expense or income from the category. */
+private fun categoryFacts(categories: List<Category>): String = buildString {
+    val active = categories.filter { !it.archived }
+    for ((kind, title) in listOf(MoneyKind.EXPENSE to "Categorías de gasto", MoneyKind.INCOME to "Categorías de ingreso")) {
+        active.filter { it.kind == kind }.takeIf { it.isNotEmpty() }?.let { appendLine("$title: ${it.joinToString { c -> c.name }}.") }
+    }
 }
 
 private val dayFormat = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale.forLanguageTag("es"))
