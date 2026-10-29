@@ -1,5 +1,10 @@
 package dev.dux.organizer.ask
 
+import java.time.format.DateTimeFormatter
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.Row
+import android.content.res.Resources
 import dev.dux.organizer.ui.SPANISH
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.DisposableEffect
@@ -48,7 +53,14 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AskSheet(ask: AskJarvis, facts: suspend () -> String, onOpenSettings: () -> Unit, onDismiss: () -> Unit) {
+fun AskSheet(
+    ask: AskJarvis,
+    data: suspend () -> AskData,
+    onAction: suspend (JarvisAction) -> Unit,
+    onOpenSettings: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     var question by remember { mutableStateOf("") }
     var answer by remember { mutableStateOf("") }
@@ -59,24 +71,57 @@ fun AskSheet(ask: AskJarvis, facts: suspend () -> String, onOpenSettings: () -> 
     val failed = stringResource(R.string.ask_failed)
     val voiceMissing = stringResource(R.string.ask_voice_missing)
     val speaker = rememberSpeaker()
-    /** [spoken]: the question came by voice, so the answer is read aloud too. */
-    fun send(spoken: Boolean = false) {
+    /** An action waiting for the user to confirm it; nothing changes until "Hacer". */
+    var proposal by remember { mutableStateOf<JarvisAction?>(null) }
+    /** This turn started by voice, so what Jarvis says is read aloud too. */
+    var spoken by remember { mutableStateOf(false) }
+    fun say(text: String) {
+        answer = text
+        if (spoken) speaker.speak(text, TextToSpeech.QUEUE_FLUSH, null, "answer")
+    }
+    suspend fun answerQuestion(q: String, facts: String) {
+        var first = true
+        ask.ask(q, facts).collect { answer = if (first) it else answer + it; first = false }
+        if (spoken) speaker.speak(answer, TextToSpeech.QUEUE_FLUSH, null, "answer")
+    }
+    fun launch(block: suspend () -> Unit) {
+        job = scope.launch { runCatching { block() }.onFailure { answer = failed } }
+    }
+    fun send(byVoice: Boolean = false) {
         if (question.isBlank() || job?.isActive == true) return
         speaker.stop()
+        proposal = null
+        spoken = byVoice
         answer = thinking
-        job = scope.launch {
-            var first = true
-            runCatching {
-                ask.ask(question.trim(), facts()).collect { answer = if (first) it else answer + it; first = false }
-                if (spoken) speaker.speak(answer, TextToSpeech.QUEUE_FLUSH, null, "answer")
-            }.onFailure { answer = failed }
+        launch {
+            val q = question.trim()
+            val d = data()
+            // A question mark means a question: no need to look for an action.
+            val action = if (q.endsWith("?")) null else parseAction(ask.proposeAction(q, d.facts()), q, d.open, d.lists, d.today)
+            if (action == null) answerQuestion(q, d.facts())
+            else {
+                proposal = action
+                say(actionTexts(action, resources).first)
+            }
         }
+    }
+    fun confirm(action: JarvisAction) {
+        proposal = null
+        launch {
+            onAction(action)
+            say(actionTexts(action, resources).second)
+        }
+    }
+    fun notAnAction() {
+        proposal = null
+        answer = thinking
+        launch { answerQuestion(question.trim(), data().facts()) }
     }
     // The system dictation screen: no microphone permission needed in Jarvis.
     val listen = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()?.let {
             question = it
-            send(spoken = true)
+            send(byVoice = true)
         }
     }
     val prompt = stringResource(R.string.ask_jarvis)
@@ -114,6 +159,12 @@ fun AskSheet(ask: AskJarvis, facts: suspend () -> String, onOpenSettings: () -> 
                 keyboardActions = KeyboardActions(onSend = { send() }),
             )
             if (answer.isNotEmpty()) Text(answer, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+            proposal?.let { action ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { confirm(action) }) { Text(stringResource(R.string.action_do)) }
+                    TextButton(onClick = ::notAnAction) { Text(stringResource(R.string.action_not)) }
+                }
+            }
         }
     }
 }
@@ -129,4 +180,21 @@ private fun rememberSpeaker(): TextToSpeech {
     }
     DisposableEffect(speaker) { onDispose { speaker.shutdown() } }
     return speaker
+}
+
+private val dueFormat = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", SPANISH)
+
+/** What Jarvis asks before acting, and what it says once done. */
+private fun actionTexts(action: JarvisAction, res: Resources): Pair<String, String> = when (action) {
+    is JarvisAction.AddShopping -> {
+        val item = action.item + (action.quantity?.let { " ($it)" } ?: "")
+        res.getString(R.string.action_add_shopping, item, action.list.name) to res.getString(R.string.action_added_shopping, item, action.list.name)
+    }
+    is JarvisAction.CompleteTask ->
+        res.getString(R.string.action_complete_task, action.task.title) to res.getString(R.string.action_completed_task, action.task.title)
+    is JarvisAction.CreateTask -> {
+        val ask = action.due?.let { res.getString(R.string.action_create_task_due, action.title, it.format(dueFormat)) }
+            ?: res.getString(R.string.action_create_task, action.title)
+        ask to res.getString(R.string.action_created_task, action.title)
+    }
 }

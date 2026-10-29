@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -128,23 +129,43 @@ class AskJarvis(private val context: Context) {
     }
 
     /** Streams the answer. The first call loads the model (several seconds). */
-    fun ask(question: String, facts: String): Flow<String> = flow {
+    fun ask(question: String, facts: String): Flow<String> = generate(
+        "Eres Jarvis, el asistente de una app de organización personal. Responde en español, breve y claro, " +
+            "usando solo estos datos del usuario. Si no está en los datos, dilo. Tú no puedes hacer cambios: si te piden " +
+            "agregar, crear o completar algo, nunca digas que ya lo hiciste; di que no encontraste esa tarea o lista y que lo pidan de otra forma.",
+        facts,
+        question,
+    )
+
+    /** The model's raw action JSON for [command]; see [parseAction]. */
+    suspend fun proposeAction(command: String, facts: String): String = generate(ACTION_INSTRUCTION, facts, command).toList().joinToString("")
+
+    private fun generate(instruction: String, facts: String, prompt: String): Flow<String> = flow {
         val engine = lock.withLock {
             engine ?: withContext(Dispatchers.Default) {
                 Engine(EngineConfig(modelPath = modelFile.path, backend = Backend.GPU(), cacheDir = context.cacheDir.path)).also { it.initialize() }
             }.also { engine = it }
         }
         val config = ConversationConfig(
-            systemInstruction = Contents.of(
-                "Eres Jarvis, el asistente de una app de organización personal. Responde en español, breve y claro, " +
-                    "usando solo estos datos del usuario. Si no está en los datos, dilo.\n\n$facts",
-            ),
+            systemInstruction = Contents.of("$instruction\n\n$facts"),
             samplerConfig = SamplerConfig(topK = 40, topP = 0.95, temperature = 0.3),
         )
         engine.createConversation(config).use { conversation ->
-            conversation.sendMessageAsync(question).collect { emit(it.toString()) }
+            conversation.sendMessageAsync(prompt).collect { emit(it.toString()) }
         }
     }
+}
+
+/** What Jarvis knows when asked: the facts text for the model, and the real records to check actions against. */
+data class AskData(
+    val open: List<Task>,
+    val projectNames: Map<String, String>,
+    val month: MonthSummary?,
+    val today: LocalDate,
+    val lists: List<ShoppingList>,
+    val items: List<ShoppingItem>,
+) {
+    fun facts() = askFacts(open, projectNames, month, today, lists, items)
 }
 
 private val dayFormat = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale.forLanguageTag("es"))
