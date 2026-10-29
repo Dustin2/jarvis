@@ -296,6 +296,8 @@
     <string name="action_create_task">¿Creo la tarea «%1$s»?</string>
     <string name="action_create_task_due">¿Creo la tarea «%1$s» para el %2$s?</string>
     <string name="action_created_task">Listo, creé la tarea «%1$s».</string>
+    <string name="action_undone">Deshecho.</string>
+    <string name="ask_shortcut">Hablar con Jarvis</string>
     <string name="ask_voice_missing">Este teléfono no tiene dictado por voz. Escribe tu pregunta.</string>
     <string name="ask_thinking">Pensando…</string>
     <string name="ask_failed">No pude responder. Intenta de nuevo.</string>

@@ -1,5 +1,6 @@
 package dev.dux.organizer.data
 
+import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import java.time.Clock
 
@@ -35,14 +36,14 @@ class ShoppingRepository(private val dao: ShoppingDao, private val clock: Clock 
 
     suspend fun deleteList(id: String) = dao.deleteListIfNotLast(id)
 
-    /** Returns false if the name or the quantity is not valid. A blank quantity means none. */
-    suspend fun addItem(listId: String, name: String, quantity: String = ""): Boolean {
+    /** Returns false if the name or the quantity is not valid. A blank quantity means none. [id]: so the caller can undo it. */
+    suspend fun addItem(listId: String, name: String, quantity: String = "", id: String = UUID.randomUUID().toString()): Boolean {
         val clean = cleanTitle(name) ?: return false
         val amount = quantity.trim().ifEmpty { null }
         if (amount != null && amount.length > MAX_QUANTITY_LENGTH) return false
         val now = clock.instant()
         dao.insertItem(
-            ShoppingItem(listId = listId, name = clean, quantity = amount, sortOrder = dao.nextItemSortOrder(listId), createdAt = now, updatedAt = now)
+            ShoppingItem(id = id, listId = listId, name = clean, quantity = amount, sortOrder = dao.nextItemSortOrder(listId), createdAt = now, updatedAt = now)
         )
         return true
     }

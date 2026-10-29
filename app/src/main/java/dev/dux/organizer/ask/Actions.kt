@@ -1,5 +1,6 @@
 package dev.dux.organizer.ask
 
+import java.util.UUID
 import dev.dux.organizer.data.ShoppingList
 import dev.dux.organizer.data.ShoppingRepository
 import dev.dux.organizer.data.Task
@@ -78,10 +79,12 @@ private fun fold(text: String) = Normalizer.normalize(text.trim().lowercase(), N
 private fun jsonFields(text: String): Map<String, String> =
     Regex(""""(\w+)"\s*:\s*"([^"]*)"""").findAll(text).associate { it.groupValues[1] to it.groupValues[2] }
 
-suspend fun JarvisAction.run(tasks: TaskRepository, shopping: ShoppingRepository) {
-    when (this) {
-        is JarvisAction.AddShopping -> shopping.addItem(list.id, item, quantity.orEmpty())
+/** Does the action and returns how to undo it; null if nothing was changed. */
+suspend fun JarvisAction.run(tasks: TaskRepository, shopping: ShoppingRepository): (suspend () -> Unit)? {
+    val id = UUID.randomUUID().toString()
+    return when (this) {
+        is JarvisAction.AddShopping -> if (shopping.addItem(list.id, item, quantity.orEmpty(), id)) ({ shopping.deleteItem(id) }) else null
         is JarvisAction.CompleteTask -> tasks.complete(task.id)
-        is JarvisAction.CreateTask -> tasks.capture(title, dueDate = due)
+        is JarvisAction.CreateTask -> if (tasks.capture(title, dueDate = due, id = id)) ({ tasks.delete(id) }) else null
     }
 }
