@@ -1,9 +1,10 @@
 package dev.dux.organizer.ui
 
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.Flow
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
 import dev.dux.organizer.R
@@ -31,16 +32,15 @@ fun LocalDate.label(today: LocalDate): String = when (this) {
 @Composable
 fun LocalDate.inlineLabel(today: LocalDate): String = label(today).replaceFirstChar { it.lowercase(SPANISH) }
 
+/** Today's date, emitted again just after each midnight, so screens left open roll over to the new day. */
+fun todayFlow(): Flow<LocalDate> = flow {
+    while (true) {
+        val now = LocalDateTime.now()
+        emit(now.toLocalDate())
+        delay(Duration.between(now, now.toLocalDate().plusDays(1).atStartOfDay()).toMillis() + 1_000)
+    }
+}
+
 /** Today's date, which updates itself at midnight even if the app stays open. */
 @Composable
-fun rememberToday(): State<LocalDate> {
-    val today = remember { mutableStateOf(LocalDate.now()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            val now = LocalDateTime.now()
-            delay(Duration.between(now, now.toLocalDate().plusDays(1).atStartOfDay()).toMillis() + 1_000)
-            today.value = LocalDate.now()
-        }
-    }
-    return today
-}
+fun rememberToday(): State<LocalDate> = remember { todayFlow() }.collectAsState(LocalDate.now())
