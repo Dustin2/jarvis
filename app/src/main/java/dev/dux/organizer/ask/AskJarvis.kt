@@ -1,6 +1,7 @@
 package dev.dux.organizer.ask
 
 import dev.dux.organizer.data.MoneyKind
+import dev.dux.organizer.R
 import dev.dux.organizer.data.Category
 import android.app.DownloadManager
 import android.content.Context
@@ -110,7 +111,7 @@ class AskJarvis(private val context: Context) {
     suspend fun download() {
         partFile.delete()
         val request = DownloadManager.Request(MODEL_URL.toUri())
-            .setTitle("Modelo de Jarvis")
+            .setTitle(context.getString(R.string.model_download_title))
             .setAllowedOverMetered(false)
             .setAllowedOverRoaming(false)
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
@@ -131,16 +132,10 @@ class AskJarvis(private val context: Context) {
     }
 
     /** Streams the answer. The first call loads the model (several seconds). */
-    fun ask(question: String, facts: String): Flow<String> = generate(
-        "Eres Jarvis, el asistente de una app de organización personal. Responde en español, breve y claro, " +
-            "usando solo estos datos del usuario. Si no está en los datos, dilo. Tú no puedes hacer cambios: si te piden " +
-            "agregar, crear o completar algo, nunca digas que ya lo hiciste; di que no encontraste esa tarea o lista y que lo pidan de otra forma.",
-        facts,
-        question,
-    )
+    fun ask(question: String, facts: String): Flow<String> = generate(context.getString(R.string.ask_prompt_answer), facts, question)
 
     /** The model's raw action JSON for [command]; see [parseAction]. */
-    suspend fun proposeAction(command: String, facts: String): String = generate(ACTION_INSTRUCTION, facts, command).toList().joinToString("")
+    suspend fun proposeAction(command: String, facts: String): String = generate(context.getString(R.string.ask_prompt_action), facts, command).toList().joinToString("")
 
     private fun generate(instruction: String, facts: String, prompt: String): Flow<String> = flow {
         val engine = lock.withLock {
@@ -167,19 +162,61 @@ data class AskData(
     val lists: List<ShoppingList>,
     val items: List<ShoppingItem>,
     val categories: List<Category> = emptyList(),
+    val labels: FactLabels = FactLabels.SPANISH,
 ) {
-    fun facts() = askFacts(open, projectNames, month, today, lists, items) + categoryFacts(categories)
+    fun facts() = askFacts(open, projectNames, month, today, lists, items, categories, labels)
 }
 
-/** Names the model may use for a movement; Finanzas decides expense or income from the category. */
-private fun categoryFacts(categories: List<Category>): String = buildString {
-    val active = categories.filter { !it.archived }
-    for ((kind, title) in listOf(MoneyKind.EXPENSE to "Categorías de gasto", MoneyKind.INCOME to "Categorías de ingreso")) {
-        active.filter { it.kind == kind }.takeIf { it.isNotEmpty() }?.let { appendLine("$title: ${it.joinToString { c -> c.name }}.") }
+/**
+ * Words for the facts text, in the app's language. Kotlin rather than string resources: it is read by
+ * the model, not shown, and the facts must stay testable on the JVM.
+ */
+class FactLabels(
+    val locale: Locale,
+    val dayPattern: String,
+    val today: String,
+    val due: String,
+    val priority: String,
+    val priorities: Map<Priority, String>,
+    val project: String,
+    val overdue: String,
+    val dueToday: String,
+    val week: String,
+    val others: String,
+    val nothing: String,
+    val list: String,
+    val inCart: String,
+    val finances: String,
+    val budget: String,
+    val spent: String,
+    val of: String,
+    val overBudget: String,
+    val by: String,
+    val none: String,
+    val expenseCategories: String,
+    val incomeCategories: String,
+) {
+    companion object {
+        val SPANISH = FactLabels(
+            Locale.forLanguageTag("es-MX"), "EEEE d 'de' MMMM 'de' yyyy", "Hoy es %s.", "vence", "prioridad",
+            mapOf(Priority.LOW to "baja", Priority.MEDIUM to "media", Priority.HIGH to "alta"), "proyecto",
+            "Tareas vencidas", "Tareas para hoy", "Tareas de los próximos 7 días", "Otras tareas pendientes", "nada",
+            "Lista de compras %s: por comprar: %s.", "Ya en el carrito: %s.",
+            "Finanzas de este mes: entró %s, salió %s, te queda %s.", "Presupuesto mensual: %s.", "gastado", "de",
+            "Categorías donde se pasó del presupuesto: %s.", "por", "ninguna", "Categorías de gasto", "Categorías de ingreso",
+        )
+        val ENGLISH = FactLabels(
+            Locale.ENGLISH, "EEEE, MMMM d, yyyy", "Today is %s.", "due", "priority",
+            mapOf(Priority.LOW to "low", Priority.MEDIUM to "medium", Priority.HIGH to "high"), "project",
+            "Overdue tasks", "Tasks due today", "Tasks due in the next 7 days", "Other open tasks", "nothing",
+            "Shopping list %s: to buy: %s.", "Already in the cart: %s.",
+            "This month's money: came in %s, went out %s, left %s.", "Monthly budget: %s.", "spent", "of",
+            "Categories over budget: %s.", "by", "none", "Expense categories", "Income categories",
+        )
+
+        fun of(locale: Locale) = if (locale.language == "en") ENGLISH else SPANISH
     }
 }
-
-private val dayFormat = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale.forLanguageTag("es"))
 
 /**
  * The user's data as plain text for the model. Overdue tasks and over-budget categories are worked out
@@ -192,37 +229,45 @@ fun askFacts(
     today: LocalDate,
     lists: List<ShoppingList> = emptyList(),
     items: List<ShoppingItem> = emptyList(),
+    categories: List<Category> = emptyList(),
+    labels: FactLabels = FactLabels.SPANISH,
 ): String = buildString {
+    val days = DateTimeFormatter.ofPattern(labels.dayPattern, labels.locale)
     fun line(t: Task) = buildString {
         append("- ").append(t.title)
-        t.dueDate?.let { append(" (vence ").append(it.format(dayFormat)).append(")") }
-        if (t.priority != Priority.NONE) append(", prioridad ").append(mapOf(Priority.LOW to "baja", Priority.MEDIUM to "media", Priority.HIGH to "alta")[t.priority])
-        t.projectId?.let(projectNames::get)?.let { append(", proyecto ").append(it) }
+        t.dueDate?.let { append(" (").append(labels.due).append(" ").append(it.format(days)).append(")") }
+        labels.priorities[t.priority]?.let { append(", ").append(labels.priority).append(" ").append(it) }
+        t.projectId?.let(projectNames::get)?.let { append(", ").append(labels.project).append(" ").append(it) }
     }
-    appendLine("Hoy es ${today.format(dayFormat)} de ${today.year}.")
+    appendLine(labels.today.format(today.format(days)))
     val overdue = open.filter { it.dueDate != null && it.dueDate < today }
     val dueToday = open.filter { it.dueDate == today }
     val week = open.filter { it.dueDate != null && it.dueDate > today && it.dueDate <= today.plusDays(7) }
     val rest = open - (overdue + dueToday + week).toSet()
-    for ((title, list) in listOf("Tareas vencidas" to overdue, "Tareas para hoy" to dueToday, "Tareas de los próximos 7 días" to week, "Otras tareas pendientes" to rest)) {
+    for ((title, list) in listOf(labels.overdue to overdue, labels.dueToday to dueToday, labels.week to week, labels.others to rest)) {
         appendLine("$title (${list.size}):")
         list.forEach { appendLine(line(it)) }
     }
     val byList = items.groupBy { it.listId }
     for (list in lists) {
         fun names(checked: Boolean) = byList[list.id].orEmpty().filter { it.checked == checked }
-            .joinToString { i -> i.name + (i.quantity?.let { " ($it)" } ?: "") }.ifEmpty { "nada" }
-        appendLine("Lista de compras ${list.name}: por comprar: ${names(false)}. Ya en el carrito: ${names(true)}.")
+            .joinToString { i -> i.name + (i.quantity?.let { " ($it)" } ?: "") }.ifEmpty { labels.nothing }
+        appendLine(labels.list.format(list.name, names(false)) + " " + labels.inCart.format(names(true)))
     }
     if (month != null) {
-        appendLine("Finanzas de este mes: entró ${formatMoney(month.incomeCents)}, salió ${formatMoney(month.expenseCents)}, te queda ${formatMoney(month.balanceCents)}.")
-        month.budgetCents?.let { appendLine("Presupuesto mensual: ${formatMoney(it)}.") }
+        appendLine(labels.finances.format(formatMoney(month.incomeCents), formatMoney(month.expenseCents), formatMoney(month.balanceCents)))
+        month.budgetCents?.let { appendLine(labels.budget.format(formatMoney(it))) }
         month.lines.filter { it.spentCents > 0 }.forEach { l ->
-            append("- ${l.category.name}: gastado ${formatMoney(l.spentCents)}")
-            l.category.monthlyBudgetCents?.let { append(" de ${formatMoney(it)}") }
+            append("- ${l.category.name}: ${labels.spent} ${formatMoney(l.spentCents)}")
+            l.category.monthlyBudgetCents?.let { append(" ${labels.of} ${formatMoney(it)}") }
             appendLine()
         }
-        val over = month.lines.mapNotNull { l -> l.overCents?.let { "${l.category.name} (por ${formatMoney(it)})" } }
-        appendLine("Categorías donde se pasó del presupuesto: ${over.joinToString().ifEmpty { "ninguna" }}.")
+        val over = month.lines.mapNotNull { l -> l.overCents?.let { "${l.category.name} (${labels.by} ${formatMoney(it)})" } }
+        appendLine(labels.overBudget.format(over.joinToString().ifEmpty { labels.none }))
+    }
+    // Names the model may use for a movement; Finanzas decides expense or income from the category.
+    val active = categories.filter { !it.archived }
+    for ((kind, title) in listOf(MoneyKind.EXPENSE to labels.expenseCategories, MoneyKind.INCOME to labels.incomeCategories)) {
+        active.filter { it.kind == kind }.takeIf { it.isNotEmpty() }?.let { appendLine("$title: ${it.joinToString { c -> c.name }}.") }
     }
 }

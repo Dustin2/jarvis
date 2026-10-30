@@ -2,6 +2,7 @@ package dev.dux.organizer.ui
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import dev.dux.organizer.R
 import dev.dux.organizer.TestHostActivity
 import androidx.compose.ui.test.onNodeWithText
 import org.junit.Rule
@@ -15,18 +16,20 @@ class SavedIndicatorTest {
     @Test fun showsOnlyAfterASaveAndThenFades() {
         val version = mutableStateOf<Long?>(null)
         compose.setContent { SavedIndicator(version.value) }
+        // From resources: the app follows the phone's language.
+        val saved = compose.activity.getString(R.string.saved)
 
         // Loading the record is not a save.
         version.value = 1L
         compose.waitForIdle()
-        compose.onNodeWithText("Guardado").assertDoesNotExist()
+        compose.onNodeWithText(saved).assertDoesNotExist()
 
         version.value = 2L
         compose.waitForIdle()
-        compose.onNodeWithText("Guardado").assertExists()
+        compose.onNodeWithText(saved).assertExists()
 
         compose.mainClock.advanceTimeBy(SAVED_VISIBLE_MILLIS + 1_000)
         compose.waitForIdle()
-        compose.onNodeWithText("Guardado").assertDoesNotExist()
+        compose.onNodeWithText(saved).assertDoesNotExist()
     }
 }

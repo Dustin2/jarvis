@@ -11,10 +11,11 @@ class ProjectRepository(private val dao: ProjectDao, private val clock: Clock = 
 
     // shortcut: "empty table" = first run; holds while projects cannot be deleted (only archived).
     // If deleting is ever allowed, switch to a stored flag.
-    suspend fun seedIfEmpty() {
+    /** [names]: in the phone's language, from resources (JarvisApplication). */
+    suspend fun seedIfEmpty(names: List<String> = INITIAL_PROJECTS) {
         val now = clock.instant()
         dao.seedIfEmpty(
-            INITIAL_PROJECTS.mapIndexed { i, name -> Project(name = name, sortOrder = i, createdAt = now, updatedAt = now) }
+            names.mapIndexed { i, name -> Project(name = name, sortOrder = i, createdAt = now, updatedAt = now) }
         )
     }
 

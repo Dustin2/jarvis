@@ -1,5 +1,6 @@
 package dev.dux.organizer.finances
 
+import dev.dux.organizer.ui.rememberDateFormat
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -60,7 +61,6 @@ import dev.dux.organizer.data.MoneyKind
 import dev.dux.organizer.data.Movement
 import dev.dux.organizer.data.formatMoney
 import dev.dux.organizer.ui.AddButton
-import dev.dux.organizer.ui.SPANISH
 import dev.dux.organizer.ui.theme.LocalWarningColor
 import dev.dux.organizer.ui.ScreenHeader
 import androidx.compose.foundation.layout.ColumnScope
@@ -197,14 +197,13 @@ fun FinancesScreen(
     }
 }
 
-private val monthFormat = DateTimeFormatter.ofPattern("LLLL yyyy", SPANISH)
 
 @Composable
 private fun MonthBar(month: YearMonth, vm: FinancesViewModel) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = vm::previousMonth) { Icon(painterResource(R.drawable.ic_chevron_left), stringResource(R.string.previous_month)) }
         Text(
-            month.format(monthFormat).replaceFirstChar { it.uppercase() },
+            month.format(rememberDateFormat(R.string.month_year)).replaceFirstChar { it.uppercase() },
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.weight(1f).asHeading(),
@@ -294,7 +293,7 @@ private fun BalanceHero(month: YearMonth, summary: MonthSummary, vm: FinancesVie
         Column(Modifier.padding(horizontal = 12.dp, vertical = 12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = vm::previousMonth) { Icon(painterResource(R.drawable.ic_chevron_left), stringResource(R.string.previous_month)) }
-                Text(month.format(monthFormat).replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center, modifier = Modifier.weight(1f).asHeading())
+                Text(month.format(rememberDateFormat(R.string.month_year)).replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center, modifier = Modifier.weight(1f).asHeading())
                 IconButton(onClick = vm::nextMonth) { Icon(painterResource(R.drawable.ic_chevron_right), stringResource(R.string.next_month)) }
             }
             Column(Modifier.padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -354,12 +353,13 @@ private fun CategoryRow(category: Category, amountCents: Long?, modifier: Modifi
 private fun categoryIcon(category: Category): Int = when {
     category.kind == MoneyKind.INCOME -> R.drawable.ic_cat_income
     else -> when (category.name.lowercase()) {
-        "comida" -> R.drawable.ic_cat_food
-        "transporte" -> R.drawable.ic_cat_car
-        "casa" -> R.drawable.ic_cat_home
-        "servicios" -> R.drawable.ic_cat_bolt
-        "salud" -> R.drawable.ic_cat_health
-        "entretenimiento" -> R.drawable.ic_cat_fun
+        // Spanish and English starting names (see seed_expense_categories).
+        "comida", "food" -> R.drawable.ic_cat_food
+        "transporte", "transport" -> R.drawable.ic_cat_car
+        "casa", "home" -> R.drawable.ic_cat_home
+        "servicios", "utilities" -> R.drawable.ic_cat_bolt
+        "salud", "health" -> R.drawable.ic_cat_health
+        "entretenimiento", "entertainment" -> R.drawable.ic_cat_fun
         else -> R.drawable.ic_cat_other
     }
 }

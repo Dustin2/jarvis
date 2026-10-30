@@ -80,6 +80,8 @@ class ActionsTest {
         assertEquals(LocalDate.of(2026, 11, 5), relativeDate("jueves", today)) // next week, not today
         assertEquals(LocalDate.of(2026, 11, 2), relativeDate("2026-11-02", today))
         assertNull(relativeDate("29-10-2026", today))
+        assertEquals(today.plusDays(1), relativeDate("Tomorrow", today))
+        assertEquals(LocalDate.of(2026, 10, 30), relativeDate("on Friday", today))
     }
 
     private val food = Category(name = "Comida", kind = MoneyKind.EXPENSE, createdAt = now, updatedAt = now)
