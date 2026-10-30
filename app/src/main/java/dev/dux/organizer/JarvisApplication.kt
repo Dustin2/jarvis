@@ -40,9 +40,10 @@ class JarvisApplication : Application() {
         reminders.createChannel()
         addAskShortcut()
         MainScope().launch {
-            projects.seedIfEmpty()
-            shopping.seedIfEmpty()
-            finance.seedIfEmpty()
+            // First start only: the starting lists and categories in the phone's language (then they are the user's data).
+            projects.seedIfEmpty(resources.getStringArray(R.array.seed_projects).toList())
+            shopping.seedIfEmpty(getString(R.string.seed_list))
+            finance.seedIfEmpty(resources.getStringArray(R.array.seed_expense_categories).toList(), resources.getStringArray(R.array.seed_income_categories).toList())
             autoBackup.scheduleIfEnabled()
             // Force-stopping the app silently clears its alarms; opening it restores them (and notifies missed ones).
             reminders.syncAll()

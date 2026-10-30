@@ -1,5 +1,7 @@
 package dev.dux.organizer.ask
 
+import java.util.Locale
+import dev.dux.organizer.ui.appLocale
 import dev.dux.organizer.data.formatMoney
 import dev.dux.organizer.data.MoneyKind
 import java.time.format.DateTimeFormatter
@@ -7,7 +9,6 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.Row
 import android.content.res.Resources
-import dev.dux.organizer.ui.SPANISH
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.DisposableEffect
 import androidx.activity.result.contract.ActivityResultContracts
@@ -72,7 +73,7 @@ fun AskSheet(
     val thinking = stringResource(R.string.ask_thinking)
     val failed = stringResource(R.string.ask_failed)
     val voiceMissing = stringResource(R.string.ask_voice_missing)
-    val speaker = rememberSpeaker()
+    val speaker = rememberSpeaker(appLocale())
     /** An action waiting for the user to confirm it; nothing changes until "Hacer". */
     var proposal by remember { mutableStateOf<JarvisAction?>(null) }
     /** Undo for the action just done; cleared by the next question. */
@@ -131,11 +132,12 @@ fun AskSheet(
         }
     }
     val prompt = stringResource(R.string.ask_jarvis)
+    val locale = appLocale()
     fun dictate() {
         speaker.stop()
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            .putExtra(RecognizerIntent.EXTRA_LANGUAGE, SPANISH.toLanguageTag())
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale.toLanguageTag())
             .putExtra(RecognizerIntent.EXTRA_PROMPT, prompt)
         try {
             listen.launch(intent)
@@ -183,20 +185,19 @@ fun AskSheet(
     }
 }
 
-/** Android's built-in text to speech in Spanish, shut down when the sheet closes. */
+/** Android's built-in text to speech in the app's language, shut down when the sheet closes. */
 @Composable
-private fun rememberSpeaker(): TextToSpeech {
+private fun rememberSpeaker(locale: Locale): TextToSpeech {
     val context = LocalContext.current
     val speaker = remember {
         var tts: TextToSpeech? = null
-        tts = TextToSpeech(context.applicationContext) { status -> if (status == TextToSpeech.SUCCESS) tts?.language = SPANISH }
+        tts = TextToSpeech(context.applicationContext) { status -> if (status == TextToSpeech.SUCCESS) tts?.language = locale }
         tts
     }
     DisposableEffect(speaker) { onDispose { speaker.shutdown() } }
     return speaker
 }
 
-private val dueFormat = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", SPANISH)
 
 /** What Jarvis asks before acting, and what it says once done. */
 private fun actionTexts(action: JarvisAction, res: Resources): Pair<String, String> = when (action) {
@@ -215,7 +216,7 @@ private fun actionTexts(action: JarvisAction, res: Resources): Pair<String, Stri
         res.getString(R.string.action_record, what) to res.getString(R.string.action_recorded, what)
     }
     is JarvisAction.CreateTask -> {
-        val ask = action.due?.let { res.getString(R.string.action_create_task_due, action.title, it.format(dueFormat)) }
+        val ask = action.due?.let { res.getString(R.string.action_create_task_due, action.title, it.format(DateTimeFormatter.ofPattern(res.getString(R.string.date_long), res.configuration.locales[0]))) }
             ?: res.getString(R.string.action_create_task, action.title)
         ask to res.getString(R.string.action_created_task, action.title)
     }

@@ -19,11 +19,12 @@ class FinanceRepository(private val dao: FinanceDao, private val clock: Clock = 
     fun payments(debtId: String): Flow<List<DebtPayment>> = dao.observePayments(debtId)
 
     // "Empty table" = first run: holds because categories are archived, never deleted.
-    suspend fun seedIfEmpty() {
+    /** Names in the phone's language, from resources (JarvisApplication). */
+    suspend fun seedIfEmpty(expense: List<String> = INITIAL_EXPENSE_CATEGORIES, income: List<String> = INITIAL_INCOME_CATEGORIES) {
         val now = clock.instant()
         fun seed(names: List<String>, kind: MoneyKind) =
             names.mapIndexed { i, name -> Category(name = name, kind = kind, sortOrder = i, createdAt = now, updatedAt = now) }
-        dao.seedIfEmpty(seed(INITIAL_EXPENSE_CATEGORIES, MoneyKind.EXPENSE) + seed(INITIAL_INCOME_CATEGORIES, MoneyKind.INCOME))
+        dao.seedIfEmpty(seed(expense, MoneyKind.EXPENSE) + seed(income, MoneyKind.INCOME))
     }
 
     suspend fun createCategory(name: String, kind: MoneyKind, budgetCents: Long?): Boolean {

@@ -1,0 +1,349 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="app_name">Jarvis</string>
+    <string name="tab_today">My day</string>
+    <string name="tab_tasks">Tasks</string>
+    <string name="tab_projects">Projects</string>
+    <string name="tab_shopping">Shopping</string>
+    <string name="next_step">Next step</string>
+    <string name="empty_today">Nothing due today</string>
+    <string name="empty_inbox">Everything you capture quickly lands here.</string>
+    <string name="empty_tasks">No tasks yet.</string>
+
+    <string name="capture">Capture</string>
+    <string name="capture_title">What\'s on your mind?</string>
+    <string name="title">Title</string>
+    <string name="notes_optional">Notes (optional)</string>
+    <string name="notes">Notes</string>
+    <string name="save">Save</string>
+    <string name="saved">Saved</string>
+    <string name="saved_to_inbox">Saved to Inbox</string>
+    <string name="title_invalid">Write a title (200 characters max)</string>
+    <string name="plan">Plan</string>
+    <string name="back">Back</string>
+    <string name="delete">Delete</string>
+    <string name="delete_confirm_title">Delete this task?</string>
+    <string name="delete_confirm_body">This can\'t be undone.</string>
+    <string name="cancel">Cancel</string>
+    <string name="status">Status</string>
+    <string name="priority">Priority</string>
+    <string name="complete_task">Complete “%1$s”</string>
+
+    <string name="status_inbox">Inbox</string>
+    <string name="status_todo">To do</string>
+    <string name="status_done">Done</string>
+    <string name="status_cancelled">Cancelled</string>
+
+    <string name="priority_none">None</string>
+    <string name="priority_low">Low</string>
+    <string name="priority_medium">Medium</string>
+    <string name="priority_high">High</string>
+
+    <string name="today">Today</string>
+    <string name="tomorrow">Tomorrow</string>
+    <string name="yesterday">Yesterday</string>
+    <string name="due_date">Due date</string>
+    <string name="scheduled_date">Scheduled for</string>
+    <string name="due_label">Due %1$s</string>
+    <string name="scheduled_label">For %1$s</string>
+    <string name="scheduled_since">Since %1$s</string>
+    <string name="no_date">No date</string>
+    <string name="remove_date">Remove date</string>
+    <string name="accept">OK</string>
+    <string name="project">Project</string>
+    <string name="no_project">None</string>
+    <string name="overdue">Overdue</string>
+    <string name="upcoming">Next 7 days</string>
+    <plurals name="open_count">
+        <item quantity="one">%1$d open</item>
+        <item quantity="other">%1$d open</item>
+    </plurals>
+    <plurals name="overdue_count">
+        <item quantity="one">%1$d overdue</item>
+        <item quantity="other">%1$d overdue</item>
+    </plurals>
+    <string name="new_project">New project</string>
+    <string name="project_name">Project name</string>
+    <string name="create">Create</string>
+    <string name="next_label">Next: %1$s</string>
+    <string name="no_next_step">No next step yet</string>
+    <string name="project_status_active">Active</string>
+    <string name="project_status_paused">Paused</string>
+    <string name="project_status_done">Done</string>
+    <string name="project_status_archived">Archived</string>
+    <string name="project_tasks">Project tasks</string>
+    <string name="empty_project_tasks">Assign tasks to this project from their details.</string>
+
+    <string name="settings">Settings</string>
+    <string name="backup">Manual backup</string>
+    <string name="backup_explanation">Save a copy wherever you like, whenever you like, or go back to an earlier backup.</string>
+    <string name="export_backup">Export backup</string>
+    <string name="restore_backup">Restore from a backup</string>
+    <string name="undo_restore">Undo the last restore</string>
+    <string name="restore">Restore</string>
+    <string name="restore_confirm_title">Replace all your data?</string>
+    <string name="restore_confirm_body">Backup contents — tasks: %1$d, projects: %2$d, shopping items: %3$d, transactions: %4$d, debts: %5$d. All your current data, including shopping and money, will be fully replaced. You can undo it from this screen.</string>
+    <string name="export_done">Backup saved</string>
+    <string name="export_failed">Couldn\'t save the backup</string>
+    <string name="restore_done">Data restored</string>
+    <string name="undo_done">Your previous data is back</string>
+    <string name="restore_failed">Couldn\'t restore. Your data didn\'t change.</string>
+    <string name="invalid_backup">The file isn\'t a valid backup. Your data didn\'t change.</string>
+
+    <string name="reminders_channel">Reminders</string>
+    <string name="reminder_default_text">Jarvis reminder</string>
+    <string name="reminder">Reminder</string>
+    <string name="no_reminder">No reminder</string>
+    <string name="remove_reminder">Remove</string>
+    <string name="reminder_in_past">Pick a time that hasn\'t passed yet.</string>
+    <string name="notifications_off">Notifications are off, so the reminder won\'t show. Turn them on in your phone\'s Settings → Apps → Jarvis.</string>
+    <string name="pick_time">Pick a time</string>
+
+    <string name="repeat">Repeat</string>
+    <string name="repeat_never">Doesn\'t repeat</string>
+    <string name="frequency">Frequency</string>
+    <string name="repeats">Repeats</string>
+    <string name="frequency_never">Never</string>
+    <string name="frequency_daily">Daily</string>
+    <string name="frequency_weekly">Weekly</string>
+    <string name="frequency_monthly">Monthly</string>
+    <string name="every">Every</string>
+    <string name="month_day">Day of the month</string>
+    <string name="decrease">Fewer</string>
+    <string name="increase">More</string>
+    <plurals name="unit_days">
+        <item quantity="one">day</item>
+        <item quantity="other">days</item>
+    </plurals>
+    <plurals name="unit_weeks">
+        <item quantity="one">week</item>
+        <item quantity="other">weeks</item>
+    </plurals>
+    <plurals name="unit_months">
+        <item quantity="one">month</item>
+        <item quantity="other">months</item>
+    </plurals>
+    <plurals name="repeat_daily">
+        <item quantity="one">Every day</item>
+        <item quantity="other">Every %1$d days</item>
+    </plurals>
+    <plurals name="repeat_weekly">
+        <item quantity="one">Every week: %2$s</item>
+        <item quantity="other">Every %1$d weeks: %2$s</item>
+    </plurals>
+    <plurals name="repeat_monthly">
+        <item quantity="one">Every month, on day %2$d</item>
+        <item quantity="other">Every %1$d months, on day %2$d</item>
+    </plurals>
+
+    <string name="quantity_optional">Quantity (optional)</string>
+    <string name="item_invalid">Write the item (200 characters max) and a quantity of up to 40</string>
+    <string name="added_item">Added: %1$s</string>
+    <string name="in_cart">In the cart · %1$d</string>
+    <string name="remove_checked">Remove bought</string>
+    <string name="uncheck_all">Uncheck all</string>
+    <string name="empty_shopping_list">The list is empty. Type what you need above.</string>
+    <string name="new_list">New list</string>
+    <string name="list_name">List name</string>
+    <string name="rename_list">Rename list</string>
+    <string name="delete_list">Delete list</string>
+    <string name="delete_list_confirm_title">Delete “%1$s”?</string>
+    <plurals name="delete_list_confirm_body">
+        <item quantity="one">It will be deleted with its item. This can\'t be undone.</item>
+        <item quantity="other">It will be deleted with its %1$d items. This can\'t be undone.</item>
+    </plurals>
+    <string name="share_list">Share list</string>
+    <string name="more_options">More options</string>
+
+    <string name="finances">Money</string>
+    <string name="finance_summary">Summary</string>
+    <string name="finance_movements">Transactions</string>
+    <string name="finance_debts">Debts</string>
+    <string name="register">Add</string>
+    <string name="register_movement">Add transaction</string>
+    <string name="edit_movement">Edit transaction</string>
+    <string name="movement_saved">Transaction saved</string>
+    <string name="delete_movement_confirm">Delete this transaction?</string>
+    <string name="kind">Type</string>
+    <string name="kind_expense">Expense</string>
+    <string name="kind_income">Income</string>
+    <string name="amount">Amount</string>
+    <string name="amount_invalid">Write a valid amount, for example 85.50</string>
+    <string name="category">Category</string>
+    <string name="date">Date</string>
+    <string name="note_optional">Note (optional)</string>
+    <string name="edit">Edit</string>
+    <string name="previous_month">Previous month</string>
+    <string name="next_month">Next month</string>
+    <string name="balance">Left this month</string>
+    <string name="negative_balance">This month you spent more than came in.</string>
+    <string name="spent_of_budget">%1$s of %2$s</string>
+    <string name="over_budget">%1$s over</string>
+    <string name="expenses_by_category">Spending by category</string>
+    <string name="income_by_category">Income by category</string>
+    <string name="archived_categories">Archived</string>
+    <string name="archived_name">%1$s (archived)</string>
+    <string name="empty_movements">No transactions this month. Tap Add to log an expense or income.</string>
+    <string name="new_category">New category</string>
+    <string name="edit_category">Edit category</string>
+    <string name="category_name">Category name</string>
+    <string name="monthly_budget_optional">Monthly budget (optional)</string>
+    <string name="archive_category">Archive: hide it when adding transactions</string>
+    <string name="debt_i_owe">I owe</string>
+    <string name="debt_owed_to_me">Owed to me</string>
+    <string name="debts_settled">Settled</string>
+    <string name="debt_settled">Settled</string>
+    <string name="debt_settled_amount">Settled: %1$s</string>
+    <string name="debt_direction">Who owes?</string>
+    <string name="new_debt">New debt</string>
+    <string name="edit_debt">Edit debt</string>
+    <string name="person">Person</string>
+    <string name="debt_amount_invalid">Write a valid amount, not less than what\'s already been paid</string>
+    <string name="remaining_of">%1$s left of %2$s</string>
+    <string name="empty_debts">No debts yet.</string>
+    <string name="add_payment">Add payment</string>
+    <string name="payments">Payments</string>
+    <string name="empty_payments">No payments yet.</string>
+    <string name="payment_invalid">Write a valid amount no greater than what\'s left (%1$s)</string>
+    <string name="pay_all">All: %1$s</string>
+    <string name="delete_payment">Delete payment of %1$s</string>
+    <string name="delete_payment_confirm">Delete this payment?</string>
+    <string name="delete_debt">Delete debt</string>
+    <string name="delete_debt_confirm">Delete this debt and its payments?</string>
+    <string name="month_spent">Spent: %1$s</string>
+
+    <string name="auto_backup">Automatic backup</string>
+    <string name="auto_backup_explanation">Every day it saves a copy to the folder you choose and keeps the last 14. Pick a Google Drive folder (or one that syncs with your computer) so you lose nothing even if you lose your phone.</string>
+    <string name="choose_folder">Choose folder</string>
+    <string name="change_folder">Change folder</string>
+    <string name="back_up_now">Back up now</string>
+    <string name="turn_off_auto_backup">Turn off automatic backup</string>
+    <string name="auto_backup_folder">Folder: %1$s</string>
+    <string name="auto_backup_never">No backup has been made yet.</string>
+    <string name="auto_backup_last">Last backup: %1$s, %2$s</string>
+    <string name="auto_backup_problem">The last attempt failed. Check that the folder still exists or choose it again.</string>
+    <string name="auto_backup_enabled">Automatic backup on</string>
+    <string name="auto_backup_disabled">Automatic backup off</string>
+    <string name="auto_backup_failed">Couldn\'t save the backup to the folder</string>
+    <string name="backup_overdue">The automatic backup hasn\'t run in more than 3 days. Tap to check it in Settings.</string>
+
+    <string name="search">Search</string>
+    <string name="search_hint">Search Jarvis</string>
+    <string name="clear_search">Clear search</string>
+    <string name="no_results">Nothing matches “%1$s”</string>
+    <string name="see_all">See all (%1$d)</string>
+    <string name="in_cart_short">In the cart</string>
+
+    <string name="widget_name">My day</string>
+    <string name="widget_description">Today\'s tasks: check them off without opening the app, or capture something new.</string>
+    <string name="widget_overdue">Overdue</string>
+    <string name="widget_preview_summary">2 open · 1 overdue</string>
+    <string name="widget_preview_task_overdue">Pay the internet bill</string>
+    <string name="widget_preview_task_today">Review invoices</string>
+
+    <string name="undo">Undo</string>
+    <string name="item_removed">Removed “%1$s”</string>
+    <plurals name="items_removed">
+        <item quantity="one">Removed %1$d item</item>
+        <item quantity="other">Removed %1$d items</item>
+    </plurals>
+
+    <string name="spent_of_budget_total">Spent: %1$s of %2$s</string>
+    <string name="debt_overdue">Overdue: %1$s</string>
+
+    <string name="view_inbox">Inbox (%1$d)</string>
+    <string name="view_pending">To do (%1$d)</string>
+    <string name="view_finished">Finished (%1$d)</string>
+    <string name="empty_finished">You haven\'t finished any tasks yet.</string>
+
+    <string name="complete">Complete</string>
+    <string name="reopen">Reopen</string>
+    <string name="cancel_task">Cancel task</string>
+    <string name="move_to_todo">Move to To do</string>
+    <string name="back_to_inbox">Back to Inbox</string>
+    <string name="add_notes">Add notes</string>
+
+    <string name="task_completed">Completed “%1$s”</string>
+    <string name="task_deleted">Deleted “%1$s”</string>
+
+    <string name="add_task">Add task</string>
+    <string name="add_task_to">New task in “%1$s”</string>
+
+    <string name="remove">Remove</string>
+
+    <plurals name="progress_done">
+        <item quantity="one">%1$d of %2$d done</item>
+        <item quantity="other">%1$d of %2$d done</item>
+    </plurals>
+    <string name="overdue_label">Overdue %1$s</string>
+
+    <string name="add_item_hint">Add item…</string>
+    <string name="quantity">Quantity</string>
+    <string name="to_buy">To buy · %1$d</string>
+
+    <string name="income_in">In</string>
+    <string name="expense_out">Out</string>
+    <string name="ask_jarvis">Ask Jarvis</string>
+    <string name="ask_hint">What\'s on my plate today?</string>
+    <string name="ask_send">Ask</string>
+    <string name="ask_voice">Ask by voice</string>
+    <string name="action_do">Do it</string>
+    <string name="action_not">No, it was a question</string>
+    <string name="action_add_shopping">Add %1$s to %2$s?</string>
+    <string name="action_added_shopping">Done, added %1$s to %2$s.</string>
+    <string name="action_complete_task">Mark “%1$s” as done?</string>
+    <string name="action_completed_task">Done, marked “%1$s” as done.</string>
+    <string name="action_create_task">Create the task “%1$s”?</string>
+    <string name="action_create_task_due">Create the task “%1$s” for %2$s?</string>
+    <string name="action_created_task">Done, created the task “%1$s”.</string>
+    <string name="action_undone">Undone.</string>
+    <string name="action_expense">an expense of %1$s in %2$s</string>
+    <string name="action_income">income of %1$s in %2$s</string>
+    <string name="action_record">Log %1$s?</string>
+    <string name="action_recorded">Done, logged %1$s.</string>
+    <string name="ask_shortcut">Talk to Jarvis</string>
+    <string name="ask_voice_missing">This phone has no voice typing. Type your question instead.</string>
+    <string name="ask_thinking">Thinking…</string>
+    <string name="ask_failed">I couldn\'t answer. Try again.</string>
+    <string name="ask_no_model">To ask Jarvis, first download its model in Settings. It downloads once and then works offline.</string>
+    <string name="model_explanation">Jarvis answers questions about your tasks and spending with a model that runs on your phone: your data never leaves it. It downloads once (%1$.1f GB), over Wi-Fi only.</string>
+    <string name="model_download">Download model</string>
+    <string name="model_starting">Starting download…</string>
+    <string name="model_downloading">Downloading model · %1$d%%</string>
+    <string name="model_waiting_wifi">Waiting for Wi-Fi to download</string>
+    <string name="model_installed">Model installed. Ask from My day with ✨.</string>
+    <string name="model_delete">Delete model</string>
+    <string name="model_delete_title">Delete the model?</string>
+    <string name="model_delete_body">You\'ll free 2 GB, but to ask Jarvis again you\'ll have to download it again.</string>
+    <string name="model_credit">Gemma 4 E2B model by Google, Apache 2.0 license.</string>
+    <string name="model_download_failed">The download failed. Check your connection and free space, and try again.</string>
+    <string name="model_failed">Couldn\'t change the model</string>
+
+    <string name="date_long">EEEE, MMMM d</string>
+    <string name="date_short">EEE, MMM d</string>
+    <string name="month_year">LLLL yyyy</string>
+    <string name="model_download_title">Jarvis model</string>
+
+    <string name="seed_list">Groceries</string>
+    <string-array name="seed_projects">
+        <item>Work</item>
+        <item>Side projects</item>
+        <item>Studies</item>
+        <item>Personal</item>
+    </string-array>
+    <string-array name="seed_expense_categories">
+        <item>Food</item>
+        <item>Transport</item>
+        <item>Home</item>
+        <item>Utilities</item>
+        <item>Health</item>
+        <item>Entertainment</item>
+        <item>Other</item>
+    </string-array>
+    <string-array name="seed_income_categories">
+        <item>Salary</item>
+        <item>Other income</item>
+    </string-array>
+
+    <string name="ask_prompt_answer">You are Jarvis, the assistant in a personal organizer app. Answer in English, briefly and clearly, using only this user data. If it isn\'t in the data, say so. You can\'t change anything: if asked to add, create or complete something, never say you did it; say you couldn\'t find that task or list and ask them to rephrase.</string>
+    <string name="ask_prompt_action" tools:ignore="TypographyEllipsis">You are Jarvis. Turn the user\'s command into ONE JSON action, with no extra text. Possible actions:\n{\"accion\":\"agregar_compra\",\"articulo\":\"...\",\"cantidad\":\"... or null\",\"lista\":\"exact list name or null\"}\n{\"accion\":\"completar_tarea\",\"tarea\":\"exact task title\"}\n{\"accion\":\"crear_tarea\",\"titulo\":\"...\",\"vence\":\"today, tomorrow, day after tomorrow, a weekday, or null\"}\n{\"accion\":\"registrar_movimiento\",\"monto\":\"just the number\",\"categoria\":\"exact name of an expense or income category\",\"nota\":\"what it was for, or null\"}\n{\"accion\":\"ninguna\"}  (if it is a question or none of the above)\nSomething to do (wash, call, pay) is a task, not a purchase. Money already spent or received is a transaction. Use only task and list names that appear in the data. Write the values in the user\'s language.</string>
+</resources>

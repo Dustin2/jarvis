@@ -1,9 +1,7 @@
 package dev.dux.organizer
 
-import android.app.LocaleManager
 import android.content.Intent
 import android.os.Bundle
-import android.os.LocaleList
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -21,10 +19,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // The app is Spanish-only: without this, components such as the date picker follow the system language.
-        getSystemService(LocaleManager::class.java).run {
-            if (applicationLocales.isEmpty) applicationLocales = LocaleList.forLanguageTags("es-MX")
-        }
         // First launch only: on recreation (rotation) the task screen is already in the back stack.
         if (savedInstanceState == null) read(intent)
         enableEdgeToEdge()

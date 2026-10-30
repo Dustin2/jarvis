@@ -39,4 +39,17 @@ class AskFactsTest {
         assertTrue(facts, facts.contains("Lista de compras Súper: por comprar: Leche (2). Ya en el carrito: Huevo."))
         assertTrue(facts, !facts.contains("pasó del presupuesto: Comida (por \$10.00), Transporte"))
     }
+
+    @Test
+    fun englishFactsUseEnglishWordsAndDates() {
+        val facts = askFacts(
+            listOf(task("Pay the internet bill", today.minusDays(2))),
+            emptyMap(),
+            null,
+            today,
+            labels = FactLabels.ENGLISH,
+        )
+        assertTrue(facts, facts.startsWith("Today is Wednesday, October 28, 2026."))
+        assertTrue(facts, facts.contains("Overdue tasks (1):\n- Pay the internet bill (due Monday, October 26, 2026)"))
+    }
 }

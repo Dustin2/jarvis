@@ -22,15 +22,6 @@ sealed interface JarvisAction {
     data class RecordMovement(val category: Category, val amountCents: Long, val note: String?) : JarvisAction
 }
 
-/** Prompt for turning a command into one action. Dates come back as words; [relativeDate] turns them into days. */
-const val ACTION_INSTRUCTION = """Eres Jarvis. Convierte la orden del usuario en UNA acción JSON, sin texto extra. Acciones posibles:
-{"accion":"agregar_compra","articulo":"...","cantidad":"... o null","lista":"nombre exacto de la lista o null"}
-{"accion":"completar_tarea","tarea":"título exacto de la tarea"}
-{"accion":"crear_tarea","titulo":"...","vence":"hoy, mañana, pasado mañana, un día de la semana, o null"}
-{"accion":"registrar_movimiento","monto":"solo el número","categoria":"nombre exacto de una categoría de gasto o de ingreso","nota":"en qué fue, o null"}
-{"accion":"ninguna"}  (si es una pregunta o no es ninguna de las anteriores)
-Algo que hay que hacer (lavar, llamar, pagar) es una tarea, no una compra. Dinero que ya se gastó o se recibió es un movimiento. Usa solo nombres de tareas y listas que aparecen en los datos."""
-
 /**
  * Reads the model's answer and checks it against the user's data: unknown tasks or lists give null,
  * so a made-up name never becomes an action. [command] is what the user said.
@@ -76,14 +67,17 @@ fun parseAction(
     }
 }
 
-/** "mañana", "el viernes", "2026-11-02" → a date; anything else → null (no due date rather than a wrong one). */
+/**
+ * "mañana", "el viernes", "on Friday", "2026-11-02" → a date; anything else → null (no due date rather than a wrong one).
+ * Spanish and English words both work, whatever the app's language: the prompt asks for words, not dates.
+ */
 fun relativeDate(text: String, today: LocalDate): LocalDate? {
-    val word = fold(text).removePrefix("el ").trim()
+    val word = fold(text).removePrefix("el ").removePrefix("on ").removePrefix("next ").trim()
     runCatching { return LocalDate.parse(word) }
     return when (word) {
-        "hoy" -> today
-        "manana" -> today.plusDays(1)
-        "pasado manana" -> today.plusDays(2)
+        "hoy", "today" -> today
+        "manana", "tomorrow" -> today.plusDays(1)
+        "pasado manana", "day after tomorrow", "the day after tomorrow" -> today.plusDays(2)
         else -> weekdays[word]?.let { today.with(TemporalAdjusters.next(it)) }
     }
 }
@@ -91,6 +85,8 @@ fun relativeDate(text: String, today: LocalDate): LocalDate? {
 private val weekdays = mapOf(
     "lunes" to DayOfWeek.MONDAY, "martes" to DayOfWeek.TUESDAY, "miercoles" to DayOfWeek.WEDNESDAY, "jueves" to DayOfWeek.THURSDAY,
     "viernes" to DayOfWeek.FRIDAY, "sabado" to DayOfWeek.SATURDAY, "domingo" to DayOfWeek.SUNDAY,
+    "monday" to DayOfWeek.MONDAY, "tuesday" to DayOfWeek.TUESDAY, "wednesday" to DayOfWeek.WEDNESDAY, "thursday" to DayOfWeek.THURSDAY,
+    "friday" to DayOfWeek.FRIDAY, "saturday" to DayOfWeek.SATURDAY, "sunday" to DayOfWeek.SUNDAY,
 )
 
 /** Lowercase without accents, so "Súper" matches "super". */

@@ -1,5 +1,6 @@
 package dev.dux.organizer.settings
 
+import dev.dux.organizer.ui.appLocale
 import dev.dux.organizer.ask.ModelState
 import dev.dux.organizer.ask.MODEL_BYTES
 import dev.dux.organizer.ask.AskJarvis
@@ -45,7 +46,6 @@ import androidx.lifecycle.viewModelScope
 import dev.dux.organizer.R
 import dev.dux.organizer.backup.AutoBackup
 import dev.dux.organizer.backup.AutoBackupState
-import dev.dux.organizer.ui.SPANISH
 import dev.dux.organizer.ui.inlineLabel
 import dev.dux.organizer.ui.rememberToday
 import android.provider.DocumentsContract
@@ -240,7 +240,6 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
     }
 }
 
-private val time = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(SPANISH)
 
 @Composable
 private fun AutoBackupSection(state: AutoBackupState, vm: SettingsViewModel, onPickFolder: () -> Unit) {
@@ -257,7 +256,7 @@ private fun AutoBackupSection(state: AutoBackupState, vm: SettingsViewModel, onP
     val last = state.lastSuccess?.atZone(ZoneId.systemDefault())
     Text(
         if (last == null) stringResource(R.string.auto_backup_never)
-        else stringResource(R.string.auto_backup_last, last.toLocalDate().inlineLabel(today), last.format(time)),
+        else stringResource(R.string.auto_backup_last, last.toLocalDate().inlineLabel(today), last.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(appLocale()))),
     )
     if (state.lastFailure != null) Text(stringResource(R.string.auto_backup_problem), color = MaterialTheme.colorScheme.error)
     OutlinedButton(onClick = vm::backUpNow, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.back_up_now)) }
