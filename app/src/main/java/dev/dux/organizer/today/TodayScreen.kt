@@ -1,6 +1,10 @@
 package dev.dux.organizer.today
 
 import dev.dux.organizer.ui.rememberDateFormat
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import dev.dux.organizer.ui.todayFlow
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -83,23 +87,24 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import dev.dux.organizer.ui.asHeading
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class TodayViewModel(private val tasks: TaskRepository, projects: ProjectRepository, finance: FinanceRepository, autoBackup: AutoBackup) : ViewModel() {
     /** Open tasks + project name by id. null = loading. */
     val state = combine(tasks.open, projects.visible) { open, list -> open to list.associate { it.id to it.name } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    // shortcut: the month is fixed when the screen opens; if the app stays open past month end it shows the old one until reopened.
-    val month = combine(finance.categories, finance.movements(YearMonth.now())) { categories, movements -> monthSummary(categories, movements) }
+    // Follows the calendar: left open past month end, it switches to the new month.
+    val month = combine(finance.categories, todayFlow().map(YearMonth::from).distinctUntilChanged().flatMapLatest(finance::movements)) { categories, movements ->
+        monthSummary(categories, movements)
+    }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Automatic backup is on but has not saved anything for days: better to know before the data is needed. */
     val backupOverdue = autoBackup.state.map { backupOverdue(it.lastSuccess, it.enabledAt, Instant.now()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
-    // shortcut: "today" is read when the list changes; just after midnight it can count yesterday's until something changes.
-    /** Tasks completed today, for the "3 de 8 hechas" progress. */
-    val doneToday = tasks.finished.map { list ->
-        val today = LocalDate.now()
+    /** Tasks completed today, for the "3 de 8 hechas" progress; recounted at midnight. */
+    val doneToday = combine(tasks.finished, todayFlow()) { list, today ->
         list.count { it.status == TaskStatus.DONE && it.completedAt?.atZone(ZoneId.systemDefault())?.toLocalDate() == today }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
