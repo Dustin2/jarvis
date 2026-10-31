@@ -14,9 +14,10 @@ class ShoppingRepository(private val dao: ShoppingDao, private val clock: Clock 
 
     // "Empty table" = first run: holds because the last list cannot be deleted. An old backup without
     // lists also leaves it empty, and the next start creates "Súper" again.
-    suspend fun seedIfEmpty() {
+    /** [name]: in the phone's language, from resources (JarvisApplication). */
+    suspend fun seedIfEmpty(name: String = INITIAL_LIST) {
         val now = clock.instant()
-        dao.seedIfEmpty(ShoppingList(name = INITIAL_LIST, createdAt = now, updatedAt = now))
+        dao.seedIfEmpty(ShoppingList(name = name, createdAt = now, updatedAt = now))
     }
 
     /** Returns the new list's id, or null if the name is not valid. */

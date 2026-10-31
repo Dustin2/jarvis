@@ -20,14 +20,16 @@ class JarvisAppTest {
     @Test
     fun startsOnTodayAndSwitchesTabsAndTaskViews() {
         compose.setContent { JarvisTheme { JarvisApp() } }
+        // Texts from resources: the app follows the phone's language.
+        fun text(id: Int) = compose.activity.getString(id)
 
-        compose.onNodeWithText("Siguiente paso").assertExists()
+        compose.onNodeWithText(text(R.string.next_step)).assertExists()
 
-        compose.onNode(hasText("Finanzas") and isSelectable()).performClick().assertIsSelected()
-        compose.onNodeWithText("Resumen").assertExists()
+        compose.onNode(hasText(text(R.string.finances)) and isSelectable()).performClick().assertIsSelected()
+        compose.onNodeWithText(text(R.string.finance_summary)).assertExists()
 
         // The Bandeja is a view inside Tareas ("Bandeja (n)").
-        compose.onNode(hasText("Tareas") and isSelectable()).performClick().assertIsSelected()
-        compose.onNode(hasText("Bandeja", substring = true) and isSelectable()).performClick().assertIsSelected()
+        compose.onNode(hasText(text(R.string.tab_tasks)) and isSelectable()).performClick().assertIsSelected()
+        compose.onNode(hasText(text(R.string.status_inbox), substring = true) and isSelectable()).performClick().assertIsSelected()
     }
 }

@@ -1,5 +1,10 @@
 package dev.dux.organizer.today
 
+import dev.dux.organizer.ui.rememberDateFormat
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import dev.dux.organizer.ui.todayFlow
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,6 +31,8 @@ import androidx.compose.ui.platform.LocalContext
 import dev.dux.organizer.app
 import dev.dux.organizer.ask.AskSheet
 import dev.dux.organizer.ask.AskData
+import dev.dux.organizer.ask.FactLabels
+import dev.dux.organizer.ui.appLocale
 import dev.dux.organizer.ask.run
 import kotlinx.coroutines.flow.first
 import androidx.compose.runtime.remember
@@ -68,7 +75,6 @@ import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TaskRepository
 import dev.dux.organizer.data.TaskStatus
 import dev.dux.organizer.tasks.TaskRow
-import dev.dux.organizer.ui.SPANISH
 import dev.dux.organizer.ui.ScreenHeader
 import dev.dux.organizer.ui.rememberToday
 import kotlinx.coroutines.flow.SharingStarted
@@ -81,23 +87,24 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import dev.dux.organizer.ui.asHeading
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class TodayViewModel(private val tasks: TaskRepository, projects: ProjectRepository, finance: FinanceRepository, autoBackup: AutoBackup) : ViewModel() {
     /** Open tasks + project name by id. null = loading. */
     val state = combine(tasks.open, projects.visible) { open, list -> open to list.associate { it.id to it.name } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    // shortcut: the month is fixed when the screen opens; if the app stays open past month end it shows the old one until reopened.
-    val month = combine(finance.categories, finance.movements(YearMonth.now())) { categories, movements -> monthSummary(categories, movements) }
+    // Follows the calendar: left open past month end, it switches to the new month.
+    val month = combine(finance.categories, todayFlow().map(YearMonth::from).distinctUntilChanged().flatMapLatest(finance::movements)) { categories, movements ->
+        monthSummary(categories, movements)
+    }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Automatic backup is on but has not saved anything for days: better to know before the data is needed. */
     val backupOverdue = autoBackup.state.map { backupOverdue(it.lastSuccess, it.enabledAt, Instant.now()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
-    // shortcut: "today" is read when the list changes; just after midnight it can count yesterday's until something changes.
-    /** Tasks completed today, for the "3 de 8 hechas" progress. */
-    val doneToday = tasks.finished.map { list ->
-        val today = LocalDate.now()
+    /** Tasks completed today, for the "3 de 8 hechas" progress; recounted at midnight. */
+    val doneToday = combine(tasks.finished, todayFlow()) { list, today ->
         list.count { it.status == TaskStatus.DONE && it.completedAt?.atZone(ZoneId.systemDefault())?.toLocalDate() == today }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
@@ -140,10 +147,11 @@ fun TodayScreen(
     }
     if (asking) {
         val app = LocalContext.current.app
+        val labels = FactLabels.of(appLocale())
         // Shopping is read only when asking: Mi día does not show it, so it is not observed here.
         AskSheet(
             app.askJarvis,
-            data = { AskData(open, projectNames, month, today, app.shopping.lists.first(), app.shopping.allItems.first(), app.finance.categories.first()) },
+            data = { AskData(open, projectNames, month, today, app.shopping.lists.first(), app.shopping.allItems.first(), app.finance.categories.first(), labels) },
             onAction = { it.run(app.tasks, app.shopping, app.finance, today) },
             startListening = listening,
             onOpenSettings = onOpenSettings,
@@ -170,7 +178,7 @@ fun TodayScreen(
             ScreenHeader(
                 R.string.tab_today,
                 onSearch,
-                overline = today.format(headerDate).replaceFirstChar { it.uppercase() },
+                overline = today.format(rememberDateFormat(R.string.date_long)).replaceFirstChar { it.uppercase() },
                 extra = {
                     IconButton(onClick = { asking = true }) { Icon(painterResource(R.drawable.ic_ask), stringResource(R.string.ask_jarvis)) }
                     IconButton(onClick = onOpenSettings) { Icon(painterResource(R.drawable.ic_settings), stringResource(R.string.settings)) }
@@ -195,7 +203,6 @@ fun TodayScreen(
     }
 }
 
-private val headerDate = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", SPANISH)
 
 /** "3 de 8 hechas" with a ring, and the overdue count in words. */
 @Composable

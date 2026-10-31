@@ -1,5 +1,7 @@
 package dev.dux.organizer.tasks
 
+import java.util.Locale
+import dev.dux.organizer.ui.appLocale
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -32,21 +34,23 @@ import dev.dux.organizer.R
 import dev.dux.organizer.data.Frequency
 import dev.dux.organizer.data.Recurrence
 import dev.dux.organizer.ui.Choice
-import dev.dux.organizer.ui.SPANISH
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
 
 /** "Cada mes, el día 10", "Cada 2 semanas: lun, vie"... */
 @Composable
-fun Recurrence?.describe(): String = when (this?.frequency) {
-    null -> stringResource(R.string.repeat_never)
-    Frequency.DAILY -> pluralStringResource(R.plurals.repeat_daily, interval, interval)
-    Frequency.WEEKLY -> pluralStringResource(R.plurals.repeat_weekly, interval, interval, weekdays.sorted().joinToString(", ") { it.shortName() })
-    Frequency.MONTHLY -> pluralStringResource(R.plurals.repeat_monthly, interval, interval, monthDay!!)
+fun Recurrence?.describe(): String {
+    val locale = appLocale()
+    return when (this?.frequency) {
+        null -> stringResource(R.string.repeat_never)
+        Frequency.DAILY -> pluralStringResource(R.plurals.repeat_daily, interval, interval)
+        Frequency.WEEKLY -> pluralStringResource(R.plurals.repeat_weekly, interval, interval, weekdays.sorted().joinToString(", ") { it.shortName(locale) })
+        Frequency.MONTHLY -> pluralStringResource(R.plurals.repeat_monthly, interval, interval, monthDay!!)
+    }
 }
 
-private fun DayOfWeek.shortName() = getDisplayName(TextStyle.SHORT, SPANISH).trimEnd('.')
+private fun DayOfWeek.shortName(locale: Locale) = getDisplayName(TextStyle.SHORT, locale).trimEnd('.')
 
 /**
  * Edits a repeat rule; [onSave] receives null for "Nunca". Defaults come from [anchor] (the task's date),
@@ -80,7 +84,7 @@ fun RepeatDialog(initial: Recurrence?, anchor: LocalDate, onDismiss: () -> Unit,
                             FilterChip(
                                 selected = day in weekdays,
                                 onClick = { weekdays = if (day in weekdays) weekdays - day else weekdays + day },
-                                label = { Text(day.shortName()) },
+                                label = { Text(day.shortName(appLocale())) },
                             )
                         }
                     }

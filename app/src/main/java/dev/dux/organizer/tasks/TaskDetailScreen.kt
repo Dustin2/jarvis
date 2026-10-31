@@ -1,5 +1,6 @@
 package dev.dux.organizer.tasks
 
+import dev.dux.organizer.ui.appLocale
 import android.Manifest
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
@@ -61,7 +62,6 @@ import dev.dux.organizer.data.Project
 import dev.dux.organizer.data.Recurrence
 import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TaskStatus
-import dev.dux.organizer.ui.SPANISH
 import dev.dux.organizer.ui.SavedIndicator
 import dev.dux.organizer.ui.label
 import dev.dux.organizer.ui.rememberToday
@@ -264,7 +264,8 @@ private fun ReminderField(at: LocalDateTime?, onChange: (LocalDateTime?) -> Unit
     }
 
     // Same 12/24-hour format the user chose on the phone (and the picker uses).
-    val timeFormat = remember { DateTimeFormatter.ofPattern(if (DateFormat.is24HourFormat(context)) "H:mm" else "h:mm a", SPANISH) }
+    val locale = appLocale()
+    val timeFormat = remember(locale) { DateTimeFormatter.ofPattern(if (DateFormat.is24HourFormat(context)) "H:mm" else "h:mm a", locale) }
     val label = at?.let { "${it.toLocalDate().label(today)}, ${it.toLocalTime().format(timeFormat)}" } ?: stringResource(R.string.no_reminder)
     PlanRow(R.drawable.ic_bell, R.string.reminder, label, isSet = at != null, onClick = {
         inPast = false
