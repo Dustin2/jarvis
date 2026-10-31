@@ -2,6 +2,9 @@ package dev.dux.organizer
 
 import android.app.Application
 import android.content.Context
+import androidx.core.content.edit
+import android.os.LocaleList
+import android.app.LocaleManager
 import android.graphics.drawable.Icon
 import android.content.pm.ShortcutManager
 import android.content.pm.ShortcutInfo
@@ -37,6 +40,7 @@ class JarvisApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        followPhoneLanguage()
         reminders.createChannel()
         addAskShortcut()
         MainScope().launch {
@@ -53,6 +57,20 @@ class JarvisApplication : Application() {
             tasks.open.drop(1).collectLatest { TodayWidget().updateAll(this@JarvisApplication) }
         }
     }
+}
+
+/**
+ * Up to v0.14 Jarvis saved es-MX as its own language, so on phones in English it stayed in Spanish.
+ * Clears that once, before any screen opens, so the app follows the phone; a language the user picks
+ * later in Android settings is left alone. Plain SharedPreferences: it must be read synchronously here.
+ */
+private fun Context.followPhoneLanguage() {
+    val prefs = getSharedPreferences("language", Context.MODE_PRIVATE)
+    if (prefs.getBoolean("forced_spanish_cleared", false)) return
+    getSystemService(LocaleManager::class.java).run {
+        if (applicationLocales.toLanguageTags() == "es-MX") applicationLocales = LocaleList.getEmptyLocaleList()
+    }
+    prefs.edit { putBoolean("forced_spanish_cleared", true) }
 }
 
 /** Long-press on the app icon → "Hablar con Jarvis". Dynamic, not XML, so it targets this build's package (".debug" too). */
