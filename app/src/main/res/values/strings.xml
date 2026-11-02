@@ -301,6 +301,18 @@
     <string name="action_income">ingreso de %1$s en %2$s</string>
     <string name="action_record">¿Registro %1$s?</string>
     <string name="action_recorded">Listo, registré %1$s.</string>
+    <string name="brief_setting">Resumen de la mañana</string>
+    <string name="brief_explanation">Cada mañana, una notificación con lo vencido, lo de hoy y cómo vas con el presupuesto. Tócala y Jarvis te lee tu día.</string>
+    <string name="brief_on">Enviarme el resumen</string>
+    <string name="brief_time">Hora: %1$s</string>
+    <string name="brief_channel">Resumen de la mañana</string>
+    <string name="brief_title">Tu día</string>
+    <string name="brief_tap">Toca para que Jarvis te lo lea.</string>
+    <string name="brief_question">Dame un resumen corto de mi día: lo vencido, lo de hoy y cómo voy con el presupuesto.</string>
+    <plurals name="brief_due_today">
+        <item quantity="one">%1$d para hoy</item>
+        <item quantity="other">%1$d para hoy</item>
+    </plurals>
     <string name="action_on_date">\u0020del %1$s</string>
     <string name="ask_shortcut">Hablar con Jarvis</string>
     <string name="ask_voice_missing">Este teléfono no tiene dictado por voz. Escribe tu pregunta.</string>

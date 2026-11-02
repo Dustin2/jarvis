@@ -54,6 +54,9 @@
         <receiver
             android:name=".reminders.ReminderReceiver"
             android:exported="false" />
+        <receiver
+            android:name=".reminders.MorningBriefReceiver"
+            android:exported="false" />
         <!-- exported: the system sends these broadcasts. If another app called it, it would only reschedule (harmless). -->
         <receiver
             android:name=".reminders.RescheduleReceiver"

@@ -1,5 +1,6 @@
 package dev.dux.organizer
 
+import dev.dux.organizer.ask.AskStart
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -14,8 +15,8 @@ class MainActivity : ComponentActivity() {
     private val taskToOpen = mutableStateOf<String?>(null)
     /** The widget's "+": open the capture sheet; consumed once shown. */
     private val capture = mutableStateOf(false)
-    /** The widget's microphone or the "Hablar con Jarvis" shortcut: ask by voice; consumed once shown. */
-    private val askByVoice = mutableStateOf(false)
+    /** Widget microphone or "Hablar con Jarvis" shortcut (listen), or the morning brief notification; consumed once shown. */
+    private val askStart = mutableStateOf<AskStart?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,8 +30,8 @@ class MainActivity : ComponentActivity() {
                     onTaskOpened = { taskToOpen.value = null },
                     capture = capture.value,
                     onCaptureShown = { capture.value = false },
-                    askByVoice = askByVoice.value,
-                    onAskShown = { askByVoice.value = false },
+                    askStart = askStart.value,
+                    onAskShown = { askStart.value = null },
                 )
             }
         }
@@ -45,7 +46,11 @@ class MainActivity : ComponentActivity() {
     private fun read(intent: Intent) {
         taskToOpen.value = intent.getStringExtra(EXTRA_TASK_ID)
         capture.value = intent.getBooleanExtra(EXTRA_CAPTURE, false)
-        askByVoice.value = intent.action == ACTION_ASK_VOICE
+        askStart.value = when (intent.action) {
+            ACTION_ASK_VOICE -> AskStart.LISTEN
+            ACTION_BRIEF -> AskStart.BRIEF
+            else -> null
+        }
     }
 
     companion object {
@@ -53,5 +58,6 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_CAPTURE = "capture"
         // An action, not an extra: launcher shortcuts carry the intent action reliably.
         const val ACTION_ASK_VOICE = "dev.dux.organizer.ASK_VOICE"
+        const val ACTION_BRIEF = "dev.dux.organizer.BRIEF"
     }
 }

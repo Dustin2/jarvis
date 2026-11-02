@@ -27,11 +27,18 @@ class ReminderReceiver : BroadcastReceiver() {
     }
 }
 
+class MorningBriefReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) = runAsync { context.app.morningBrief.onAlarm() }
+}
+
 /** Android clears alarms on reboot, and a time or time zone change moves when "9:00" is. */
 class RescheduleReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action !in ACTIONS) return
-        runAsync { context.app.reminders.syncAll() }
+        runAsync {
+            context.app.reminders.syncAll()
+            context.app.morningBrief.schedule()
+        }
     }
 
     private companion object {

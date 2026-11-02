@@ -300,6 +300,18 @@
     <string name="action_income">income of %1$s in %2$s</string>
     <string name="action_record">Log %1$s?</string>
     <string name="action_recorded">Done, logged %1$s.</string>
+    <string name="brief_setting">Morning brief</string>
+    <string name="brief_explanation">Every morning, a notification with what\'s overdue, what\'s due today and how your budget is doing. Tap it and Jarvis reads your day to you.</string>
+    <string name="brief_on">Send me the brief</string>
+    <string name="brief_time">Time: %1$s</string>
+    <string name="brief_channel">Morning brief</string>
+    <string name="brief_title">Your day</string>
+    <string name="brief_tap">Tap and Jarvis will read it to you.</string>
+    <string name="brief_question">Give me a short summary of my day: what\'s overdue, what\'s due today and how my budget is doing.</string>
+    <plurals name="brief_due_today">
+        <item quantity="one">%1$d due today</item>
+        <item quantity="other">%1$d due today</item>
+    </plurals>
     <string name="action_on_date">\u0020on %1$s</string>
     <string name="ask_shortcut">Talk to Jarvis</string>
     <string name="ask_voice_missing">This phone has no voice typing. Type your question instead.</string>
