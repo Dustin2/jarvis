@@ -241,6 +241,10 @@
     <string name="widget_preview_task_overdue">Pagar el internet</string>
     <string name="widget_preview_task_today">Revisar facturas</string>
 
+    <string name="widget_shopping_name">Compras</string>
+    <string name="widget_shopping_description">Lo que falta comprar en tu primera lista: palomea sin abrir la app.</string>
+    <string name="widget_shopping_empty">Nada por comprar</string>
+    <string name="widget_mark_bought">Marcar «%1$s» como comprado</string>
     <string name="undo">Deshacer</string>
     <string name="item_removed">Se quitó «%1$s»</string>
     <plurals name="items_removed">

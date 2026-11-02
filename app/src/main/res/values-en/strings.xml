@@ -240,6 +240,10 @@
     <string name="widget_preview_task_overdue">Pay the internet bill</string>
     <string name="widget_preview_task_today">Review invoices</string>
 
+    <string name="widget_shopping_name">Shopping</string>
+    <string name="widget_shopping_description">What\'s left to buy on your first list: check it off without opening the app.</string>
+    <string name="widget_shopping_empty">Nothing to buy</string>
+    <string name="widget_mark_bought">Mark “%1$s” as bought</string>
     <string name="undo">Undo</string>
     <string name="item_removed">Removed “%1$s”</string>
     <plurals name="items_removed">
