@@ -1,5 +1,8 @@
 package dev.dux.organizer.ask
 
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import java.util.Locale
 import dev.dux.organizer.ui.appLocale
 import dev.dux.organizer.data.formatMoney
@@ -67,7 +70,11 @@ fun AskSheet(
     val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     var question by remember { mutableStateOf("") }
+    /** The question being answered; the field is cleared on send, ready for a follow-up. */
+    var asked by remember { mutableStateOf("") }
     var answer by remember { mutableStateOf("") }
+    /** Earlier exchanges in this sheet, oldest first; the latest few go back to the model as context. */
+    val turns = remember { mutableStateListOf<Turn>() }
     var job by remember { mutableStateOf<Job?>(null) }
     val focus = remember { FocusRequester() }
     val thinking = stringResource(R.string.ask_thinking)
@@ -87,7 +94,7 @@ fun AskSheet(
     }
     suspend fun answerQuestion(q: String, facts: String) {
         var first = true
-        ask.ask(q, facts).collect { answer = if (first) it else answer + it; first = false }
+        ask.ask(q, facts, turns.takeLast(MAX_CONTEXT_TURNS)).collect { answer = if (first) it else answer + it; first = false }
         if (spoken) speaker.speak(answer, TextToSpeech.QUEUE_FLUSH, null, "answer")
     }
     fun launch(block: suspend () -> Unit) {
@@ -95,16 +102,21 @@ fun AskSheet(
     }
     fun send(byVoice: Boolean = false) {
         if (question.isBlank() || job?.isActive == true) return
+        // The previous exchange becomes context, unless it never got a real answer.
+        if (asked.isNotEmpty() && answer.isNotEmpty() && answer != thinking && answer != failed) turns += Turn(asked, answer)
+        asked = question.trim()
+        question = ""
         speaker.stop()
         proposal = null
         undo = null
         spoken = byVoice
         answer = thinking
         launch {
-            val q = question.trim()
+            val q = asked
             val d = data()
             // A question mark means a question: no need to look for an action.
-            val action = if (q.endsWith("?")) null else parseAction(ask.proposeAction(q, d.facts()), q, d.open, d.lists, d.today, d.categories)
+            val action = if (q.endsWith("?")) null
+            else parseAction(ask.proposeAction(q, d.facts(), turns.takeLast(MAX_CONTEXT_TURNS)), q, d.open, d.lists, d.today, d.categories)
             if (action == null) answerQuestion(q, d.facts())
             else {
                 proposal = action
@@ -122,7 +134,7 @@ fun AskSheet(
     fun notAnAction() {
         proposal = null
         answer = thinking
-        launch { answerQuestion(question.trim(), data().facts()) }
+        launch { answerQuestion(asked, data().facts()) }
     }
     // The system dictation screen: no microphone permission needed in Jarvis.
     val listen = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -150,7 +162,10 @@ fun AskSheet(
     // A failed warm-up is not shown: the first question loads the model again and reports the error then.
     LaunchedEffect(Unit) { runCatching { ask.warmUp() } }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberBottomSheetState(SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))) {
-        Column(Modifier.padding(start = 24.dp, end = 24.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(
+            Modifier.verticalScroll(rememberScrollState()).padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
             Text(stringResource(R.string.ask_jarvis), style = MaterialTheme.typography.titleLarge)
             if (!ask.installed) {
                 Text(stringResource(R.string.ask_no_model), style = MaterialTheme.typography.bodyLarge)
@@ -170,6 +185,7 @@ fun AskSheet(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { send() }),
             )
+            if (asked.isNotEmpty()) Text(asked, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (answer.isNotEmpty()) Text(answer, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
             undo?.let { revert ->
                 TextButton(onClick = {
@@ -183,9 +199,19 @@ fun AskSheet(
                     TextButton(onClick = ::notAnAction) { Text(stringResource(R.string.action_not)) }
                 }
             }
+            // Earlier in this conversation, newest first and dimmed: the current answer stays on top, next to the field.
+            turns.asReversed().take(MAX_CONTEXT_TURNS).forEach { turn ->
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(turn.question, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(turn.answer, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         }
     }
 }
+
+/** How many earlier exchanges go back to the model: enough for "la primera", short enough to stay fast. */
+private const val MAX_CONTEXT_TURNS = 3
 
 /** Android's built-in text to speech in the app's language, shut down when the sheet closes. */
 @Composable
