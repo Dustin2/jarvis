@@ -1,5 +1,6 @@
 package dev.dux.organizer.ui
 
+import dev.dux.organizer.ask.AskStart
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.padding
@@ -81,7 +82,7 @@ fun JarvisApp(
     onTaskOpened: () -> Unit = {},
     capture: Boolean = false,
     onCaptureShown: () -> Unit = {},
-    askByVoice: Boolean = false,
+    askStart: AskStart? = null,
     onAskShown: () -> Unit = {},
 ) {
     // The back stack saves itself (rotation, process death); that is why the keys are @Serializable.
@@ -101,8 +102,8 @@ fun JarvisApp(
     val app = LocalContext.current.app
     // Hoisted so the search can open Compras on a given list.
     var tab by rememberSaveable { mutableStateOf(Tab.Today) }
-    LaunchedEffect(askByVoice) {
-        if (askByVoice) {
+    LaunchedEffect(askStart) {
+        if (askStart != null) {
             // Pregúntale a Jarvis lives in Mi día.
             while (backStack.size > 1) backStack.removeLastOrNull()
             tab = Tab.Today
@@ -137,7 +138,7 @@ fun JarvisApp(
                     listToOpen = listToOpen,
                     onListOpened = { listToOpen = null },
                     captureRequested = capture,
-                    askByVoice = askByVoice,
+                    askStart = askStart,
                     onAskShown = onAskShown,
                     onCaptureShown = onCaptureShown,
                 )
@@ -146,7 +147,7 @@ fun JarvisApp(
                 TaskDetailScreen(viewModel { TaskDetailViewModel(key.id, app.tasks, app.projects) }, onBack = { backStack.removeLastOrNull() })
             }
             entry<Settings> {
-                SettingsScreen(viewModel { SettingsViewModel(app.backups, app.contentResolver, app.autoBackup, app.askJarvis) }, onBack = { backStack.removeLastOrNull() })
+                SettingsScreen(viewModel { SettingsViewModel(app.backups, app.contentResolver, app.autoBackup, app.askJarvis, app.morningBrief) }, onBack = { backStack.removeLastOrNull() })
             }
             entry<Search> {
                 SearchScreen(
@@ -210,7 +211,7 @@ private fun MainScreen(
     onListOpened: () -> Unit,
     captureRequested: Boolean,
     onCaptureShown: () -> Unit,
-    askByVoice: Boolean,
+    askStart: AskStart?,
     onAskShown: () -> Unit,
 ) {
     LaunchedEffect(listToOpen) {
@@ -263,7 +264,7 @@ private fun MainScreen(
     ) { padding ->
         val modifier = Modifier.padding(padding)
         when (tab) {
-            Tab.Today -> TodayScreen(todayVm, onOpenTask, onOpenSettings, onOpenFinances, onSearch, offerUndo, modifier, askByVoice, onAskShown)
+            Tab.Today -> TodayScreen(todayVm, onOpenTask, onOpenSettings, onOpenFinances, onSearch, offerUndo, modifier, askStart, onAskShown)
             Tab.Tasks -> TasksScreen(tasksVm, onOpenTask, onSearch, offerUndo, modifier)
             Tab.Projects -> ProjectsScreen(projectsVm, onOpenProject, onSearch, modifier)
             Tab.Shopping -> ShoppingScreen(shoppingVm, offerUndo, onSearch, modifier)

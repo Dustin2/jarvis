@@ -11,6 +11,7 @@ import dev.dux.organizer.data.TaskRepository
 import java.text.Normalizer
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.temporal.TemporalAdjusters
 
 /** Something Jarvis can do after the user confirms it. Built only from data that exists (see [parseAction]). */
@@ -19,7 +20,7 @@ sealed interface JarvisAction {
     data class CompleteTask(val task: Task) : JarvisAction
     data class CreateTask(val title: String, val due: LocalDate?) : JarvisAction
     /** Expense or income: the category decides, as in the Finanzas screen. Dated today. */
-    data class RecordMovement(val category: Category, val amountCents: Long, val note: String?) : JarvisAction
+    data class RecordMovement(val category: Category, val amountCents: Long, val note: String?, val date: LocalDate) : JarvisAction
 }
 
 /**
@@ -61,25 +62,55 @@ fun parseAction(
             if (Regex("""\d[\d,.]*""").findAll(command).none { parseMoney(it.value.trimEnd('.', ',')) == amount }) return null
             val wanted = fold(fields["categoria"] ?: return null)
             val category = categories.filter { !it.archived }.find { fold(it.name) == wanted } ?: return null
-            JarvisAction.RecordMovement(category, amount, fields["nota"]?.trim()?.takeIf { it.isNotEmpty() })
+            // Money already moved: "el lunes" is last Monday; a date that is still to come is not accepted.
+            val date = fields["fecha"]?.let { relativeDate(it, today, past = true) }?.takeIf { !it.isAfter(today) } ?: today
+            JarvisAction.RecordMovement(category, amount, fields["nota"]?.trim()?.takeIf { it.isNotEmpty() }, date)
         }
         else -> null
     }
 }
 
 /**
- * "mañana", "el viernes", "on Friday", "2026-11-02" → a date; anything else → null (no due date rather than a wrong one).
- * Spanish and English words both work, whatever the app's language: the prompt asks for words, not dates.
+ * Words the model copies from the command → a date; anything unknown → null (no date rather than a wrong one).
+ * Spanish and English both work, whatever the app's language: "mañana", "en 3 días", "el 15", "la próxima
+ * semana", "el viernes", "on the 15th", "in 2 weeks", "2026-11-02". [past]: for money already spent, so
+ * "el lunes" and "el 15" mean the last ones, not the next ones.
  */
-fun relativeDate(text: String, today: LocalDate): LocalDate? {
-    val word = fold(text).removePrefix("el ").removePrefix("on ").removePrefix("next ").trim()
-    runCatching { return LocalDate.parse(word) }
-    return when (word) {
-        "hoy", "today" -> today
-        "manana", "tomorrow" -> today.plusDays(1)
-        "pasado manana", "day after tomorrow", "the day after tomorrow" -> today.plusDays(2)
-        else -> weekdays[word]?.let { today.with(TemporalAdjusters.next(it)) }
+fun relativeDate(text: String, today: LocalDate, past: Boolean = false): LocalDate? {
+    val words = fold(text).trim().removeSuffix(".")
+    runCatching { return LocalDate.parse(words) }
+    when (words) {
+        "hoy", "today" -> return today
+        "manana", "tomorrow" -> return today.plusDays(1)
+        "pasado manana", "day after tomorrow", "the day after tomorrow" -> return today.plusDays(2)
+        "ayer", "yesterday" -> return today.minusDays(1)
+        "antier", "anteayer", "antes de ayer", "day before yesterday", "the day before yesterday" -> return today.minusDays(2)
+        "la proxima semana", "proxima semana", "la semana que viene", "next week" -> return today.plusWeeks(1)
     }
+    inAmount.matchEntire(words)?.let { m ->
+        val n = m.groupValues[2].toLongOrNull() ?: 1 // "un", "una", "a", "an"
+        return if (m.groupValues[3].startsWith("d")) today.plusDays(n) else today.plusWeeks(n)
+    }
+    dayOfMonth.matchEntire(words)?.let { m -> return nearestDayOfMonth(m.groupValues[1].toInt(), today, past) }
+    val day = weekdays[words.removePrefix("el ").removePrefix("este ").removePrefix("on ").removePrefix("next ").removePrefix("this ")] ?: return null
+    return today.with(if (past) TemporalAdjusters.previous(day) else TemporalAdjusters.next(day))
+}
+
+private val inAmount = Regex("""(en|in) (\d{1,3}|un|una|a|an) (dias?|days?|semanas?|weeks?)""")
+private val dayOfMonth = Regex("""(?:el (?:dia )?|on (?:the )?|the )?(\d{1,2})(?:st|nd|rd|th)?""")
+
+/** The next (or, for [past], the last) date with that day of the month; skips months that do not have it. */
+private fun nearestDayOfMonth(day: Int, today: LocalDate, past: Boolean): LocalDate? {
+    if (day !in 1..31) return null
+    var month = YearMonth.from(today)
+    repeat(12) {
+        if (day <= month.lengthOfMonth()) {
+            val date = month.atDay(day)
+            if (if (past) !date.isAfter(today) else !date.isBefore(today)) return date
+        }
+        month = if (past) month.minusMonths(1) else month.plusMonths(1)
+    }
+    return null
 }
 
 private val weekdays = mapOf(
@@ -104,6 +135,6 @@ suspend fun JarvisAction.run(tasks: TaskRepository, shopping: ShoppingRepository
         is JarvisAction.CompleteTask -> tasks.complete(task.id)
         is JarvisAction.CreateTask -> if (tasks.capture(title, dueDate = due, id = id)) ({ tasks.delete(id) }) else null
         is JarvisAction.RecordMovement ->
-            if (finance.addMovement(amountCents, category.id, today, note.orEmpty(), id)) ({ finance.deleteMovement(id) }) else null
+            if (finance.addMovement(amountCents, category.id, date, note.orEmpty(), id)) ({ finance.deleteMovement(id) }) else null
     }
 }

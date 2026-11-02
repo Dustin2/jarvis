@@ -1,5 +1,20 @@
 package dev.dux.organizer.settings
 
+import dev.dux.organizer.reminders.BriefSettings
+import androidx.core.app.NotificationManagerCompat
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.Switch
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.layout.Row
+import android.text.format.DateFormat
+import android.Manifest
+import java.time.LocalTime
+import dev.dux.organizer.reminders.MorningBrief
 import dev.dux.organizer.ui.appLocale
 import dev.dux.organizer.ask.ModelState
 import dev.dux.organizer.ask.MODEL_BYTES
@@ -76,6 +91,7 @@ class SettingsViewModel(
     private val resolver: ContentResolver,
     private val autoBackup: AutoBackup,
     private val ask: AskJarvis,
+    private val morningBrief: MorningBrief,
 ) : ViewModel() {
     /** null = still loading. */
     val auto = autoBackup.state.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
@@ -142,6 +158,12 @@ class SettingsViewModel(
 
     val model = ask.state.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    val brief = morningBrief.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun setBriefEnabled(enabled: Boolean) = viewModelScope.launch { morningBrief.setEnabled(enabled) }
+
+    fun setBriefTime(time: LocalTime) = viewModelScope.launch { morningBrief.setTime(time) }
+
     fun downloadModel() = run(R.string.model_failed) { ask.download() }
 
     fun deleteModel() = run(R.string.model_failed) { ask.delete() }
@@ -182,6 +204,7 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
     }
     val auto by vm.auto.collectAsStateWithLifecycle()
     val model by vm.model.collectAsStateWithLifecycle()
+    val brief by vm.brief.collectAsStateWithLifecycle()
 
     vm.message?.let { message ->
         val text = stringResource(message.text) + (message.detail?.let { "\n$it" } ?: "")
@@ -208,6 +231,7 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
         ) {
             // Automatic first: it is the one that protects the data without remembering to do anything.
             auto?.let { AutoBackupSection(it, vm, onPickFolder = { folderLauncher.launch(null) }) }
+            brief?.let { BriefSection(it, vm) }
             model?.let { ModelSection(it, vm) }
             Text(stringResource(R.string.backup), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp).asHeading())
             Text(stringResource(R.string.backup_explanation), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -301,4 +325,50 @@ private fun ModelSection(state: ModelState, vm: SettingsViewModel) {
         }
     }
     Text(stringResource(R.string.model_credit), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+/** Morning brief: on/off and the time. Turning it on asks for the notification permission if needed. */
+// TimePicker is still marked experimental, but it is the official M3 picker.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BriefSection(settings: BriefSettings, vm: SettingsViewModel) {
+    val context = LocalContext.current
+    var notificationsOff by remember { mutableStateOf(!NotificationManagerCompat.from(context).areNotificationsEnabled()) }
+    val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> notificationsOff = !granted }
+    var picking by remember { mutableStateOf(false) }
+    val is24Hour = DateFormat.is24HourFormat(context)
+    val locale = appLocale()
+    val timeText = settings.time.format(DateTimeFormatter.ofPattern(if (is24Hour) "H:mm" else "h:mm a", locale))
+
+    Text(stringResource(R.string.brief_setting), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp).asHeading())
+    Text(stringResource(R.string.brief_explanation), color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Row(
+        Modifier.fillMaxWidth().toggleable(settings.enabled, role = Role.Switch) { on ->
+            vm.setBriefEnabled(on)
+            if (on && notificationsOff) askPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(stringResource(R.string.brief_on), Modifier.weight(1f))
+        Switch(checked = settings.enabled, onCheckedChange = null)
+    }
+    if (settings.enabled) {
+        OutlinedButton(onClick = { picking = true }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.brief_time, timeText)) }
+        if (notificationsOff) Text(stringResource(R.string.notifications_off), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+    }
+    if (picking) {
+        val state = rememberTimePickerState(settings.time.hour, settings.time.minute, is24Hour = is24Hour)
+        AlertDialog(
+            onDismissRequest = { picking = false },
+            title = { Text(stringResource(R.string.pick_time)) },
+            text = { TimePicker(state) },
+            confirmButton = {
+                TextButton(onClick = {
+                    picking = false
+                    vm.setBriefTime(LocalTime.of(state.hour, state.minute))
+                }) { Text(stringResource(R.string.accept)) }
+            },
+            dismissButton = { TextButton(onClick = { picking = false }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
 }

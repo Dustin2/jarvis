@@ -81,6 +81,16 @@ class ActionsTest {
         assertEquals(LocalDate.of(2026, 11, 2), relativeDate("2026-11-02", today))
         assertNull(relativeDate("29-10-2026", today))
         assertEquals(today.plusDays(1), relativeDate("Tomorrow", today))
+        assertEquals(today.plusDays(3), relativeDate("en 3 días", today))
+        assertEquals(today.plusWeeks(2), relativeDate("in 2 weeks", today))
+        assertEquals(today.plusDays(1), relativeDate("en un día", today))
+        assertEquals(today.plusWeeks(1), relativeDate("la próxima semana", today))
+        assertEquals(LocalDate.of(2026, 11, 15), relativeDate("el 15", today)) // already past in October → November
+        assertEquals(LocalDate.of(2026, 10, 31), relativeDate("on the 31st", today))
+        assertEquals(LocalDate.of(2026, 12, 31), relativeDate("el 31", LocalDate.of(2026, 11, 1))) // November has no 31
+        assertEquals(LocalDate.of(2026, 10, 22), relativeDate("el jueves", today, past = true)) // last Thursday, not today
+        assertNull(relativeDate("el 32", today))
+        assertNull(relativeDate("pronto", today))
         assertEquals(LocalDate.of(2026, 10, 30), relativeDate("on Friday", today))
     }
 
@@ -92,13 +102,22 @@ class ActionsTest {
     @Test
     fun recordsMovementsTheUserSaid() {
         assertEquals(
-            JarvisAction.RecordMovement(food, 250_00, "tacos"),
+            JarvisAction.RecordMovement(food, 250_00, "tacos", today),
             money("""{"accion":"registrar_movimiento","monto":"250","categoria":"comida","nota":"tacos"}""", "Gasté 250 en tacos"),
         )
         assertEquals(
-            JarvisAction.RecordMovement(salary, 5_000_00, null),
+            JarvisAction.RecordMovement(salary, 5_000_00, null, today),
             money("""{"accion":"registrar_movimiento","monto":"5000","categoria":"Sueldo","nota":null}""", "Me pagaron 5,000 de sueldo"),
         )
+    }
+
+    @Test
+    fun movementsUseThePastDateTheUserSaid() {
+        fun dated(fecha: String) = money("""{"accion":"registrar_movimiento","monto":"200","categoria":"Comida","fecha":"$fecha"}""", "Gasté 200 en comida")
+        assertEquals(today.minusDays(1), (dated("ayer") as JarvisAction.RecordMovement).date)
+        assertEquals(LocalDate.of(2026, 10, 26), (dated("el lunes") as JarvisAction.RecordMovement).date) // last Monday
+        assertEquals(LocalDate.of(2026, 10, 15), (dated("el 15") as JarvisAction.RecordMovement).date)
+        assertEquals(today, (dated("mañana") as JarvisAction.RecordMovement).date) // not spent yet: today, not a future date
     }
 
     @Test
