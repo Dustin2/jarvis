@@ -61,6 +61,12 @@ class JarvisApplication : Application() {
             tasks.open.drop(1).collectLatest { TodayWidget().updateAll(this@JarvisApplication) }
         }
     }
+
+    /** UI_HIDDEN: no screen of the app is visible any more. */
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= TRIM_MEMORY_UI_HIDDEN) askJarvis.onAppHidden()
+    }
 }
 
 /**

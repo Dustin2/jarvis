@@ -1,5 +1,7 @@
 package dev.dux.organizer.ask
 
+import java.time.LocalTime
+import java.time.LocalDateTime
 import dev.dux.organizer.data.parseMoney
 import dev.dux.organizer.data.FinanceRepository
 import dev.dux.organizer.data.Category
@@ -18,7 +20,8 @@ import java.time.temporal.TemporalAdjusters
 sealed interface JarvisAction {
     data class AddShopping(val list: ShoppingList, val item: String, val quantity: String?) : JarvisAction
     data class CompleteTask(val task: Task) : JarvisAction
-    data class CreateTask(val title: String, val due: LocalDate?) : JarvisAction
+    /** [remindAt]: "recuérdame a las 5…" also sets the task's reminder. */
+    data class CreateTask(val title: String, val due: LocalDate?, val remindAt: LocalDateTime? = null) : JarvisAction
     /** Expense or income: the category decides, as in the Finanzas screen. Dated today. */
     data class RecordMovement(val category: Category, val amountCents: Long, val note: String?, val date: LocalDate) : JarvisAction
 }
@@ -34,6 +37,7 @@ fun parseAction(
     lists: List<ShoppingList>,
     today: LocalDate,
     categories: List<Category> = emptyList(),
+    now: LocalDateTime = today.atStartOfDay(),
 ): JarvisAction? {
     val fields = jsonFields(output)
     return when (fields["accion"]) {
@@ -54,7 +58,12 @@ fun parseAction(
         }
         "crear_tarea" -> {
             val title = fields["titulo"]?.trim()?.takeIf { it.isNotEmpty() } ?: return null
-            JarvisAction.CreateTask(title.replaceFirstChar { it.uppercase() }, fields["vence"]?.let { relativeDate(it, today) })
+            // The model sometimes puts the time inside "vence" ("hoy a las 5"): split it off.
+            val (dayWords, timeWords) = splitTime(fields["vence"])
+            val due = dayWords?.let { relativeDate(it, today) }
+            // Or the whole time ("in 2 hours") lands in "vence": if it is not a date, try it as a time.
+            val remindAt = (fields["hora"] ?: timeWords ?: dayWords.takeIf { due == null })?.let { reminderTime(it, due, now) }
+            JarvisAction.CreateTask(title.replaceFirstChar { it.uppercase() }, due ?: remindAt?.toLocalDate(), remindAt)
         }
         "registrar_movimiento" -> {
             val amount = fields["monto"]?.let(::parseMoney) ?: return null
@@ -113,6 +122,44 @@ private fun nearestDayOfMonth(day: Int, today: LocalDate, past: Boolean): LocalD
     return null
 }
 
+/**
+ * "a las 5", "17:30", "5 pm", "5:30 de la tarde", "en una hora", "in 30 minutes", "mediodía" → when to remind,
+ * on [date] (today if null). An hour without morning/afternoon picks the next one still ahead ("a las 5" at
+ * 9:00 is 17:00); with no date and the time already gone, tomorrow. Unknown or past → null.
+ */
+fun reminderTime(text: String, date: LocalDate?, now: LocalDateTime): LocalDateTime? {
+    val words = fold(text).trim().removeSuffix(".")
+    inDuration.matchEntire(words)?.let { m ->
+        val n = m.groupValues[2].toLongOrNull() ?: 1 // "una", "un", "an", "a"
+        val at = if (m.groupValues[3].startsWith("h")) now.plusHours(n) else now.plusMinutes(n)
+        return at.withSecond(0).withNano(0)
+    }
+    val (hour, minute, half) = when (words.removePrefix("al ").removePrefix("at ")) {
+        "mediodia", "noon" -> Triple(12, 0, "pm")
+        else -> clockTime.matchEntire(words)?.let { m -> Triple(m.groupValues[1].toInt(), m.groupValues[2].ifEmpty { "0" }.toInt(), m.groupValues[3]) } ?: return null
+    } ?: return null
+    if (hour > 23 || minute > 59) return null
+    val candidates = when {
+        half.isEmpty() -> if (hour in 1..11) listOf(hour, hour + 12) else listOf(hour)
+        half in morning -> listOf(hour % 12)
+        else -> listOf(hour % 12 + 12)
+    }
+    val day = date ?: now.toLocalDate()
+    candidates.map { day.atTime(it, minute) }.firstOrNull { it.isAfter(now) }?.let { return it }
+    return if (date == null) day.plusDays(1).atTime(candidates.first(), minute) else null
+}
+
+/** "hoy a las 5" → ("hoy", "a las 5"); "a las 5" → (null, "a las 5"); "mañana" → ("mañana", null). */
+private fun splitTime(text: String?): Pair<String?, String?> {
+    val t = text?.trim()?.takeIf { it.isNotEmpty() } ?: return null to null
+    val i = Regex("""\b(a las|a la|at)\b""", RegexOption.IGNORE_CASE).find(t)?.range?.first ?: return t to null
+    return t.substring(0, i).trim().ifEmpty { null } to t.substring(i).trim()
+}
+
+private val inDuration = Regex("""(en|in) (\d{1,3}|una|un|an|a) (horas?|hours?|minutos?|minutes?|mins?)""")
+private val clockTime = Regex("""(?:a las |a la |at )?(\d{1,2})(?::(\d{2}))? ?(am|pm|a\.m\.|p\.m\.|de la manana|de la tarde|de la noche|in the morning|in the afternoon|in the evening|at night)?""")
+private val morning = setOf("am", "a.m.", "de la manana", "in the morning")
+
 private val weekdays = mapOf(
     "lunes" to DayOfWeek.MONDAY, "martes" to DayOfWeek.TUESDAY, "miercoles" to DayOfWeek.WEDNESDAY, "jueves" to DayOfWeek.THURSDAY,
     "viernes" to DayOfWeek.FRIDAY, "sabado" to DayOfWeek.SATURDAY, "domingo" to DayOfWeek.SUNDAY,
@@ -133,7 +180,11 @@ suspend fun JarvisAction.run(tasks: TaskRepository, shopping: ShoppingRepository
     return when (this) {
         is JarvisAction.AddShopping -> if (shopping.addItem(list.id, item, quantity.orEmpty(), id)) ({ shopping.deleteItem(id) }) else null
         is JarvisAction.CompleteTask -> tasks.complete(task.id)
-        is JarvisAction.CreateTask -> if (tasks.capture(title, dueDate = due, id = id)) ({ tasks.delete(id) }) else null
+        is JarvisAction.CreateTask -> if (tasks.capture(title, dueDate = due, id = id)) {
+            remindAt?.let { tasks.setReminder(id, it) }
+            // Deleting also cancels the alarm.
+            ({ tasks.delete(id) })
+        } else null
         is JarvisAction.RecordMovement ->
             if (finance.addMovement(amountCents, category.id, date, note.orEmpty(), id)) ({ finance.deleteMovement(id) }) else null
     }
