@@ -1,5 +1,7 @@
 package dev.dux.organizer.ask
 
+import java.time.format.FormatStyle
+import java.time.LocalDateTime
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -120,7 +122,7 @@ fun AskSheet(
             val d = data()
             // A question mark means a question: no need to look for an action.
             val action = if (q.endsWith("?")) null
-            else parseAction(ask.proposeAction(q, d.facts(), turns.takeLast(MAX_CONTEXT_TURNS)), q, d.open, d.lists, d.today, d.categories)
+            else parseAction(ask.proposeAction(q, d.facts(), turns.takeLast(MAX_CONTEXT_TURNS)), q, d.open, d.lists, d.today, d.categories, LocalDateTime.now())
             if (action == null) answerQuestion(q, d.facts())
             else {
                 proposal = action
@@ -262,6 +264,12 @@ private fun actionTexts(action: JarvisAction, res: Resources): Pair<String, Stri
         res.getString(R.string.action_record, what) to res.getString(R.string.action_recorded, what)
     }
     is JarvisAction.CreateTask -> {
+        val locale = res.configuration.locales[0]
+        action.remindAt?.let { at ->
+            val day = at.toLocalDate().format(DateTimeFormatter.ofPattern(res.getString(R.string.date_long), locale))
+            val time = at.toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale))
+            return res.getString(R.string.action_create_task_reminder, action.title, day, time) to res.getString(R.string.action_created_task, action.title)
+        }
         val ask = action.due?.let { res.getString(R.string.action_create_task_due, action.title, it.format(DateTimeFormatter.ofPattern(res.getString(R.string.date_long), res.configuration.locales[0]))) }
             ?: res.getString(R.string.action_create_task, action.title)
         ask to res.getString(R.string.action_created_task, action.title)

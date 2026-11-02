@@ -73,6 +73,43 @@ class ActionsTest {
     }
 
     @Test
+    fun reminderTimes() {
+        val nine = today.atTime(9, 0)
+        assertEquals(today.atTime(17, 0), reminderTime("a las 5", null, nine)) // 5 a.m. already gone → 5 p.m.
+        assertEquals(today.atTime(10, 0), reminderTime("a las 10", null, nine)) // 10 a.m. still ahead
+        assertEquals(today.atTime(17, 30), reminderTime("17:30", null, nine))
+        assertEquals(today.atTime(17, 0), reminderTime("5 de la tarde", null, nine))
+        assertEquals(today.plusDays(1).atTime(8, 0), reminderTime("8 am", null, nine)) // gone today → tomorrow
+        assertEquals(today.plusDays(1).atTime(5, 0), reminderTime("a las 5", today.plusDays(1), nine)) // other day: first one
+        assertEquals(nine.plusHours(1), reminderTime("en una hora", null, nine))
+        assertEquals(nine.plusMinutes(30), reminderTime("in 30 minutes", null, nine))
+        assertEquals(today.atTime(12, 0), reminderTime("mediodía", null, nine))
+        assertNull(reminderTime("8 am", today, nine)) // that day, already past
+        assertNull(reminderTime("a las 25", null, nine))
+        assertNull(reminderTime("luego", null, nine))
+    }
+
+    @Test
+    fun createsTaskWithReminder() {
+        val nine = today.atTime(9, 0)
+        fun parse(json: String) = parseAction(json, "", open, lists, today, now = nine)
+        assertEquals(
+            JarvisAction.CreateTask("Llamar a Juan", today, today.atTime(17, 0)),
+            parse("""{"accion":"crear_tarea","titulo":"llamar a Juan","vence":null,"hora":"a las 5"}"""),
+        )
+        // Time inside "vence".
+        assertEquals(
+            JarvisAction.CreateTask("Pagar la luz", today.plusDays(1), today.plusDays(1).atTime(10, 0)),
+            parse("""{"accion":"crear_tarea","titulo":"pagar la luz","vence":"mañana a las 10"}"""),
+        )
+        // A time where the date should be.
+        assertEquals(
+            JarvisAction.CreateTask("Call John", today, nine.plusHours(2)),
+            parse("""{"accion":"crear_tarea","titulo":"call John","vence":"in 2 hours"}"""),
+        )
+    }
+
+    @Test
     fun relativeDates() {
         assertEquals(today, relativeDate("hoy", today))
         assertEquals(today.plusDays(2), relativeDate("Pasado mañana", today))
