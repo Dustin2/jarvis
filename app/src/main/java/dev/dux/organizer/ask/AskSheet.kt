@@ -147,6 +147,8 @@ fun AskSheet(
     }
     // From the widget or the app shortcut: straight to dictation; otherwise ready to type.
     LaunchedEffect(Unit) { if (ask.installed) { if (startListening) dictate() else focus.requestFocus() } }
+    // A failed warm-up is not shown: the first question loads the model again and reports the error then.
+    LaunchedEffect(Unit) { runCatching { ask.warmUp() } }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberBottomSheetState(SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))) {
         Column(Modifier.padding(start = 24.dp, end = 24.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(stringResource(R.string.ask_jarvis), style = MaterialTheme.typography.titleLarge)
