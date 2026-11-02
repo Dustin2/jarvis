@@ -1,5 +1,6 @@
 package dev.dux.organizer.ask
 
+import com.google.ai.edge.litertlm.Message
 import dev.dux.organizer.data.MoneyKind
 import dev.dux.organizer.R
 import dev.dux.organizer.data.Category
@@ -132,10 +133,12 @@ class AskJarvis(private val context: Context) {
     }
 
     /** Streams the answer. The first call loads the model (several seconds). */
-    fun ask(question: String, facts: String): Flow<String> = generate(context.getString(R.string.ask_prompt_answer), facts, question)
+    fun ask(question: String, facts: String, history: List<Turn> = emptyList()): Flow<String> =
+        generate(context.getString(R.string.ask_prompt_answer), facts, question, history)
 
     /** The model's raw action JSON for [command]; see [parseAction]. */
-    suspend fun proposeAction(command: String, facts: String): String = generate(context.getString(R.string.ask_prompt_action), facts, command).toList().joinToString("")
+    suspend fun proposeAction(command: String, facts: String, history: List<Turn> = emptyList()): String =
+        generate(context.getString(R.string.ask_prompt_action), facts, command, history).toList().joinToString("")
 
     /** Loads the model (~10 s on an S25) if it is not loaded yet; kept until the process dies or the model is deleted. */
     private suspend fun engine(): Engine = lock.withLock {
@@ -149,10 +152,12 @@ class AskJarvis(private val context: Context) {
         if (installed) engine()
     }
 
-    private fun generate(instruction: String, facts: String, prompt: String): Flow<String> = flow {
+    /** [history]: earlier turns of this conversation, so "marca la primera" knows what "la primera" is. */
+    private fun generate(instruction: String, facts: String, prompt: String, history: List<Turn>): Flow<String> = flow {
         val engine = engine()
         val config = ConversationConfig(
             systemInstruction = Contents.of("$instruction\n\n$facts"),
+            initialMessages = history.flatMap { listOf(Message.user(it.question), Message.model(it.answer)) },
             samplerConfig = SamplerConfig(topK = 40, topP = 0.95, temperature = 0.3),
         )
         engine.createConversation(config).use { conversation ->
@@ -160,6 +165,9 @@ class AskJarvis(private val context: Context) {
         }
     }
 }
+
+/** One question and what Jarvis answered, kept while the sheet is open. */
+data class Turn(val question: String, val answer: String)
 
 /** What Jarvis knows when asked: the facts text for the model, and the real records to check actions against. */
 data class AskData(
