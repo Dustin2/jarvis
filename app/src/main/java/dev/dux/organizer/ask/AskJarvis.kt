@@ -137,12 +137,20 @@ class AskJarvis(private val context: Context) {
     /** The model's raw action JSON for [command]; see [parseAction]. */
     suspend fun proposeAction(command: String, facts: String): String = generate(context.getString(R.string.ask_prompt_action), facts, command).toList().joinToString("")
 
+    /** Loads the model (~10 s on an S25) if it is not loaded yet; kept until the process dies or the model is deleted. */
+    private suspend fun engine(): Engine = lock.withLock {
+        engine ?: withContext(Dispatchers.Default) {
+            Engine(EngineConfig(modelPath = modelFile.path, backend = Backend.GPU(), cacheDir = context.cacheDir.path)).also { it.initialize() }
+        }.also { engine = it }
+    }
+
+    /** Called when the sheet opens: the model loads while the user types or speaks, not after they send. */
+    suspend fun warmUp() {
+        if (installed) engine()
+    }
+
     private fun generate(instruction: String, facts: String, prompt: String): Flow<String> = flow {
-        val engine = lock.withLock {
-            engine ?: withContext(Dispatchers.Default) {
-                Engine(EngineConfig(modelPath = modelFile.path, backend = Backend.GPU(), cacheDir = context.cacheDir.path)).also { it.initialize() }
-            }.also { engine = it }
-        }
+        val engine = engine()
         val config = ConversationConfig(
             systemInstruction = Contents.of("$instruction\n\n$facts"),
             samplerConfig = SamplerConfig(topK = 40, topP = 0.95, temperature = 0.3),
