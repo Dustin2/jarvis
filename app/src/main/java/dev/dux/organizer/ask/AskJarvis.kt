@@ -1,5 +1,10 @@
 package dev.dux.organizer.ask
 
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.CoroutineScope
+import java.util.concurrent.atomic.AtomicInteger
 import com.google.ai.edge.litertlm.Message
 import dev.dux.organizer.data.MoneyKind
 import dev.dux.organizer.R
@@ -65,6 +70,26 @@ class AskJarvis(private val context: Context) {
     private val downloads get() = context.getSystemService(DownloadManager::class.java)
     private val lock = Mutex()
     private var engine: Engine? = null
+    /** Answers in progress: the model is never released under one. */
+    private val active = AtomicInteger(0)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    /**
+     * No screen of the app is visible: free the model's ~2 GB right away. Not after a delay: Android freezes
+     * background apps within seconds, so a timer would only run once the app is opened again. Coming back,
+     * the sheet's warm-up loads it while the user types.
+     */
+    fun onAppHidden() {
+        if (engine == null) return
+        scope.launch {
+            lock.withLock {
+                if (active.get() == 0) {
+                    engine?.close()
+                    engine = null
+                }
+            }
+        }
+    }
 
     val installed: Boolean get() = modelFile.exists()
 
@@ -154,7 +179,15 @@ class AskJarvis(private val context: Context) {
 
     /** [history]: earlier turns of this conversation, so "marca la primera" knows what "la primera" is. */
     private fun generate(instruction: String, facts: String, prompt: String, history: List<Turn>): Flow<String> = flow {
-        val engine = engine()
+        active.incrementAndGet()
+        try {
+            emitAll(answer(engine(), instruction, facts, prompt, history))
+        } finally {
+            active.decrementAndGet()
+        }
+    }
+
+    private fun answer(engine: Engine, instruction: String, facts: String, prompt: String, history: List<Turn>): Flow<String> = flow {
         val config = ConversationConfig(
             systemInstruction = Contents.of("$instruction\n\n$facts"),
             initialMessages = history.flatMap { listOf(Message.user(it.question), Message.model(it.answer)) },
