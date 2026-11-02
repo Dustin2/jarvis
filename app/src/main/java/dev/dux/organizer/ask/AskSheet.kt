@@ -58,13 +58,16 @@ import dev.dux.organizer.R
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
+/** How the sheet was opened from outside the app: listening right away, or asking for the day (morning brief). */
+enum class AskStart { LISTEN, BRIEF }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AskSheet(
     ask: AskJarvis,
     data: suspend () -> AskData,
     onAction: suspend (JarvisAction) -> (suspend () -> Unit)?,
-    startListening: Boolean = false,
+    start: AskStart? = null,
     onOpenSettings: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -158,8 +161,19 @@ fun AskSheet(
             answer = voiceMissing
         }
     }
-    // From the widget or the app shortcut: straight to dictation; otherwise ready to type.
-    LaunchedEffect(Unit) { if (ask.installed) { if (startListening) dictate() else focus.requestFocus() } }
+    // Widget or shortcut: straight to dictation. Morning brief: ask for the day and read it aloud. Otherwise ready to type.
+    val briefQuestion = stringResource(R.string.brief_question)
+    LaunchedEffect(Unit) {
+        if (!ask.installed) return@LaunchedEffect
+        when (start) {
+            AskStart.LISTEN -> dictate()
+            AskStart.BRIEF -> {
+                question = briefQuestion
+                send(byVoice = true)
+            }
+            null -> focus.requestFocus()
+        }
+    }
     // A failed warm-up is not shown: the first question loads the model again and reports the error then.
     LaunchedEffect(Unit) { runCatching { ask.warmUp() } }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberBottomSheetState(SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))) {

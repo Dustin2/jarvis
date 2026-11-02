@@ -1,5 +1,6 @@
 package dev.dux.organizer.today
 
+import dev.dux.organizer.ask.AskStart
 import dev.dux.organizer.ui.rememberDateFormat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flatMapLatest
@@ -125,7 +126,7 @@ fun TodayScreen(
     onSearch: () -> Unit,
     offerUndo: (String, () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
-    askByVoice: Boolean = false,
+    askStart: AskStart? = null,
     onAskShown: () -> Unit = {},
 ) {
     val resources = LocalResources.current
@@ -137,11 +138,11 @@ fun TodayScreen(
     val (open, projectNames) = state ?: return
     val plan = remember(open, today) { planDay(open, today) }
     var asking by rememberSaveable { mutableStateOf(false) }
-    var listening by remember { mutableStateOf(false) }
-    LaunchedEffect(askByVoice) {
-        if (askByVoice) {
+    var start by remember { mutableStateOf<AskStart?>(null) }
+    LaunchedEffect(askStart) {
+        if (askStart != null) {
             asking = true
-            listening = true
+            start = askStart
             onAskShown()
         }
     }
@@ -153,11 +154,11 @@ fun TodayScreen(
             app.askJarvis,
             data = { AskData(open, projectNames, month, today, app.shopping.lists.first(), app.shopping.allItems.first(), app.finance.categories.first(), labels) },
             onAction = { it.run(app.tasks, app.shopping, app.finance, today) },
-            startListening = listening,
+            start = start,
             onOpenSettings = onOpenSettings,
             onDismiss = {
                 asking = false
-                listening = false
+                start = null
             },
         )
     }

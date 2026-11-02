@@ -1,5 +1,6 @@
 package dev.dux.organizer
 
+import dev.dux.organizer.reminders.MorningBrief
 import android.app.Application
 import android.content.Context
 import androidx.core.content.edit
@@ -37,11 +38,13 @@ class JarvisApplication : Application() {
     val backups by lazy { BackupRepository(database, File(filesDir, "backups"), reminders = reminders) }
     val autoBackup by lazy { AutoBackup(this, backups) }
     val askJarvis by lazy { AskJarvis(this) }
+    val morningBrief by lazy { MorningBrief(this, tasks, finance) }
 
     override fun onCreate() {
         super.onCreate()
         followPhoneLanguage()
         reminders.createChannel()
+        morningBrief.createChannel()
         addAskShortcut()
         MainScope().launch {
             // First start only: the starting lists and categories in the phone's language (then they are the user's data).
@@ -51,6 +54,7 @@ class JarvisApplication : Application() {
             autoBackup.scheduleIfEnabled()
             // Force-stopping the app silently clears its alarms; opening it restores them (and notifies missed ones).
             reminders.syncAll()
+            morningBrief.schedule()
         }
         // Keeps the home screen widget in step with any change to open tasks, wherever it is made.
         MainScope().launch {
