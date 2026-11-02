@@ -7,6 +7,7 @@ import java.util.Locale
 import dev.dux.organizer.ui.appLocale
 import dev.dux.organizer.data.formatMoney
 import dev.dux.organizer.data.MoneyKind
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.material3.TextButton
@@ -240,6 +241,9 @@ private fun actionTexts(action: JarvisAction, res: Resources): Pair<String, Stri
             if (action.category.kind == MoneyKind.INCOME) R.string.action_income else R.string.action_expense,
             formatMoney(action.amountCents),
             action.category.name,
+        ) + if (action.date == LocalDate.now()) "" else res.getString(
+            R.string.action_on_date,
+            action.date.format(DateTimeFormatter.ofPattern(res.getString(R.string.date_long), res.configuration.locales[0])),
         )
         res.getString(R.string.action_record, what) to res.getString(R.string.action_recorded, what)
     }
