@@ -1,5 +1,8 @@
 package dev.dux.organizer.ask
 
+import dev.dux.organizer.data.Priority
+import dev.dux.organizer.data.Frequency
+import dev.dux.organizer.data.Recurrence
 import java.time.LocalTime
 import java.time.LocalDateTime
 import dev.dux.organizer.data.parseMoney
@@ -21,7 +24,16 @@ sealed interface JarvisAction {
     data class AddShopping(val list: ShoppingList, val item: String, val quantity: String?) : JarvisAction
     data class CompleteTask(val task: Task) : JarvisAction
     /** [remindAt]: "recuérdame a las 5…" also sets the task's reminder. */
-    data class CreateTask(val title: String, val due: LocalDate?, val remindAt: LocalDateTime? = null) : JarvisAction
+    data class CreateTask(val title: String, val due: LocalDate?, val remindAt: LocalDateTime? = null, val repeat: Recurrence? = null) : JarvisAction
+    /** Only the non-null fields change. */
+    data class EditTask(
+        val task: Task,
+        val newTitle: String? = null,
+        val due: LocalDate? = null,
+        val remindAt: LocalDateTime? = null,
+        val priority: Priority? = null,
+        val repeat: Recurrence? = null,
+    ) : JarvisAction
     /** Expense or income: the category decides, as in the Finanzas screen. Dated today. */
     data class RecordMovement(val category: Category, val amountCents: Long, val note: String?, val date: LocalDate) : JarvisAction
 }
@@ -51,11 +63,7 @@ fun parseAction(
             val quantity = fields["cantidad"]?.trim()?.takeIf { q -> q.isNotEmpty() && q.filter(Char::isDigit).let { it.isNotEmpty() && it in command } }
             JarvisAction.AddShopping(list, item.replaceFirstChar { it.uppercase() }, quantity)
         }
-        "completar_tarea" -> {
-            val wanted = fold(fields["tarea"] ?: return null)
-            val task = open.find { fold(it.title) == wanted } ?: open.singleOrNull { fold(it.title).contains(wanted) } ?: return null
-            JarvisAction.CompleteTask(task)
-        }
+        "completar_tarea" -> JarvisAction.CompleteTask(findTask(fields["tarea"] ?: return null, open) ?: return null)
         "crear_tarea" -> {
             val title = fields["titulo"]?.trim()?.takeIf { it.isNotEmpty() } ?: return null
             // The model sometimes puts the time inside "vence" ("hoy a las 5"): split it off.
@@ -63,7 +71,28 @@ fun parseAction(
             val due = dayWords?.let { relativeDate(it, today) }
             // Or the whole time ("in 2 hours") lands in "vence": if it is not a date, try it as a time.
             val remindAt = (fields["hora"] ?: timeWords ?: dayWords.takeIf { due == null })?.let { reminderTime(it, due, now) }
-            JarvisAction.CreateTask(title.replaceFirstChar { it.uppercase() }, due ?: remindAt?.toLocalDate(), remindAt)
+            val repeat = fields["repite"]?.let { repeatRule(it, due ?: today) }
+            // "Pay the rent every month" when that task already exists: change it rather than create a duplicate.
+            open.find { fold(it.title) == fold(title) }?.let { existing ->
+                return JarvisAction.EditTask(existing, due = due, remindAt = remindAt, repeat = repeat).takeIf { it != JarvisAction.EditTask(existing) }
+            }
+            JarvisAction.CreateTask(title.replaceFirstChar { it.uppercase() }, due ?: remindAt?.toLocalDate(), remindAt, repeat)
+        }
+        "editar_tarea" -> {
+            val task = findTask(fields["tarea"] ?: return null, open) ?: return null
+            val (dayWords, timeWords) = splitTime(fields["vence"])
+            val due = dayWords?.let { relativeDate(it, today) }
+            val remindAt = (fields["hora"] ?: timeWords ?: dayWords.takeIf { due == null })?.let { reminderTime(it, due ?: task.dueDate, now) }
+            val change = JarvisAction.EditTask(
+                task,
+                newTitle = fields["titulo_nuevo"]?.trim()?.takeIf { it.isNotEmpty() }?.replaceFirstChar { it.uppercase() },
+                due = due,
+                remindAt = remindAt,
+                priority = fields["prioridad"]?.let { priorities[fold(it)] },
+                repeat = fields["repite"]?.let { repeatRule(it, due ?: today) },
+            )
+            // Nothing understood to change: no proposal rather than an empty one.
+            change.takeIf { it != JarvisAction.EditTask(task) }
         }
         "registrar_movimiento" -> {
             val amount = fields["monto"]?.let(::parseMoney) ?: return null
@@ -160,6 +189,39 @@ private val inDuration = Regex("""(en|in) (\d{1,3}|una|un|an|a) (horas?|hours?|m
 private val clockTime = Regex("""(?:a las |a la |at )?(\d{1,2})(?::(\d{2}))? ?(am|pm|a\.m\.|p\.m\.|de la manana|de la tarde|de la noche|in the morning|in the afternoon|in the evening|at night)?""")
 private val morning = setOf("am", "a.m.", "de la manana", "in the morning")
 
+/** An open task by exact title, or the only one containing the words. */
+private fun findTask(name: String, open: List<Task>): Task? {
+    val wanted = fold(name)
+    return open.find { fold(it.title) == wanted } ?: open.singleOrNull { fold(it.title).contains(wanted) }
+}
+
+private val priorities = mapOf(
+    "alta" to Priority.HIGH, "high" to Priority.HIGH, "media" to Priority.MEDIUM, "medium" to Priority.MEDIUM,
+    "baja" to Priority.LOW, "low" to Priority.LOW, "ninguna" to Priority.NONE, "none" to Priority.NONE,
+)
+
+/**
+ * "diario", "cada 2 días", "cada lunes y jueves", "cada semana", "cada mes el día 1", "every month on the 15th",
+ * "every 2 weeks" → a repeat rule; weekly without days uses [anchor]'s weekday, monthly without a day its date
+ * (the task's date when one was said, else today).
+ */
+fun repeatRule(text: String, anchor: LocalDate): Recurrence? {
+    val today = anchor
+    val words = fold(text)
+    val interval = Regex("""(?:cada|every) (\d{1,2})\b""").find(words)?.groupValues?.get(1)?.toInt()?.coerceIn(1, Recurrence.MAX_INTERVAL) ?: 1
+    val days = weekdays.filterKeys { Regex("""\b$it""").containsMatchIn(words) }.values.toSet()
+    val monthDay = Regex("""(?:dia|el|on the|on|the) (\d{1,2})(?:st|nd|rd|th)?\b""").find(words)?.groupValues?.get(1)?.toInt()?.takeIf { it in 1..31 }
+    return when {
+        Regex("""\b(mes|meses|mensual|month|months|monthly)\b""").containsMatchIn(words) ->
+            Recurrence(Frequency.MONTHLY, interval, monthDay = monthDay ?: today.dayOfMonth)
+        days.isNotEmpty() -> Recurrence(Frequency.WEEKLY, interval, weekdays = days)
+        Regex("""\b(semana|semanas|semanal|week|weeks|weekly)\b""").containsMatchIn(words) ->
+            Recurrence(Frequency.WEEKLY, interval, weekdays = setOf(today.dayOfWeek))
+        Regex("""\b(dia|dias|diario|diariamente|day|days|daily)\b""").containsMatchIn(words) -> Recurrence(Frequency.DAILY, interval)
+        else -> null
+    }
+}
+
 private val weekdays = mapOf(
     "lunes" to DayOfWeek.MONDAY, "martes" to DayOfWeek.TUESDAY, "miercoles" to DayOfWeek.WEDNESDAY, "jueves" to DayOfWeek.THURSDAY,
     "viernes" to DayOfWeek.FRIDAY, "sabado" to DayOfWeek.SATURDAY, "domingo" to DayOfWeek.SUNDAY,
@@ -182,9 +244,27 @@ suspend fun JarvisAction.run(tasks: TaskRepository, shopping: ShoppingRepository
         is JarvisAction.CompleteTask -> tasks.complete(task.id)
         is JarvisAction.CreateTask -> if (tasks.capture(title, dueDate = due, id = id)) {
             remindAt?.let { tasks.setReminder(id, it) }
+            repeat?.let { tasks.setRecurrence(id, it) }
             // Deleting also cancels the alarm.
             ({ tasks.delete(id) })
         } else null
+        is JarvisAction.EditTask -> {
+            newTitle?.let { tasks.rename(task.id, it) }
+            due?.let { tasks.setDueDate(task.id, it) }
+            remindAt?.let { tasks.setReminder(task.id, it) }
+            priority?.let { tasks.setPriority(task.id, it) }
+            repeat?.let { tasks.setRecurrence(task.id, it) }
+            val before = task
+            // Undo puts back each field that could have changed (repeating can also set the scheduled date).
+            ({
+                tasks.rename(before.id, before.title)
+                tasks.setDueDate(before.id, before.dueDate)
+                tasks.setScheduledDate(before.id, before.scheduledDate)
+                tasks.setReminder(before.id, before.reminderAt)
+                tasks.setPriority(before.id, before.priority)
+                tasks.setRecurrence(before.id, before.recurrence)
+            })
+        }
         is JarvisAction.RecordMovement ->
             if (finance.addMovement(amountCents, category.id, date, note.orEmpty(), id)) ({ finance.deleteMovement(id) }) else null
     }
