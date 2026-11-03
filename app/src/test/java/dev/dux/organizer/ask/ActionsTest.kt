@@ -6,6 +6,7 @@ import dev.dux.organizer.data.MoneyKind
 import dev.dux.organizer.data.Priority
 import dev.dux.organizer.data.Recurrence
 import java.time.DayOfWeek
+import dev.dux.organizer.data.ShoppingItem
 import dev.dux.organizer.data.ShoppingList
 import dev.dux.organizer.data.Task
 import java.time.Instant
@@ -29,7 +30,7 @@ class ActionsTest {
     @Test
     fun addsShoppingToTheNamedListIgnoringAccents() {
         assertEquals(
-            JarvisAction.AddShopping(hardware, "Clavos", null),
+            JarvisAction.AddShopping(hardware, listOf("Clavos"), null),
             parse("""{"accion":"agregar_compra","articulo":"clavos","cantidad":null,"lista":"ferreteria"}"""),
         )
     }
@@ -37,7 +38,7 @@ class ActionsTest {
     @Test
     fun acceptsTheListNameInsideALongerText() {
         assertEquals(
-            JarvisAction.AddShopping(super_, "Tomate", "2 kilos"),
+            JarvisAction.AddShopping(super_, listOf("Tomate"), "2 kilos"),
             parse("""{"accion":"agregar_compra","articulo":"tomate","cantidad":"2 kilos","lista":"lista de compras Súper"}""", "Agrega 2 kilos de tomate al super"),
         )
     }
@@ -45,12 +46,12 @@ class ActionsTest {
     @Test
     fun keepsOnlyQuantitiesTheUserSaid() {
         assertEquals(
-            JarvisAction.AddShopping(super_, "Tomate", "2 kg"),
+            JarvisAction.AddShopping(super_, listOf("Tomate"), "2 kg"),
             parse("""{"accion":"agregar_compra","articulo":"tomate","cantidad":"2 kg","lista":"Súper"}""", "Apunta 2 kilos de tomate"),
         )
         // "Leche x2" is in the data, not in what the user said.
         assertEquals(
-            JarvisAction.AddShopping(super_, "Leche", null),
+            JarvisAction.AddShopping(super_, listOf("Leche"), null),
             parse("""{"accion":"agregar_compra","articulo":"Leche","cantidad":"2","lista":"Súper"}""", "Agrega leche al súper"),
         )
     }
@@ -219,5 +220,35 @@ class ActionsTest {
     fun noneAndGarbageGiveNoAction() {
         assertNull(parse("""{"accion":"ninguna"}"""))
         assertNull(parse("No entendí"))
+    }
+
+    @Test
+    fun addsSeveralItemsFromOneCommand() {
+        assertEquals(
+            JarvisAction.AddShopping(super_, listOf("Leche", "Pan", "Huevos"), null),
+            parse("""{"accion":"agregar_compra","articulo":"leche, pan y huevos","cantidad":"2","lista":"Súper"}""", "agrega 2 leche, pan y huevos"),
+        )
+        assertEquals(listOf("Pan y mantequilla"), splitItems("Pan y mantequilla"))
+        assertEquals(listOf("eggs", "bread", "milk"), splitItems("eggs, bread, and milk"))
+    }
+
+    private val milk = ShoppingItem(id = "m", listId = "s", name = "Leche", createdAt = now, updatedAt = now)
+    private val nails = ShoppingItem(id = "n", listId = "f", name = "Clavos", createdAt = now, updatedAt = now)
+    private val projects = mapOf("p1" to "Personal", "p2" to "Pro-Hielo")
+    private fun parseMore(output: String) = parseAction(output, "", open, lists, today, items = listOf(milk, nails), projects = projects)
+
+    @Test
+    fun removesAnExistingItemOnly() {
+        assertEquals(JarvisAction.RemoveShopping(super_, milk), parseMore("""{"accion":"quitar_compra","articulo":"leche","lista":null}"""))
+        assertNull(parseMore("""{"accion":"quitar_compra","articulo":"leche","lista":"Ferretería"}"""))
+        assertNull(parseMore("""{"accion":"quitar_compra","articulo":"queso","lista":null}"""))
+    }
+
+    @Test
+    fun deletesAndMovesOnlyKnownTasksAndProjects() {
+        assertEquals(JarvisAction.DeleteTask(internet), parseMore("""{"accion":"borrar_tarea","tarea":"pagar el internet"}"""))
+        assertNull(parseMore("""{"accion":"borrar_tarea","tarea":"lavar el carro"}"""))
+        assertEquals(JarvisAction.MoveTask(invoices, "p2", "Pro-Hielo"), parseMore("""{"accion":"mover_tarea","tarea":"Revisar facturas","proyecto":"proyecto pro-hielo"}"""))
+        assertNull(parseMore("""{"accion":"mover_tarea","tarea":"Revisar facturas","proyecto":"Casa"}"""))
     }
 }

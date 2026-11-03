@@ -9,6 +9,7 @@ import dev.dux.organizer.data.parseMoney
 import dev.dux.organizer.data.FinanceRepository
 import dev.dux.organizer.data.Category
 import java.util.UUID
+import dev.dux.organizer.data.ShoppingItem
 import dev.dux.organizer.data.ShoppingList
 import dev.dux.organizer.data.ShoppingRepository
 import dev.dux.organizer.data.Task
@@ -21,8 +22,12 @@ import java.time.temporal.TemporalAdjusters
 
 /** Something Jarvis can do after the user confirms it. Built only from data that exists (see [parseAction]). */
 sealed interface JarvisAction {
-    data class AddShopping(val list: ShoppingList, val item: String, val quantity: String?) : JarvisAction
+    /** One command can add several items ("leche, pan y huevos"); [quantity] only with a single one. */
+    data class AddShopping(val list: ShoppingList, val items: List<String>, val quantity: String?) : JarvisAction
+    data class RemoveShopping(val list: ShoppingList, val item: ShoppingItem) : JarvisAction
     data class CompleteTask(val task: Task) : JarvisAction
+    data class DeleteTask(val task: Task) : JarvisAction
+    data class MoveTask(val task: Task, val projectId: String, val projectName: String) : JarvisAction
     /** [remindAt]: "recuérdame a las 5…" also sets the task's reminder. */
     data class CreateTask(val title: String, val due: LocalDate?, val remindAt: LocalDateTime? = null, val repeat: Recurrence? = null) : JarvisAction
     /** Only the non-null fields change. */
@@ -50,20 +55,38 @@ fun parseAction(
     today: LocalDate,
     categories: List<Category> = emptyList(),
     now: LocalDateTime = today.atStartOfDay(),
+    items: List<ShoppingItem> = emptyList(),
+    /** Project id → name, as in [AskData.projectNames]. */
+    projects: Map<String, String> = emptyMap(),
 ): JarvisAction? {
     val fields = jsonFields(output)
+    // The model may echo how the facts name it ("lista de compras Súper"), so a name inside the text also counts.
+    fun findList(name: String) =
+        lists.find { fold(it.name) == fold(name) } ?: lists.filter { fold(name).contains(fold(it.name)) }.maxByOrNull { it.name.length }
     return when (fields["accion"]) {
         "agregar_compra" -> {
-            val item = fields["articulo"]?.trim()?.takeIf { it.isNotEmpty() } ?: return null
-            // The model may echo how the facts name it ("lista de compras Súper"), so a name inside the text also counts.
-            val list = fields["lista"]?.let { name ->
-                lists.find { fold(it.name) == fold(name) } ?: lists.filter { fold(name).contains(fold(it.name)) }.maxByOrNull { it.name.length } ?: return null
-            } ?: lists.firstOrNull() ?: return null
+            val names = splitItems(fields["articulo"] ?: return null).ifEmpty { return null }
+            val list = fields["lista"]?.let { findList(it) ?: return null } ?: lists.firstOrNull() ?: return null
             // The model sometimes copies a quantity from the data ("Leche x2"); keep it only if the user said that number.
-            val quantity = fields["cantidad"]?.trim()?.takeIf { q -> q.isNotEmpty() && q.filter(Char::isDigit).let { it.isNotEmpty() && it in command } }
-            JarvisAction.AddShopping(list, item.replaceFirstChar { it.uppercase() }, quantity)
+            val quantity = fields["cantidad"]?.trim()?.takeIf { q -> names.size == 1 && q.isNotEmpty() && q.filter(Char::isDigit).let { it.isNotEmpty() && it in command } }
+            JarvisAction.AddShopping(list, names.map { n -> n.replaceFirstChar { it.uppercase() } }, quantity)
+        }
+        "quitar_compra" -> {
+            val wanted = fold(fields["articulo"] ?: return null)
+            val list = fields["lista"]?.let { findList(it) ?: return null }
+            val candidates = items.filter { list == null || it.listId == list.id }
+            val item = candidates.find { fold(it.name) == wanted } ?: candidates.singleOrNull { fold(it.name).contains(wanted) } ?: return null
+            JarvisAction.RemoveShopping(lists.find { it.id == item.listId } ?: return null, item)
         }
         "completar_tarea" -> JarvisAction.CompleteTask(findTask(fields["tarea"] ?: return null, open) ?: return null)
+        "borrar_tarea" -> JarvisAction.DeleteTask(findTask(fields["tarea"] ?: return null, open) ?: return null)
+        "mover_tarea" -> {
+            val task = findTask(fields["tarea"] ?: return null, open) ?: return null
+            val wanted = fold(fields["proyecto"] ?: return null)
+            val (id, name) = projects.entries.find { fold(it.value) == wanted }
+                ?: projects.entries.filter { wanted.contains(fold(it.value)) }.maxByOrNull { it.value.length } ?: return null
+            JarvisAction.MoveTask(task, id, name).takeIf { task.projectId != id }
+        }
         "crear_tarea" -> {
             val title = fields["titulo"]?.trim()?.takeIf { it.isNotEmpty() } ?: return null
             // The model sometimes puts the time inside "vence" ("hoy a las 5"): split it off.
@@ -189,6 +212,17 @@ private val inDuration = Regex("""(en|in) (\d{1,3}|una|un|an|a) (horas?|hours?|m
 private val clockTime = Regex("""(?:a las |a la |at )?(\d{1,2})(?::(\d{2}))? ?(am|pm|a\.m\.|p\.m\.|de la manana|de la tarde|de la noche|in the morning|in the afternoon|in the evening|at night)?""")
 private val morning = setOf("am", "a.m.", "de la manana", "in the morning")
 
+/**
+ * "leche, pan y huevos" → three items. Only a list with commas is split, so a single name with "y"
+ * ("pan y mantequilla") stays one item.
+ */
+internal fun splitItems(text: String): List<String> {
+    val parts = text.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+    if (parts.size < 2) return parts
+    val last = parts.last().replace(Regex("""^(y|and) """, RegexOption.IGNORE_CASE), "")
+    return parts.dropLast(1) + last.split(Regex(""" (y|and) """, RegexOption.IGNORE_CASE)).map { it.trim() }.filter { it.isNotEmpty() }
+}
+
 /** An open task by exact title, or the only one containing the words. */
 private fun findTask(name: String, open: List<Task>): Task? {
     val wanted = fold(name)
@@ -240,8 +274,21 @@ private fun jsonFields(text: String): Map<String, String> =
 suspend fun JarvisAction.run(tasks: TaskRepository, shopping: ShoppingRepository, finance: FinanceRepository, today: LocalDate): (suspend () -> Unit)? {
     val id = UUID.randomUUID().toString()
     return when (this) {
-        is JarvisAction.AddShopping -> if (shopping.addItem(list.id, item, quantity.orEmpty(), id)) ({ shopping.deleteItem(id) }) else null
+        is JarvisAction.AddShopping -> {
+            val added = items.mapNotNull { name -> UUID.randomUUID().toString().takeIf { shopping.addItem(list.id, name, quantity.orEmpty(), it) } }
+            if (added.isEmpty()) null else ({ added.forEach { shopping.deleteItem(it) } })
+        }
+        is JarvisAction.RemoveShopping -> shopping.deleteItem(item.id)?.let { removed -> { shopping.restore(listOf(removed)) } }
         is JarvisAction.CompleteTask -> tasks.complete(task.id)
+        is JarvisAction.DeleteTask -> {
+            tasks.delete(task.id)
+            // Puts it back as it was, reminder included.
+            ({ tasks.restore(task) })
+        }
+        is JarvisAction.MoveTask -> {
+            tasks.setProject(task.id, projectId)
+            ({ tasks.setProject(task.id, task.projectId) })
+        }
         is JarvisAction.CreateTask -> if (tasks.capture(title, dueDate = due, id = id)) {
             remindAt?.let { tasks.setReminder(id, it) }
             repeat?.let { tasks.setRecurrence(id, it) }

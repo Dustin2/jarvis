@@ -309,6 +309,12 @@
     <string name="edit_priority_to">prioridad %1$s</string>
     <string name="edit_repeat_to">que se repita %1$s</string>
     <string name="action_created_task">Listo, creé la tarea «%1$s».</string>
+    <string name="action_remove_shopping">¿Quito %1$s de %2$s?</string>
+    <string name="action_removed_shopping">Listo, quité %1$s de %2$s.</string>
+    <string name="action_delete_task">¿Borro la tarea «%1$s»?</string>
+    <string name="action_deleted_task">Listo, borré «%1$s».</string>
+    <string name="action_move_task">¿Muevo «%1$s» al proyecto %2$s?</string>
+    <string name="action_moved_task">Listo, moví «%1$s» a %2$s.</string>
     <string name="action_undone">Deshecho.</string>
     <string name="action_expense">gasto de %1$s en %2$s</string>
     <string name="action_income">ingreso de %1$s en %2$s</string>
@@ -325,6 +331,14 @@
     <plurals name="brief_due_today">
         <item quantity="one">%1$d para hoy</item>
         <item quantity="other">%1$d para hoy</item>
+    </plurals>
+    <string name="weekly_on">Resumen semanal, los domingos a las 7 p. m.</string>
+    <string name="weekly_channel">Resumen semanal</string>
+    <string name="weekly_title">Tu semana</string>
+    <string name="weekly_spent">gastaste %1$s</string>
+    <plurals name="weekly_done">
+        <item quantity="one">%1$d tarea completada</item>
+        <item quantity="other">%1$d tareas completadas</item>
     </plurals>
     <string name="action_on_date">\u0020del %1$s</string>
     <string name="ask_shortcut">Hablar con Jarvis</string>
@@ -375,5 +389,5 @@
 
     <!-- Instructions for the on-device model (not shown). The JSON keys stay the same in every language: Actions.kt reads them. -->
     <string name="ask_prompt_answer">Eres Jarvis, el asistente de una app de organización personal. Responde en el mismo idioma de la pregunta (en español si no queda claro), breve y claro, usando solo estos datos del usuario. Si no está en los datos, dilo. Lo que el usuario dijo antes en la conversación no está registrado si no aparece en los datos. Tú no puedes hacer cambios: si te piden agregar, crear, cambiar o completar algo, nunca digas que ya lo hiciste; responde algo como «No encontré esa tarea o lista. ¿Me lo dices de otra forma?».</string>
-    <string name="ask_prompt_action" tools:ignore="TypographyEllipsis">Eres Jarvis. Convierte la orden del usuario en UNA acción JSON, sin texto extra. Acciones posibles:\n{\"accion\":\"agregar_compra\",\"articulo\":\"...\",\"cantidad\":\"... o null\",\"lista\":\"nombre exacto de la lista o null\"}\n{\"accion\":\"completar_tarea\",\"tarea\":\"título exacto de la tarea\"}\n{\"accion\":\"crear_tarea\",\"titulo\":\"...\",\"vence\":\"las palabras de la fecha tal como las dijo (hoy, mañana, en 3 días, el 15, la próxima semana, el viernes) o null\",\"hora\":\"la hora tal como la dijo (a las 5, 17:30, 5 de la tarde, en una hora) o null\",\"repite\":\"cómo se repite tal como lo dijo (diario, cada lunes, cada mes el día 1) o null\"}\n{\"accion\":\"editar_tarea\",\"tarea\":\"título exacto de la tarea\",\"titulo_nuevo\":\"... o null\",\"vence\":\"nueva fecha tal como la dijo o null\",\"hora\":\"nueva hora del recordatorio o null\",\"prioridad\":\"alta, media, baja, ninguna o null\",\"repite\":\"... o null\"}\n{\"accion\":\"registrar_movimiento\",\"monto\":\"solo el número\",\"categoria\":\"nombre exacto de una categoría de gasto o de ingreso\",\"nota\":\"en qué fue, o null\",\"fecha\":\"cuándo fue, tal como lo dijo (hoy, ayer, antier, el lunes, el 15) o null\"}\n{\"accion\":\"ninguna\"}  (si es una pregunta o no es ninguna de las anteriores)\nAlgo que hay que hacer (lavar, llamar, pagar) es una tarea, no una compra. Dinero que ya se gastó o se recibió es un movimiento. Cambiar algo de una tarea que ya existe (fecha, hora, prioridad, nombre, repetición) es editar_tarea. Usa solo nombres de tareas y listas que aparecen en los datos.</string>
+    <string name="ask_prompt_action" tools:ignore="TypographyEllipsis">Eres Jarvis. Convierte la orden del usuario en UNA acción JSON, sin texto extra. Acciones posibles:\n{\"accion\":\"agregar_compra\",\"articulo\":\"... (varios separados por comas)\",\"cantidad\":\"... o null\",\"lista\":\"nombre exacto de la lista o null\"}\n{\"accion\":\"quitar_compra\",\"articulo\":\"nombre exacto del artículo\",\"lista\":\"nombre exacto de la lista o null\"}\n{\"accion\":\"completar_tarea\",\"tarea\":\"título exacto de la tarea\"}\n{\"accion\":\"borrar_tarea\",\"tarea\":\"título exacto de la tarea\"}\n{\"accion\":\"mover_tarea\",\"tarea\":\"título exacto de la tarea\",\"proyecto\":\"nombre exacto del proyecto\"}\n{\"accion\":\"crear_tarea\",\"titulo\":\"...\",\"vence\":\"las palabras de la fecha tal como las dijo (hoy, mañana, en 3 días, el 15, la próxima semana, el viernes) o null\",\"hora\":\"la hora tal como la dijo (a las 5, 17:30, 5 de la tarde, en una hora) o null\",\"repite\":\"cómo se repite tal como lo dijo (diario, cada lunes, cada mes el día 1) o null\"}\n{\"accion\":\"editar_tarea\",\"tarea\":\"título exacto de la tarea\",\"titulo_nuevo\":\"... o null\",\"vence\":\"nueva fecha tal como la dijo o null\",\"hora\":\"nueva hora del recordatorio o null\",\"prioridad\":\"alta, media, baja, ninguna o null\",\"repite\":\"... o null\"}\n{\"accion\":\"registrar_movimiento\",\"monto\":\"solo el número\",\"categoria\":\"nombre exacto de una categoría de gasto o de ingreso\",\"nota\":\"en qué fue, o null\",\"fecha\":\"cuándo fue, tal como lo dijo (hoy, ayer, antier, el lunes, el 15) o null\"}\n{\"accion\":\"ninguna\"}  (si es una pregunta o no es ninguna de las anteriores)\nAlgo que hay que hacer (lavar, llamar, pagar) es una tarea, no una compra. Dinero que ya se gastó o se recibió es un movimiento. Cambiar algo de una tarea que ya existe (fecha, hora, prioridad, nombre, repetición) es editar_tarea. Borrar o eliminar una tarea es borrar_tarea; terminarla es completar_tarea. Usa solo nombres de tareas, listas, artículos y proyectos que aparecen en los datos.</string>
 </resources>

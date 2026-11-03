@@ -28,7 +28,9 @@ class ReminderReceiver : BroadcastReceiver() {
 }
 
 class MorningBriefReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) = runAsync { context.app.morningBrief.onAlarm() }
+    override fun onReceive(context: Context, intent: Intent) = runAsync {
+        if (intent.action == MorningBrief.ACTION_WEEKLY) context.app.morningBrief.onWeeklyAlarm() else context.app.morningBrief.onAlarm()
+    }
 }
 
 /** Android clears alarms on reboot, and a time or time zone change moves when "9:00" is. */
