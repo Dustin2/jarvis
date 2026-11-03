@@ -48,6 +48,8 @@ data class Task(
     val recurrence: Recurrence? = null,
     /** Links the occurrences of a series: the id of the task where repeating was enabled. */
     val seriesId: String? = null,
+    /** In the trash since then (schema v6); emptied after 30 days. Every list query skips these. */
+    val deletedAt: Instant? = null,
 )
 
 /** Changes the status keeping [Task.completedAt] consistent: it only exists while the task is done. */

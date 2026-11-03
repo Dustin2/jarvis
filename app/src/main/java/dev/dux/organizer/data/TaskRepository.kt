@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
@@ -64,7 +65,7 @@ class TaskRepository(
         val next = setStatus(id, TaskStatus.DONE)
         return {
             setStatus(id, before.status)
-            next?.let { delete(it.id) }
+            next?.let { deleteForever(it.id) }
         }
     }
 
@@ -103,15 +104,23 @@ class TaskRepository(
 
     suspend fun setNotes(id: String, notes: String) = edit(id) { it.copy(notes = notes.ifBlank { null }) }
 
-    suspend fun delete(id: String) {
+    /** To the trash: hidden everywhere, alarm cancelled, restorable from the trash. [at]: shared by a project's tasks. */
+    suspend fun delete(id: String, at: Instant = clock.instant()) {
+        edit(id) { it.copy(deletedAt = at) }
+        reminders?.cancel(id)
+    }
+
+    /** Gone for good: emptying the trash, or undoing something just created. */
+    suspend fun deleteForever(id: String) {
         dao.delete(id)
         reminders?.cancel(id)
     }
 
-    /** "Deshacer" after deleting: puts the task back exactly as it was, reminder included. */
+    /** "Deshacer" or the trash's "Restaurar": puts the task back as it was, reminder included. */
     suspend fun restore(task: Task) {
-        dao.insert(task)
-        reminders?.sync(task)
+        val back = task.copy(deletedAt = null)
+        dao.upsert(back)
+        reminders?.sync(back)
     }
 
     // Serialized read-modify-write: typing fast in the detail screen must not let two edits overwrite each other.

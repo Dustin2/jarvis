@@ -23,7 +23,7 @@ private const val TOLERANCE_SECONDS = 30L
 fun reminderAction(task: Task?, now: LocalDateTime): ReminderAction {
     val at = task?.reminderAt
     return when {
-        at == null || task.status == TaskStatus.DONE || task.status == TaskStatus.CANCELLED -> ReminderAction.Cancel
+        at == null || task.deletedAt != null || task.status == TaskStatus.DONE || task.status == TaskStatus.CANCELLED -> ReminderAction.Cancel
         at <= now.plusSeconds(TOLERANCE_SECONDS) -> ReminderAction.NotifyNow
         else -> ReminderAction.Schedule(at)
     }
