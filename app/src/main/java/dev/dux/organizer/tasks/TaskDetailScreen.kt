@@ -1,5 +1,6 @@
 package dev.dux.organizer.tasks
 
+import dev.dux.organizer.data.TrashRepository
 import dev.dux.organizer.ui.appLocale
 import android.Manifest
 import androidx.annotation.DrawableRes
@@ -49,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
@@ -132,7 +134,7 @@ fun TaskDetailScreen(vm: TaskDetailViewModel, onBack: () -> Unit) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
             title = { Text(stringResource(R.string.delete_confirm_title)) },
-            text = { Text(stringResource(R.string.delete_confirm_body)) },
+            text = { Text(pluralStringResource(R.plurals.task_to_trash_body, TrashRepository.KEEP_DAYS.toInt(), TrashRepository.KEEP_DAYS)) },
             confirmButton = {
                 TextButton(onClick = { confirmDelete = false; vm.delete(onBack) }) { Text(stringResource(R.string.delete)) }
             },

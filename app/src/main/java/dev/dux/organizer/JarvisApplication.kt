@@ -20,6 +20,7 @@ import dev.dux.organizer.data.FinanceRepository
 import dev.dux.organizer.data.ProjectRepository
 import dev.dux.organizer.data.ShoppingRepository
 import dev.dux.organizer.data.TaskRepository
+import dev.dux.organizer.data.TrashRepository
 import dev.dux.organizer.reminders.Reminders
 import androidx.glance.appwidget.updateAll
 import dev.dux.organizer.widget.TodayWidget
@@ -40,6 +41,7 @@ class JarvisApplication : Application() {
     val backups by lazy { BackupRepository(database, File(filesDir, "backups"), reminders = reminders) }
     val autoBackup by lazy { AutoBackup(this, backups) }
     val askJarvis by lazy { AskJarvis(this) }
+    val trash by lazy { TrashRepository(database, tasks) }
     val morningBrief by lazy { MorningBrief(this, tasks, finance) }
 
     override fun onCreate() {
@@ -57,6 +59,7 @@ class JarvisApplication : Application() {
             // Force-stopping the app silently clears its alarms; opening it restores them (and notifies missed ones).
             reminders.syncAll()
             morningBrief.schedule()
+            trash.purgeOld()
         }
         // Keeps the home screen widget in step with any change to open tasks, wherever it is made.
         MainScope().launch {

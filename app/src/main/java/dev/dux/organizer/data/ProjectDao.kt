@@ -5,12 +5,25 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ProjectDao {
-    @Query("SELECT * FROM projects WHERE status != 'ARCHIVED' ORDER BY sortOrder, name")
+    @Query("SELECT * FROM projects WHERE status != 'ARCHIVED' AND deletedAt IS NULL ORDER BY sortOrder, name")
     fun observeVisible(): Flow<List<Project>>
+
+    @Query("SELECT * FROM projects WHERE status = 'ARCHIVED' AND deletedAt IS NULL ORDER BY name")
+    fun observeArchived(): Flow<List<Project>>
+
+    @Query("SELECT * FROM projects WHERE deletedAt IS NOT NULL ORDER BY deletedAt DESC")
+    fun observeTrashed(): Flow<List<Project>>
+
+    @Query("DELETE FROM projects WHERE id = :id")
+    suspend fun delete(id: String)
+
+    @Query("DELETE FROM projects WHERE deletedAt IS NOT NULL AND deletedAt < :before")
+    suspend fun deleteTrashedBefore(before: Instant)
 
     @Query("SELECT * FROM projects WHERE id = :id")
     fun observe(id: String): Flow<Project?>
@@ -18,7 +31,8 @@ interface ProjectDao {
     @Query("SELECT * FROM projects WHERE id = :id")
     suspend fun get(id: String): Project?
 
-    @Query("SELECT * FROM projects ORDER BY sortOrder")
+    // Trashed projects stay out of backups, like their tasks.
+    @Query("SELECT * FROM projects WHERE deletedAt IS NULL ORDER BY sortOrder")
     suspend fun getAll(): List<Project>
 
     @Query("DELETE FROM projects")

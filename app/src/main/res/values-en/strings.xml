@@ -267,7 +267,7 @@
     <string name="add_notes">Add notes</string>
 
     <string name="task_completed">Completed “%1$s”</string>
-    <string name="task_deleted">Deleted “%1$s”</string>
+    <string name="task_deleted">Moved “%1$s” to the trash</string>
 
     <string name="add_task">Add task</string>
     <string name="add_task_to">New task in “%1$s”</string>
@@ -386,4 +386,32 @@
 
     <string name="ask_prompt_answer">You are Jarvis, the assistant in a personal organizer app. Answer in the same language as the question (in English if unclear), briefly and clearly, using only this user data. If it isn\'t in the data, say so. What the user said earlier in the conversation is not recorded unless it appears in the data. You can\'t change anything: if asked to add, create, change or complete something, never say you did it; reply with something like “I couldn\'t find that task or list. Could you say it another way?”.</string>
     <string name="ask_prompt_action" tools:ignore="TypographyEllipsis">You are Jarvis. Turn the user\'s command into ONE JSON action, with no extra text. Possible actions:\n{\"accion\":\"agregar_compra\",\"articulo\":\"... (several separated by commas)\",\"cantidad\":\"... or null\",\"lista\":\"exact list name or null\"}\n{\"accion\":\"quitar_compra\",\"articulo\":\"exact item name\",\"lista\":\"exact list name or null\"}\n{\"accion\":\"completar_tarea\",\"tarea\":\"exact task title\"}\n{\"accion\":\"borrar_tarea\",\"tarea\":\"exact task title\"}\n{\"accion\":\"mover_tarea\",\"tarea\":\"exact task title\",\"proyecto\":\"exact project name\"}\n{\"accion\":\"crear_tarea\",\"titulo\":\"...\",\"vence\":\"the date words as said (today, tomorrow, in 3 days, on the 15th, next week, on Friday) or null\",\"hora\":\"the time as said (at 5, 17:30, 5 pm, in an hour) or null\",\"repite\":\"how it repeats, as said (daily, every Monday, every month on the 1st) or null\"}\n{\"accion\":\"editar_tarea\",\"tarea\":\"exact task title\",\"titulo_nuevo\":\"... or null\",\"vence\":\"new date as said or null\",\"hora\":\"new reminder time or null\",\"prioridad\":\"high, medium, low, none or null\",\"repite\":\"... or null\"}\n{\"accion\":\"registrar_movimiento\",\"monto\":\"just the number\",\"categoria\":\"exact name of an expense or income category\",\"nota\":\"what it was for, or null\",\"fecha\":\"when it happened, as said (today, yesterday, on Monday, on the 15th) or null\"}\n{\"accion\":\"ninguna\"}  (if it is a question or none of the above)\nSomething to do (wash, call, pay) is a task, not a purchase. Money already spent or received is a transaction. Changing something about an existing task (date, time, priority, name, repeat) is editar_tarea. Deleting or removing a task is borrar_tarea; finishing it is completar_tarea. Use only task, list, item and project names that appear in the data. Write the values in the user\'s language.</string>
+    <string name="trash">Trash</string>
+    <string name="archive">Archive</string>
+    <string name="trash_empty">Empty</string>
+    <string name="trash_empty_confirm">Empty the trash?</string>
+    <string name="trash_delete_confirm">Delete forever?</string>
+    <plurals name="trash_explanation">
+        <item quantity="one">What you delete stays here for %1$d day, then it\'s removed automatically.</item>
+        <item quantity="other">What you delete stays here for %1$d days, then it\'s removed automatically.</item>
+    </plurals>
+    <string name="trash_nothing">The trash is empty.</string>
+    <plurals name="trash_project_tasks">
+        <item quantity="one">Project with %1$d task</item>
+        <item quantity="other">Project with %1$d tasks</item>
+    </plurals>
+    <string name="delete_forever">Delete “%1$s” forever</string>
+    <string name="archive_explanation">Archived projects: out of the list, nothing lost. To archive one, set its status to Archived.</string>
+    <string name="archive_nothing">You have no archived projects. To archive one, set its status to Archived.</string>
+    <string name="unarchive">Unarchive</string>
+    <string name="delete_project">Delete project</string>
+    <string name="delete_project_confirm">Delete “%1$s”?</string>
+    <plurals name="delete_project_body">
+        <item quantity="one">The project and its %1$d task will go to the trash. You can restore them for %2$d days.</item>
+        <item quantity="other">The project and its %1$d tasks will go to the trash. You can restore them for %2$d days.</item>
+    </plurals>
+    <plurals name="task_to_trash_body">
+        <item quantity="one">It will go to the trash. You can restore it for %1$d day.</item>
+        <item quantity="other">It will go to the trash. You can restore it for %1$d days.</item>
+    </plurals>
 </resources>

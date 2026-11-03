@@ -6,6 +6,7 @@ import java.time.Clock
 class ProjectRepository(private val dao: ProjectDao, private val clock: Clock = Clock.systemUTC()) {
 
     val visible: Flow<List<Project>> = dao.observeVisible()
+    val archived: Flow<List<Project>> = dao.observeArchived()
 
     fun observe(id: String): Flow<Project?> = dao.observe(id)
 
