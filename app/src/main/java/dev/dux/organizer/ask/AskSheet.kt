@@ -126,7 +126,7 @@ fun AskSheet(
             val d = data()
             // A question mark means a question: no need to look for an action.
             val action = if (q.endsWith("?")) null
-            else parseAction(ask.proposeAction(q, d.facts(), turns.takeLast(MAX_CONTEXT_TURNS)), q, d.open, d.lists, d.today, d.categories, LocalDateTime.now())
+            else parseAction(ask.proposeAction(q, d.facts(), turns.takeLast(MAX_CONTEXT_TURNS)), q, d.open, d.lists, d.today, d.categories, LocalDateTime.now(), d.items, d.projectNames)
             if (action == null) answerQuestion(q, d.facts())
             else {
                 proposal = action
@@ -251,9 +251,15 @@ private fun rememberSpeaker(locale: Locale): TextToSpeech {
 /** What Jarvis asks before acting, and what it says once done. */
 private fun actionTexts(action: JarvisAction, res: Resources): Pair<String, String> = when (action) {
     is JarvisAction.AddShopping -> {
-        val item = action.item + (action.quantity?.let { " ($it)" } ?: "")
+        val item = action.items.joinToString() + (action.quantity?.let { " ($it)" } ?: "")
         res.getString(R.string.action_add_shopping, item, action.list.name) to res.getString(R.string.action_added_shopping, item, action.list.name)
     }
+    is JarvisAction.RemoveShopping ->
+        res.getString(R.string.action_remove_shopping, action.item.name, action.list.name) to res.getString(R.string.action_removed_shopping, action.item.name, action.list.name)
+    is JarvisAction.DeleteTask ->
+        res.getString(R.string.action_delete_task, action.task.title) to res.getString(R.string.action_deleted_task, action.task.title)
+    is JarvisAction.MoveTask ->
+        res.getString(R.string.action_move_task, action.task.title, action.projectName) to res.getString(R.string.action_moved_task, action.task.title, action.projectName)
     is JarvisAction.CompleteTask ->
         res.getString(R.string.action_complete_task, action.task.title) to res.getString(R.string.action_completed_task, action.task.title)
     is JarvisAction.RecordMovement -> {
