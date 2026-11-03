@@ -1,5 +1,9 @@
 package dev.dux.organizer.ask
 
+import java.time.temporal.TemporalAdjusters
+import java.time.YearMonth
+import java.time.DayOfWeek
+import dev.dux.organizer.data.Movement
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.SupervisorJob
@@ -212,8 +216,10 @@ data class AskData(
     val items: List<ShoppingItem>,
     val categories: List<Category> = emptyList(),
     val labels: FactLabels = FactLabels.SPANISH,
+    /** This month's and last month's, for "¿cuánto gasté esta semana?" and "¿y el mes pasado?". */
+    val movements: List<Movement> = emptyList(),
 ) {
-    fun facts() = askFacts(open, projectNames, month, today, lists, items, categories, labels)
+    fun facts() = askFacts(open, projectNames, month, today, lists, items, categories, labels, movements)
 }
 
 /**
@@ -244,6 +250,8 @@ class FactLabels(
     val none: String,
     val expenseCategories: String,
     val incomeCategories: String,
+    val thisWeek: String,
+    val lastMonth: String,
 ) {
     companion object {
         val SPANISH = FactLabels(
@@ -253,6 +261,7 @@ class FactLabels(
             "Lista de compras %s: por comprar: %s.", "Ya en el carrito: %s.",
             "Finanzas de este mes: entró %s, salió %s, te queda %s.", "Presupuesto mensual: %s.", "gastado", "de",
             "Categorías donde se pasó del presupuesto: %s.", "por", "ninguna", "Categorías de gasto", "Categorías de ingreso",
+            "Gastos de esta semana (desde el %s): %s. Total: %s.", "Mes pasado (%s): entró %s, salió %s. Gastos por categoría: %s.",
         )
         val ENGLISH = FactLabels(
             Locale.ENGLISH, "EEEE, MMMM d, yyyy", "Today is %s.", "due", "priority",
@@ -261,6 +270,7 @@ class FactLabels(
             "Shopping list %s: to buy: %s.", "Already in the cart: %s.",
             "This month's money: came in %s, went out %s, left %s.", "Monthly budget: %s.", "spent", "of",
             "Categories over budget: %s.", "by", "none", "Expense categories", "Income categories",
+            "Spending this week (since %s): %s. Total: %s.", "Last month (%s): came in %s, went out %s. Spending by category: %s.",
         )
 
         fun of(locale: Locale) = if (locale.language == "en") ENGLISH else SPANISH
@@ -280,6 +290,7 @@ fun askFacts(
     items: List<ShoppingItem> = emptyList(),
     categories: List<Category> = emptyList(),
     labels: FactLabels = FactLabels.SPANISH,
+    movements: List<Movement> = emptyList(),
 ): String = buildString {
     val days = DateTimeFormatter.ofPattern(labels.dayPattern, labels.locale)
     fun line(t: Task) = buildString {
@@ -318,5 +329,25 @@ fun askFacts(
     val active = categories.filter { !it.archived }
     for ((kind, title) in listOf(MoneyKind.EXPENSE to labels.expenseCategories, MoneyKind.INCOME to labels.incomeCategories)) {
         active.filter { it.kind == kind }.takeIf { it.isNotEmpty() }?.let { appendLine("$title: ${it.joinToString { c -> c.name }}.") }
+    }
+    // Worked out here like the month: the model adds up amounts poorly.
+    if (movements.isNotEmpty()) {
+        val names = categories.associate { it.id to it.name }
+        fun byCategory(list: List<Movement>) = list.filter { it.kind == MoneyKind.EXPENSE }.groupBy { it.categoryId }
+            .map { (id, ms) -> (names[id] ?: "?") to ms.sumOf { it.amountCents } }.sortedByDescending { it.second }
+            .joinToString { "${it.first} ${formatMoney(it.second)}" }.ifEmpty { labels.nothing }
+        val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val week = movements.filter { it.date in weekStart..today && it.kind == MoneyKind.EXPENSE }
+        appendLine(labels.thisWeek.format(weekStart.format(days), byCategory(week), formatMoney(week.sumOf { it.amountCents })))
+        val previous = YearMonth.from(today).minusMonths(1)
+        val last = movements.filter { YearMonth.from(it.date) == previous }
+        appendLine(
+            labels.lastMonth.format(
+                previous.atDay(1).format(DateTimeFormatter.ofPattern("LLLL yyyy", labels.locale)),
+                formatMoney(last.filter { it.kind == MoneyKind.INCOME }.sumOf { it.amountCents }),
+                formatMoney(last.filter { it.kind == MoneyKind.EXPENSE }.sumOf { it.amountCents }),
+                byCategory(last),
+            ),
+        )
     }
 }

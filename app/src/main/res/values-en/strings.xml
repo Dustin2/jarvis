@@ -240,6 +240,10 @@
     <string name="widget_preview_task_overdue">Pay the internet bill</string>
     <string name="widget_preview_task_today">Review invoices</string>
 
+    <string name="widget_shopping_name">Shopping</string>
+    <string name="widget_shopping_description">What\'s left to buy on your first list: check it off without opening the app.</string>
+    <string name="widget_shopping_empty">Nothing to buy</string>
+    <string name="widget_mark_bought">Mark “%1$s” as bought</string>
     <string name="undo">Undo</string>
     <string name="item_removed">Removed “%1$s”</string>
     <plurals name="items_removed">
@@ -295,6 +299,14 @@
     <string name="action_create_task">Create the task “%1$s”?</string>
     <string name="action_create_task_due">Create the task “%1$s” for %2$s?</string>
     <string name="action_create_task_reminder">Create the task “%1$s” with a reminder on %2$s at %3$s?</string>
+    <string name="action_create_task_repeat">Create the task “%1$s” repeating %2$s?</string>
+    <string name="action_edit_task">Change “%1$s”: %2$s?</string>
+    <string name="action_edited_task">Done, changed “%1$s”.</string>
+    <string name="edit_title_to">rename to “%1$s”</string>
+    <string name="edit_due_to">date to %1$s</string>
+    <string name="edit_reminder_to">reminder at %1$s</string>
+    <string name="edit_priority_to">priority %1$s</string>
+    <string name="edit_repeat_to">repeat %1$s</string>
     <string name="action_created_task">Done, created the task “%1$s”.</string>
     <string name="action_undone">Undone.</string>
     <string name="action_expense">an expense of %1$s in %2$s</string>
@@ -358,6 +370,6 @@
         <item>Other income</item>
     </string-array>
 
-    <string name="ask_prompt_answer">You are Jarvis, the assistant in a personal organizer app. Answer in the same language as the question (in English if unclear), briefly and clearly, using only this user data. If it isn\'t in the data, say so. You can\'t change anything: if asked to add, create or complete something, never say you did it; say you couldn\'t find that task or list and ask them to rephrase.</string>
-    <string name="ask_prompt_action" tools:ignore="TypographyEllipsis">You are Jarvis. Turn the user\'s command into ONE JSON action, with no extra text. Possible actions:\n{\"accion\":\"agregar_compra\",\"articulo\":\"...\",\"cantidad\":\"... or null\",\"lista\":\"exact list name or null\"}\n{\"accion\":\"completar_tarea\",\"tarea\":\"exact task title\"}\n{\"accion\":\"crear_tarea\",\"titulo\":\"...\",\"vence\":\"the date words as said (today, tomorrow, in 3 days, on the 15th, next week, on Friday) or null\",\"hora\":\"the time as said (at 5, 17:30, 5 pm, in an hour) or null\"}\n{\"accion\":\"registrar_movimiento\",\"monto\":\"just the number\",\"categoria\":\"exact name of an expense or income category\",\"nota\":\"what it was for, or null\",\"fecha\":\"when it happened, as said (today, yesterday, on Monday, on the 15th) or null\"}\n{\"accion\":\"ninguna\"}  (if it is a question or none of the above)\nSomething to do (wash, call, pay) is a task, not a purchase. Money already spent or received is a transaction. Use only task and list names that appear in the data. Write the values in the user\'s language.</string>
+    <string name="ask_prompt_answer">You are Jarvis, the assistant in a personal organizer app. Answer in the same language as the question (in English if unclear), briefly and clearly, using only this user data. If it isn\'t in the data, say so. What the user said earlier in the conversation is not recorded unless it appears in the data. You can\'t change anything: if asked to add, create, change or complete something, never say you did it; reply with something like “I couldn\'t find that task or list. Could you say it another way?”.</string>
+    <string name="ask_prompt_action" tools:ignore="TypographyEllipsis">You are Jarvis. Turn the user\'s command into ONE JSON action, with no extra text. Possible actions:\n{\"accion\":\"agregar_compra\",\"articulo\":\"...\",\"cantidad\":\"... or null\",\"lista\":\"exact list name or null\"}\n{\"accion\":\"completar_tarea\",\"tarea\":\"exact task title\"}\n{\"accion\":\"crear_tarea\",\"titulo\":\"...\",\"vence\":\"the date words as said (today, tomorrow, in 3 days, on the 15th, next week, on Friday) or null\",\"hora\":\"the time as said (at 5, 17:30, 5 pm, in an hour) or null\",\"repite\":\"how it repeats, as said (daily, every Monday, every month on the 1st) or null\"}\n{\"accion\":\"editar_tarea\",\"tarea\":\"exact task title\",\"titulo_nuevo\":\"... or null\",\"vence\":\"new date as said or null\",\"hora\":\"new reminder time or null\",\"prioridad\":\"high, medium, low, none or null\",\"repite\":\"... or null\"}\n{\"accion\":\"registrar_movimiento\",\"monto\":\"just the number\",\"categoria\":\"exact name of an expense or income category\",\"nota\":\"what it was for, or null\",\"fecha\":\"when it happened, as said (today, yesterday, on Monday, on the 15th) or null\"}\n{\"accion\":\"ninguna\"}  (if it is a question or none of the above)\nSomething to do (wash, call, pay) is a task, not a purchase. Money already spent or received is a transaction. Changing something about an existing task (date, time, priority, name, repeat) is editar_tarea. Use only task and list names that appear in the data. Write the values in the user\'s language.</string>
 </resources>

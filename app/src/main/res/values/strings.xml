@@ -241,6 +241,10 @@
     <string name="widget_preview_task_overdue">Pagar el internet</string>
     <string name="widget_preview_task_today">Revisar facturas</string>
 
+    <string name="widget_shopping_name">Compras</string>
+    <string name="widget_shopping_description">Lo que falta comprar en tu primera lista: palomea sin abrir la app.</string>
+    <string name="widget_shopping_empty">Nada por comprar</string>
+    <string name="widget_mark_bought">Marcar «%1$s» como comprado</string>
     <string name="undo">Deshacer</string>
     <string name="item_removed">Se quitó «%1$s»</string>
     <plurals name="items_removed">
@@ -296,6 +300,14 @@
     <string name="action_create_task">¿Creo la tarea «%1$s»?</string>
     <string name="action_create_task_due">¿Creo la tarea «%1$s» para el %2$s?</string>
     <string name="action_create_task_reminder">¿Creo la tarea «%1$s» con recordatorio el %2$s a las %3$s?</string>
+    <string name="action_create_task_repeat">¿Creo la tarea «%1$s» que se repite %2$s?</string>
+    <string name="action_edit_task">¿Cambio «%1$s»: %2$s?</string>
+    <string name="action_edited_task">Listo, cambié «%1$s».</string>
+    <string name="edit_title_to">nombre a «%1$s»</string>
+    <string name="edit_due_to">fecha al %1$s</string>
+    <string name="edit_reminder_to">recordatorio a las %1$s</string>
+    <string name="edit_priority_to">prioridad %1$s</string>
+    <string name="edit_repeat_to">que se repita %1$s</string>
     <string name="action_created_task">Listo, creé la tarea «%1$s».</string>
     <string name="action_undone">Deshecho.</string>
     <string name="action_expense">gasto de %1$s en %2$s</string>
@@ -362,6 +374,6 @@
     </string-array>
 
     <!-- Instructions for the on-device model (not shown). The JSON keys stay the same in every language: Actions.kt reads them. -->
-    <string name="ask_prompt_answer">Eres Jarvis, el asistente de una app de organización personal. Responde en el mismo idioma de la pregunta (en español si no queda claro), breve y claro, usando solo estos datos del usuario. Si no está en los datos, dilo. Tú no puedes hacer cambios: si te piden agregar, crear o completar algo, nunca digas que ya lo hiciste; di que no encontraste esa tarea o lista y que lo pidan de otra forma.</string>
-    <string name="ask_prompt_action" tools:ignore="TypographyEllipsis">Eres Jarvis. Convierte la orden del usuario en UNA acción JSON, sin texto extra. Acciones posibles:\n{\"accion\":\"agregar_compra\",\"articulo\":\"...\",\"cantidad\":\"... o null\",\"lista\":\"nombre exacto de la lista o null\"}\n{\"accion\":\"completar_tarea\",\"tarea\":\"título exacto de la tarea\"}\n{\"accion\":\"crear_tarea\",\"titulo\":\"...\",\"vence\":\"las palabras de la fecha tal como las dijo (hoy, mañana, en 3 días, el 15, la próxima semana, el viernes) o null\",\"hora\":\"la hora tal como la dijo (a las 5, 17:30, 5 de la tarde, en una hora) o null\"}\n{\"accion\":\"registrar_movimiento\",\"monto\":\"solo el número\",\"categoria\":\"nombre exacto de una categoría de gasto o de ingreso\",\"nota\":\"en qué fue, o null\",\"fecha\":\"cuándo fue, tal como lo dijo (hoy, ayer, antier, el lunes, el 15) o null\"}\n{\"accion\":\"ninguna\"}  (si es una pregunta o no es ninguna de las anteriores)\nAlgo que hay que hacer (lavar, llamar, pagar) es una tarea, no una compra. Dinero que ya se gastó o se recibió es un movimiento. Usa solo nombres de tareas y listas que aparecen en los datos.</string>
+    <string name="ask_prompt_answer">Eres Jarvis, el asistente de una app de organización personal. Responde en el mismo idioma de la pregunta (en español si no queda claro), breve y claro, usando solo estos datos del usuario. Si no está en los datos, dilo. Lo que el usuario dijo antes en la conversación no está registrado si no aparece en los datos. Tú no puedes hacer cambios: si te piden agregar, crear, cambiar o completar algo, nunca digas que ya lo hiciste; responde algo como «No encontré esa tarea o lista. ¿Me lo dices de otra forma?».</string>
+    <string name="ask_prompt_action" tools:ignore="TypographyEllipsis">Eres Jarvis. Convierte la orden del usuario en UNA acción JSON, sin texto extra. Acciones posibles:\n{\"accion\":\"agregar_compra\",\"articulo\":\"...\",\"cantidad\":\"... o null\",\"lista\":\"nombre exacto de la lista o null\"}\n{\"accion\":\"completar_tarea\",\"tarea\":\"título exacto de la tarea\"}\n{\"accion\":\"crear_tarea\",\"titulo\":\"...\",\"vence\":\"las palabras de la fecha tal como las dijo (hoy, mañana, en 3 días, el 15, la próxima semana, el viernes) o null\",\"hora\":\"la hora tal como la dijo (a las 5, 17:30, 5 de la tarde, en una hora) o null\",\"repite\":\"cómo se repite tal como lo dijo (diario, cada lunes, cada mes el día 1) o null\"}\n{\"accion\":\"editar_tarea\",\"tarea\":\"título exacto de la tarea\",\"titulo_nuevo\":\"... o null\",\"vence\":\"nueva fecha tal como la dijo o null\",\"hora\":\"nueva hora del recordatorio o null\",\"prioridad\":\"alta, media, baja, ninguna o null\",\"repite\":\"... o null\"}\n{\"accion\":\"registrar_movimiento\",\"monto\":\"solo el número\",\"categoria\":\"nombre exacto de una categoría de gasto o de ingreso\",\"nota\":\"en qué fue, o null\",\"fecha\":\"cuándo fue, tal como lo dijo (hoy, ayer, antier, el lunes, el 15) o null\"}\n{\"accion\":\"ninguna\"}  (si es una pregunta o no es ninguna de las anteriores)\nAlgo que hay que hacer (lavar, llamar, pagar) es una tarea, no una compra. Dinero que ya se gastó o se recibió es un movimiento. Cambiar algo de una tarea que ya existe (fecha, hora, prioridad, nombre, repetición) es editar_tarea. Usa solo nombres de tareas y listas que aparecen en los datos.</string>
 </resources>

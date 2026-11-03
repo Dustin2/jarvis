@@ -1,5 +1,7 @@
 package dev.dux.organizer
 
+import kotlinx.coroutines.flow.combine
+import dev.dux.organizer.widget.ShoppingWidget
 import dev.dux.organizer.reminders.MorningBrief
 import android.app.Application
 import android.content.Context
@@ -59,6 +61,10 @@ class JarvisApplication : Application() {
         // Keeps the home screen widget in step with any change to open tasks, wherever it is made.
         MainScope().launch {
             tasks.open.drop(1).collectLatest { TodayWidget().updateAll(this@JarvisApplication) }
+        }
+        // Same for the shopping widget, with any change to lists or items.
+        MainScope().launch {
+            combine(shopping.lists, shopping.allItems) { _, _ -> }.drop(1).collectLatest { ShoppingWidget().updateAll(this@JarvisApplication) }
         }
     }
 
