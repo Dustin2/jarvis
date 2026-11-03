@@ -1,7 +1,11 @@
 package dev.dux.organizer.ask
 
 import dev.dux.organizer.data.Category
+import dev.dux.organizer.data.Frequency
 import dev.dux.organizer.data.MoneyKind
+import dev.dux.organizer.data.Priority
+import dev.dux.organizer.data.Recurrence
+import java.time.DayOfWeek
 import dev.dux.organizer.data.ShoppingList
 import dev.dux.organizer.data.Task
 import java.time.Instant
@@ -70,6 +74,52 @@ class ActionsTest {
             parse("""Claro: {"accion":"crear_tarea","titulo":"llamar a Juan","vence":"mañana"}"""),
         )
         assertEquals(JarvisAction.CreateTask("Lavar el carro", null), parse("""{"accion":"crear_tarea","titulo":"Lavar el carro","vence":null}"""))
+    }
+
+    @Test
+    fun repeatRules() {
+        assertEquals(Recurrence(Frequency.DAILY), repeatRule("diario", today))
+        assertEquals(Recurrence(Frequency.DAILY, 2), repeatRule("cada 2 días", today))
+        assertEquals(Recurrence(Frequency.WEEKLY, weekdays = setOf(DayOfWeek.MONDAY, DayOfWeek.THURSDAY)), repeatRule("cada lunes y jueves", today))
+        assertEquals(Recurrence(Frequency.WEEKLY, weekdays = setOf(today.dayOfWeek)), repeatRule("every week", today))
+        assertEquals(Recurrence(Frequency.WEEKLY, 2, weekdays = setOf(DayOfWeek.FRIDAY)), repeatRule("every 2 weeks on Friday", today))
+        assertEquals(Recurrence(Frequency.MONTHLY, monthDay = 1), repeatRule("cada mes el día 1", today))
+        assertEquals(Recurrence(Frequency.MONTHLY, monthDay = 15), repeatRule("every month on the 15th", today))
+        assertEquals(Recurrence(Frequency.MONTHLY, monthDay = today.dayOfMonth), repeatRule("mensual", today))
+        assertNull(repeatRule("a veces", today))
+    }
+
+    @Test
+    fun editsOnlyWhatWasSaid() {
+        val nine = today.atTime(9, 0)
+        fun parse(json: String) = parseAction(json, "", open, lists, today, now = nine)
+        assertEquals(
+            JarvisAction.EditTask(invoices, due = LocalDate.of(2026, 10, 30), priority = Priority.HIGH),
+            parse("""{"accion":"editar_tarea","tarea":"facturas","vence":"el viernes","hora":null,"prioridad":"alta","titulo_nuevo":null,"repite":null}"""),
+        )
+        assertEquals(
+            JarvisAction.EditTask(internet, remindAt = today.atTime(10, 0)),
+            parse("""{"accion":"editar_tarea","tarea":"Pagar el internet","hora":"a las 10"}"""),
+        )
+        // Nothing to change, or an unknown task: no proposal.
+        assertNull(parse("""{"accion":"editar_tarea","tarea":"Pagar el internet"}"""))
+        assertNull(parse("""{"accion":"editar_tarea","tarea":"Lavar el carro","prioridad":"alta"}"""))
+    }
+
+    @Test
+    fun creatingAnExistingTaskEditsIt() {
+        assertEquals(
+            JarvisAction.EditTask(internet, due = LocalDate.of(2026, 11, 1), repeat = Recurrence(Frequency.MONTHLY, monthDay = 1)),
+            parse("""{"accion":"crear_tarea","titulo":"Pagar el internet","vence":"el 1","repite":"cada mes"}"""),
+        )
+    }
+
+    @Test
+    fun createsRepeatingTask() {
+        assertEquals(
+            JarvisAction.CreateTask("Sacar la basura", null, null, Recurrence(Frequency.WEEKLY, weekdays = setOf(DayOfWeek.MONDAY))),
+            parse("""{"accion":"crear_tarea","titulo":"sacar la basura","vence":null,"repite":"cada lunes"}"""),
+        )
     }
 
     @Test
