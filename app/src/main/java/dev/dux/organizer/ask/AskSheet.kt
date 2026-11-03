@@ -1,5 +1,9 @@
 package dev.dux.organizer.ask
 
+import java.time.format.TextStyle
+import dev.dux.organizer.data.Frequency
+import dev.dux.organizer.data.Recurrence
+import dev.dux.organizer.data.Priority
 import java.time.format.FormatStyle
 import java.time.LocalDateTime
 import androidx.compose.runtime.mutableStateListOf
@@ -263,8 +267,22 @@ private fun actionTexts(action: JarvisAction, res: Resources): Pair<String, Stri
         )
         res.getString(R.string.action_record, what) to res.getString(R.string.action_recorded, what)
     }
+    is JarvisAction.EditTask -> {
+        val locale = res.configuration.locales[0]
+        val changes = listOfNotNull(
+            action.newTitle?.let { res.getString(R.string.edit_title_to, it) },
+            action.due?.let { res.getString(R.string.edit_due_to, it.format(DateTimeFormatter.ofPattern(res.getString(R.string.date_long), locale))) },
+            action.remindAt?.let { res.getString(R.string.edit_reminder_to, it.toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale))) },
+            action.priority?.let { res.getString(R.string.edit_priority_to, res.getString(priorityLabel(it)).lowercase(locale)) },
+            action.repeat?.let { res.getString(R.string.edit_repeat_to, it.describe(res, locale).replaceFirstChar { c -> c.lowercase(locale) }) },
+        ).joinToString(", ")
+        res.getString(R.string.action_edit_task, action.task.title, changes) to res.getString(R.string.action_edited_task, action.task.title)
+    }
     is JarvisAction.CreateTask -> {
         val locale = res.configuration.locales[0]
+        action.repeat?.let { rule ->
+            return res.getString(R.string.action_create_task_repeat, action.title, rule.describe(res, locale).replaceFirstChar { c -> c.lowercase(locale) }) to res.getString(R.string.action_created_task, action.title)
+        }
         action.remindAt?.let { at ->
             val day = at.toLocalDate().format(DateTimeFormatter.ofPattern(res.getString(R.string.date_long), locale))
             val time = at.toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale))
@@ -274,4 +292,20 @@ private fun actionTexts(action: JarvisAction, res: Resources): Pair<String, Stri
             ?: res.getString(R.string.action_create_task, action.title)
         ask to res.getString(R.string.action_created_task, action.title)
     }
+}
+
+private fun priorityLabel(p: Priority) = when (p) {
+    Priority.NONE -> R.string.priority_none
+    Priority.LOW -> R.string.priority_low
+    Priority.MEDIUM -> R.string.priority_medium
+    Priority.HIGH -> R.string.priority_high
+}
+
+/** Same wording as the repeat dialog ("Cada semana: lun, jue"), outside Compose. */
+private fun Recurrence.describe(res: Resources, locale: Locale): String = when (frequency) {
+    Frequency.DAILY -> res.getQuantityString(R.plurals.repeat_daily, interval, interval)
+    Frequency.WEEKLY -> res.getQuantityString(
+        R.plurals.repeat_weekly, interval, interval, weekdays.sorted().joinToString(", ") { it.getDisplayName(TextStyle.SHORT, locale).trimEnd('.') },
+    )
+    Frequency.MONTHLY -> res.getQuantityString(R.plurals.repeat_monthly, interval, interval, monthDay!!)
 }
