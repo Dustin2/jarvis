@@ -82,6 +82,8 @@ fun JarvisApp(
     onTaskOpened: () -> Unit = {},
     capture: Boolean = false,
     onCaptureShown: () -> Unit = {},
+    widgetList: String? = null,
+    onListShown: () -> Unit = {},
     askStart: AskStart? = null,
     onAskShown: () -> Unit = {},
 ) {
@@ -110,6 +112,15 @@ fun JarvisApp(
         }
     }
     var listToOpen by rememberSaveable { mutableStateOf<String?>(null) }
+    // From the shopping widget: back to the main screen, on Compras and that list.
+    LaunchedEffect(widgetList) {
+        if (widgetList != null) {
+            while (backStack.size > 1) backStack.removeLastOrNull()
+            tab = Tab.Shopping
+            listToOpen = widgetList
+            onListShown()
+        }
+    }
     val openTask: (String) -> Unit = { backStack.add(TaskDetail(it)) }
     NavDisplay(
         backStack = backStack,
