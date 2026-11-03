@@ -162,6 +162,8 @@ class SettingsViewModel(
 
     fun setBriefEnabled(enabled: Boolean) = viewModelScope.launch { morningBrief.setEnabled(enabled) }
 
+    fun setWeekly(enabled: Boolean) = viewModelScope.launch { morningBrief.setWeekly(enabled) }
+
     fun setBriefTime(time: LocalTime) = viewModelScope.launch { morningBrief.setTime(time) }
 
     fun downloadModel() = run(R.string.model_failed) { ask.download() }
@@ -354,7 +356,19 @@ private fun BriefSection(settings: BriefSettings, vm: SettingsViewModel) {
     }
     if (settings.enabled) {
         OutlinedButton(onClick = { picking = true }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.brief_time, timeText)) }
-        if (notificationsOff) Text(stringResource(R.string.notifications_off), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+    }
+    Row(
+        Modifier.fillMaxWidth().toggleable(settings.weekly, role = Role.Switch) { on ->
+            vm.setWeekly(on)
+            if (on && notificationsOff) askPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(stringResource(R.string.weekly_on), Modifier.weight(1f))
+        Switch(checked = settings.weekly, onCheckedChange = null)
+    }
+    if ((settings.enabled || settings.weekly) && notificationsOff) {
+        Text(stringResource(R.string.notifications_off), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
     }
     if (picking) {
         val state = rememberTimePickerState(settings.time.hour, settings.time.minute, is24Hour = is24Hour)
