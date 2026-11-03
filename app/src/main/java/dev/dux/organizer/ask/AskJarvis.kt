@@ -252,6 +252,7 @@ class FactLabels(
     val incomeCategories: String,
     val thisWeek: String,
     val lastMonth: String,
+    val projects: String,
 ) {
     companion object {
         val SPANISH = FactLabels(
@@ -262,6 +263,7 @@ class FactLabels(
             "Finanzas de este mes: entró %s, salió %s, te queda %s.", "Presupuesto mensual: %s.", "gastado", "de",
             "Categorías donde se pasó del presupuesto: %s.", "por", "ninguna", "Categorías de gasto", "Categorías de ingreso",
             "Gastos de esta semana (desde el %s): %s. Total: %s.", "Mes pasado (%s): entró %s, salió %s. Gastos por categoría: %s.",
+            "Proyectos: %s.",
         )
         val ENGLISH = FactLabels(
             Locale.ENGLISH, "EEEE, MMMM d, yyyy", "Today is %s.", "due", "priority",
@@ -271,6 +273,7 @@ class FactLabels(
             "This month's money: came in %s, went out %s, left %s.", "Monthly budget: %s.", "spent", "of",
             "Categories over budget: %s.", "by", "none", "Expense categories", "Income categories",
             "Spending this week (since %s): %s. Total: %s.", "Last month (%s): came in %s, went out %s. Spending by category: %s.",
+            "Projects: %s.",
         )
 
         fun of(locale: Locale) = if (locale.language == "en") ENGLISH else SPANISH
@@ -308,6 +311,8 @@ fun askFacts(
         appendLine("$title (${list.size}):")
         list.forEach { appendLine(line(it)) }
     }
+    // Names the model may use to move a task.
+    if (projectNames.isNotEmpty()) appendLine(labels.projects.format(projectNames.values.joinToString()))
     val byList = items.groupBy { it.listId }
     for (list in lists) {
         fun names(checked: Boolean) = byList[list.id].orEmpty().filter { it.checked == checked }
