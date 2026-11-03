@@ -331,6 +331,14 @@
         <item quantity="one">%1$d due today</item>
         <item quantity="other">%1$d due today</item>
     </plurals>
+    <string name="weekly_on">Weekly summary, Sundays at 7 pm</string>
+    <string name="weekly_channel">Weekly summary</string>
+    <string name="weekly_title">Your week</string>
+    <string name="weekly_spent">spent %1$s</string>
+    <plurals name="weekly_done">
+        <item quantity="one">%1$d task done</item>
+        <item quantity="other">%1$d tasks done</item>
+    </plurals>
     <string name="action_on_date">\u0020on %1$s</string>
     <string name="ask_shortcut">Talk to Jarvis</string>
     <string name="ask_voice_missing">This phone has no voice typing. Type your question instead.</string>

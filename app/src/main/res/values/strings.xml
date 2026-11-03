@@ -332,6 +332,14 @@
         <item quantity="one">%1$d para hoy</item>
         <item quantity="other">%1$d para hoy</item>
     </plurals>
+    <string name="weekly_on">Resumen semanal, los domingos a las 7 p. m.</string>
+    <string name="weekly_channel">Resumen semanal</string>
+    <string name="weekly_title">Tu semana</string>
+    <string name="weekly_spent">gastaste %1$s</string>
+    <plurals name="weekly_done">
+        <item quantity="one">%1$d tarea completada</item>
+        <item quantity="other">%1$d tareas completadas</item>
+    </plurals>
     <string name="action_on_date">\u0020del %1$s</string>
     <string name="ask_shortcut">Hablar con Jarvis</string>
     <string name="ask_voice_missing">Este teléfono no tiene dictado por voz. Escribe tu pregunta.</string>
