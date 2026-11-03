@@ -17,4 +17,6 @@ data class Project(
     val sortOrder: Int = 0,
     val createdAt: Instant,
     val updatedAt: Instant,
+    /** In the trash since then, with the tasks deleted at the same instant (schema v6). */
+    val deletedAt: Instant? = null,
 )

@@ -103,4 +103,25 @@ class MigrationTest {
         assertEquals(listOf(ShoppingItem(id = "i1", listId = "l1", name = "Leche", quantity = "2", checked = true, createdAt = java.time.Instant.EPOCH, updatedAt = java.time.Instant.EPOCH)), items)
         assertEquals(emptyList<Category>(), categories)
     }
+
+    @Test fun v5ToV6KeepsTasksAndProjectsOutOfTheTrash() {
+        helper.createDatabase(dbName, 5).apply {
+            execSQL("INSERT INTO projects VALUES ('p1', 'Pro-Hielo', NULL, 'ACTIVE', 0, 0, 0)")
+            execSQL(
+                "INSERT INTO tasks (id, title, notes, status, priority, projectId, dueDate, scheduledDate, createdAt, updatedAt, completedAt, reminderAt, recurrence, seriesId) " +
+                    "VALUES ('t1', 'Tarea', NULL, 'TODO', 0, 'p1', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL)"
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(dbName, 6, true).close()
+
+        val db = Room.databaseBuilder(context, AppDatabase::class.java, dbName).build()
+        val tasks = runBlocking { db.tasks().getAll() }
+        val projects = runBlocking { db.projects().getAll() }
+        db.close()
+        assertEquals(listOf("t1"), tasks.map { it.id })
+        assertNull(tasks.single().deletedAt)
+        assertNull(projects.single().deletedAt)
+    }
 }

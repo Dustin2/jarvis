@@ -293,7 +293,7 @@ suspend fun JarvisAction.run(tasks: TaskRepository, shopping: ShoppingRepository
             remindAt?.let { tasks.setReminder(id, it) }
             repeat?.let { tasks.setRecurrence(id, it) }
             // Deleting also cancels the alarm.
-            ({ tasks.delete(id) })
+            ({ tasks.deleteForever(id) })
         } else null
         is JarvisAction.EditTask -> {
             newTitle?.let { tasks.rename(task.id, it) }

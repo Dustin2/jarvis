@@ -44,6 +44,10 @@ import dev.dux.organizer.tasks.TaskListViewModel
 import dev.dux.organizer.tasks.TasksScreen
 import dev.dux.organizer.projects.ProjectDetailScreen
 import dev.dux.organizer.projects.ProjectDetailViewModel
+import dev.dux.organizer.trash.ArchiveScreen
+import dev.dux.organizer.trash.ArchiveViewModel
+import dev.dux.organizer.trash.TrashScreen
+import dev.dux.organizer.trash.TrashViewModel
 import dev.dux.organizer.projects.ProjectsScreen
 import dev.dux.organizer.projects.ProjectsViewModel
 import dev.dux.organizer.search.SearchScreen
@@ -67,6 +71,8 @@ import java.time.YearMonth
 @Serializable data class Finances(val month: String? = null, val movementId: String? = null) : NavKey
 @Serializable data object Search : NavKey
 @Serializable data class DebtDetail(val id: String) : NavKey
+@Serializable data object Trash : NavKey
+@Serializable data object Archive : NavKey
 
 enum class Tab(@StringRes val label: Int, @DrawableRes val icon: Int) {
     Today(R.string.tab_today, R.drawable.ic_today),
@@ -140,6 +146,8 @@ fun JarvisApp(
                     financesVm = viewModel { FinancesViewModel(app.finance) },
                     onOpenTask = openTask,
                     onOpenProject = { backStack.add(ProjectDetail(it)) },
+                    onOpenArchive = { backStack.add(Archive) },
+                    onOpenTrash = { backStack.add(Trash) },
                     onOpenSettings = { backStack.add(Settings) },
                     onOpenFinances = { tab = Tab.Finances },
                     onOpenDebt = { backStack.add(DebtDetail(it)) },
@@ -192,9 +200,15 @@ fun JarvisApp(
             entry<DebtDetail> { key ->
                 DebtDetailScreen(viewModel { DebtDetailViewModel(key.id, app.finance) }, onBack = { backStack.removeLastOrNull() })
             }
+            entry<Trash> {
+                TrashScreen(viewModel { TrashViewModel(app.trash) }, onBack = { backStack.removeLastOrNull() })
+            }
+            entry<Archive> {
+                ArchiveScreen(viewModel { ArchiveViewModel(app.projects) }, onOpen = { backStack.add(ProjectDetail(it)) }, onBack = { backStack.removeLastOrNull() })
+            }
             entry<ProjectDetail> { key ->
                 ProjectDetailScreen(
-                    viewModel { ProjectDetailViewModel(key.id, app.projects, app.tasks) },
+                    viewModel { ProjectDetailViewModel(key.id, app.projects, app.tasks, app.trash) },
                     onOpenTask = openTask,
                     onBack = { backStack.removeLastOrNull() },
                 )
@@ -212,6 +226,8 @@ private fun MainScreen(
     financesVm: FinancesViewModel,
     onOpenTask: (String) -> Unit,
     onOpenProject: (String) -> Unit,
+    onOpenArchive: () -> Unit,
+    onOpenTrash: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenFinances: () -> Unit,
     onOpenDebt: (String) -> Unit,
@@ -277,7 +293,7 @@ private fun MainScreen(
         when (tab) {
             Tab.Today -> TodayScreen(todayVm, onOpenTask, onOpenSettings, onOpenFinances, onSearch, offerUndo, modifier, askStart, onAskShown)
             Tab.Tasks -> TasksScreen(tasksVm, onOpenTask, onSearch, offerUndo, modifier)
-            Tab.Projects -> ProjectsScreen(projectsVm, onOpenProject, onSearch, modifier)
+            Tab.Projects -> ProjectsScreen(projectsVm, onOpenProject, onSearch, onOpenArchive, onOpenTrash, modifier)
             Tab.Shopping -> ShoppingScreen(shoppingVm, offerUndo, onSearch, modifier)
             Tab.Finances -> FinancesScreen(financesVm, onOpenDebt, onSearch, onBack = null, modifier = modifier)
         }

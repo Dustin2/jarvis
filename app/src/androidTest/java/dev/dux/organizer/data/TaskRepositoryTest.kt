@@ -79,10 +79,13 @@ class TaskRepositoryTest {
         assertEquals("con notas", task.notes)
     }
 
-    @Test fun deleteRemovesTask() = runBlocking {
+    @Test fun deleteMovesToTrashAndDeleteForeverRemoves() = runBlocking {
         repo.capture("Borrar")
         val id = repo.inbox.first().single().id
         repo.delete(id)
+        assertTrue(repo.all.first().isEmpty())
+        assertNotNull(repo.observe(id).first()?.deletedAt)
+        repo.deleteForever(id)
         assertNull(repo.observe(id).first())
     }
 

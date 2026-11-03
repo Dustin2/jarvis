@@ -38,6 +38,9 @@ import dev.dux.organizer.data.ProjectStatus
 import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TaskRepository
 import dev.dux.organizer.data.TaskStatus
+import dev.dux.organizer.data.TrashRepository
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import dev.dux.organizer.tasks.TaskRow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -82,7 +85,12 @@ class ProjectsViewModel(private val projects: ProjectRepository, tasks: TaskRepo
     }
 }
 
-class ProjectDetailViewModel(private val id: String, private val projects: ProjectRepository, private val tasks: TaskRepository) : ViewModel() {
+class ProjectDetailViewModel(
+    private val id: String,
+    private val projects: ProjectRepository,
+    private val tasks: TaskRepository,
+    private val trash: TrashRepository,
+) : ViewModel() {
     val project = projects.observe(id).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
     val projectTasks = tasks.observeByProject(id).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
@@ -92,6 +100,11 @@ class ProjectDetailViewModel(private val id: String, private val projects: Proje
 
     fun setStatus(status: ProjectStatus) {
         viewModelScope.launch { projects.setStatus(id, status) }
+    }
+
+    /** To the trash with its tasks; restorable from there. */
+    fun delete(onDone: () -> Unit) {
+        viewModelScope.launch { trash.deleteProject(id); onDone() }
     }
 
     fun addTask(title: String, notes: String, onResult: (Boolean) -> Unit) {
@@ -117,7 +130,14 @@ val ProjectStatus.label: Int
     }
 
 @Composable
-fun ProjectsScreen(vm: ProjectsViewModel, onOpen: (String) -> Unit, onSearch: () -> Unit, modifier: Modifier = Modifier) {
+fun ProjectsScreen(
+    vm: ProjectsViewModel,
+    onOpen: (String) -> Unit,
+    onSearch: () -> Unit,
+    onOpenArchive: () -> Unit,
+    onOpenTrash: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val summaries by vm.summaries.collectAsStateWithLifecycle()
     var creating by rememberSaveable { mutableStateOf(false) }
     val items = summaries ?: return
@@ -126,6 +146,8 @@ fun ProjectsScreen(vm: ProjectsViewModel, onOpen: (String) -> Unit, onSearch: ()
         item {
             ScreenHeader(R.string.tab_projects, onSearch, menu = { close ->
                 DropdownMenuItem(text = { Text(stringResource(R.string.new_project)) }, onClick = { close(); creating = true })
+                DropdownMenuItem(text = { Text(stringResource(R.string.archive)) }, onClick = { close(); onOpenArchive() })
+                DropdownMenuItem(text = { Text(stringResource(R.string.trash)) }, onClick = { close(); onOpenTrash() })
             })
         }
         items(items, key = { it.project.id }) { (project, open) ->
@@ -159,6 +181,7 @@ fun ProjectDetailScreen(vm: ProjectDetailViewModel, onOpenTask: (String) -> Unit
     val project by vm.project.collectAsStateWithLifecycle()
     val tasks by vm.projectTasks.collectAsStateWithLifecycle()
     var adding by rememberSaveable { mutableStateOf(false) }
+    var deleting by rememberSaveable { mutableStateOf(false) }
     val drafts = rememberDrafts()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -172,6 +195,9 @@ fun ProjectDetailScreen(vm: ProjectDetailViewModel, onOpenTask: (String) -> Unit
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.back)) }
                 },
+                actions = {
+                    if (project != null) IconButton(onClick = { deleting = true }) { Icon(painterResource(R.drawable.ic_delete), stringResource(R.string.delete_project)) }
+                },
             )
         },
         snackbarHost = { SnackbarHost(snackbar) },
@@ -180,6 +206,15 @@ fun ProjectDetailScreen(vm: ProjectDetailViewModel, onOpenTask: (String) -> Unit
     ) { padding ->
         val current = project ?: return@Scaffold
         val list = tasks ?: return@Scaffold
+        if (deleting) {
+            AlertDialog(
+                onDismissRequest = { deleting = false },
+                title = { Text(stringResource(R.string.delete_project_confirm, current.name)) },
+                text = { Text(pluralStringResource(R.plurals.delete_project_body, list.size, list.size, TrashRepository.KEEP_DAYS)) },
+                confirmButton = { TextButton(onClick = { deleting = false; vm.delete(onBack) }) { Text(stringResource(R.string.delete)) } },
+                dismissButton = { TextButton(onClick = { deleting = false }) { Text(stringResource(R.string.cancel)) } },
+            )
+        }
         if (adding) {
             CaptureSheet(
                 drafts = drafts,
