@@ -14,7 +14,7 @@ main            stable version, always installable; only receives PRs from devel
 ```
 
 - Never commit directly to `main`. Avoid committing directly to `develop`.
-- GitHub Free does not allow branch protection on private repositories: these rules are kept by discipline (and agents follow them through `CLAUDE.md`).
+- GitHub Free does not allow branch protection on private repositories: these rules are kept by discipline.
 
 ## Task flow
 

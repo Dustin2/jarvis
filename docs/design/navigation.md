@@ -1,6 +1,6 @@
 # Navigation (UX review)
 
-Approved on 2026-10-27: option A of the mockups (https://claude.ai/artifact/B6ioAUA4y3uSonnG7CmXKZ).
+Approved on 2026-10-27: option A of the mockups.
 
 ## Bottom bar
 
