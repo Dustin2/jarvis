@@ -1,6 +1,6 @@
 # Home screen widget (milestone 6.6)
 
-Approved on 2026-10-27 (option B of the mockups: https://claude.ai/artifact/TkXgSN7W9AaZyjCTWipwnu).
+Approved on 2026-10-27 (option B of the mockups).
 
 ## Behavior
 

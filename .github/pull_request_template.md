@@ -17,7 +17,7 @@ How the changes were verified (unit tests, emulator tests, manual check on the p
 
 ## Checklist
 
-- [ ] Follows `CLAUDE.md` and `docs/conventions/git.md`.
+- [ ] Follows `docs/contributing.md` and `docs/conventions/git.md`.
 - [ ] Database changes include a tested migration and the exported schema.
 - [ ] No personal data, databases or backups committed.
 - [ ] Changes have been tested.

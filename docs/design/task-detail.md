@@ -1,6 +1,6 @@
 # Task detail (UX review)
 
-Approved on 2026-10-28: option D4 of the mockups (https://claude.ai/artifact/B6ioAUA4y3uSonnG7CmXKZ), a hybrid of the D1 list and the D3 icons.
+Approved on 2026-10-28: option D4 of the mockups, a hybrid of the D1 list and the D3 icons.
 
 - Title and notes without boxes (plain text fields).
 - The planning options form one rounded block of identical rows (`ui/Fields.kt` `PlanRow`): icon in a 40 dp circle, name above, value below, at least 64 dp tall. The circle is filled when the option has a value and outlined when it is empty, so what is planned shows at a glance. Each row is announced as "Fecha límite: Hoy".
