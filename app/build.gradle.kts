@@ -35,8 +35,10 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // shortcut: signed with the debug key so it installs over the debug build without losing data.
-            // If the APK is ever published or shared, create a dedicated key (and back it up).
+            // shortcut: signed with this computer's debug key (~/.android/debug.keystore). The APKs on GitHub
+            // releases are installed over the old version, so they must keep this key: back it up, and build
+            // releases here, not in CI (its runner has a different debug key). Move to a dedicated key only
+            // with a reinstall (backup and restore) on every phone.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
