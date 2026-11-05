@@ -9,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.mutableStateOf
 import dev.dux.organizer.ui.JarvisApp
 import dev.dux.organizer.ui.theme.JarvisTheme
+import dev.dux.organizer.update.UpdateDialog
 
 class MainActivity : ComponentActivity() {
     /** Task to open after tapping a notification; consumed once opened. */
@@ -37,6 +38,7 @@ class MainActivity : ComponentActivity() {
                     askStart = askStart.value,
                     onAskShown = { askStart.value = null },
                 )
+                UpdateDialog()
             }
         }
     }

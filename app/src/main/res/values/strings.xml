@@ -418,4 +418,8 @@
         <item quantity="one">Irá a la papelera. Puedes restaurarla durante %1$d día.</item>
         <item quantity="other">Irá a la papelera. Puedes restaurarla durante %1$d días.</item>
     </plurals>
+    <string name="update_title">Hay una versión nueva</string>
+    <string name="update_body">Jarvis %1$s está lista. Descárgala e instálala encima: tus datos se quedan como están.</string>
+    <string name="update_download">Descargar</string>
+    <string name="update_later">Más tarde</string>
 </resources>
