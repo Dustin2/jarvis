@@ -24,6 +24,15 @@ android {
     // Phone-only app: no ChromeOS (x86_64) build, see abiFilters.
     lint { disable += "ChromeOsAbiSupport" }
 
+    // Releases are installed over the previous version: every one must be signed with this same key.
+    val storeFile = providers.gradleProperty("JARVIS_STORE_FILE").orNull
+    if (storeFile != null) signingConfigs.create("release") {
+        this.storeFile = file(storeFile)
+        storePassword = providers.gradleProperty("JARVIS_STORE_PASSWORD").get()
+        keyAlias = providers.gradleProperty("JARVIS_KEY_ALIAS").get()
+        keyPassword = providers.gradleProperty("JARVIS_KEY_PASSWORD").get()
+    }
+
     buildTypes {
         debug {
             // Separate app ("Jarvis Dev") next to the real one: device tests install and uninstall it
@@ -35,11 +44,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // shortcut: signed with this computer's debug key (~/.android/debug.keystore). The APKs on GitHub
-            // releases are installed over the old version, so they must keep this key: back it up, and build
-            // releases here, not in CI (its runner has a different debug key). Move to a dedicated key only
-            // with a reinstall (backup and restore) on every phone.
-            signingConfig = signingConfigs.getByName("debug")
+            // The release key lives outside the repo (~/.gradle/gradle.properties); CI has no key, so it
+            // signs with its debug key only to check the build. APKs from CI must never be shared.
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
 
