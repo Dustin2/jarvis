@@ -105,7 +105,10 @@ fun parseAction(
             val task = findTask(fields["tarea"] ?: return null, open) ?: return null
             val (dayWords, timeWords) = splitTime(fields["vence"])
             val due = dayWords?.let { relativeDate(it, today) }
-            val remindAt = (fields["hora"] ?: timeWords ?: dayWords.takeIf { due == null })?.let { reminderTime(it, due ?: task.dueDate, now) }
+            // Only a future due date anchors the time: on today's or a past one it would already be gone
+            // (and so ignored); without a date, a passed time rolls to tomorrow.
+            val day = due ?: task.dueDate?.takeIf { it.isAfter(today) }
+            val remindAt = (fields["hora"] ?: timeWords ?: dayWords.takeIf { due == null })?.let { reminderTime(it, day, now) }
             val change = JarvisAction.EditTask(
                 task,
                 newTitle = fields["titulo_nuevo"]?.trim()?.takeIf { it.isNotEmpty() }?.replaceFirstChar { it.uppercase() },

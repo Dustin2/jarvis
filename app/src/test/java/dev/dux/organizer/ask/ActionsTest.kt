@@ -108,6 +108,30 @@ class ActionsTest {
     }
 
     @Test
+    fun aReminderTimeAloneOnAPastOrTodaysDueDateRollsForward() {
+        val six = today.atTime(18, 0)
+        fun parse(task: Task, json: String) = parseAction(json, "", listOf(task), lists, today, now = six)
+        // Overdue since yesterday: "a las 5" is not yesterday at 5 (already gone) but tomorrow at 5 am.
+        val overdue = internet.copy(dueDate = today.minusDays(1))
+        assertEquals(
+            JarvisAction.EditTask(overdue, remindAt = today.plusDays(1).atTime(5, 0)),
+            parse(overdue, """{"accion":"editar_tarea","tarea":"Pagar el internet","hora":"a las 5"}"""),
+        )
+        // Due today and 5 pm has passed: same.
+        val dueToday = internet.copy(dueDate = today)
+        assertEquals(
+            JarvisAction.EditTask(dueToday, remindAt = today.plusDays(1).atTime(5, 0)),
+            parse(dueToday, """{"accion":"editar_tarea","tarea":"Pagar el internet","hora":"a las 5"}"""),
+        )
+        // Due in the future: the time is on that day, as before.
+        val later = internet.copy(dueDate = today.plusDays(3))
+        assertEquals(
+            JarvisAction.EditTask(later, remindAt = today.plusDays(3).atTime(5, 0)),
+            parse(later, """{"accion":"editar_tarea","tarea":"Pagar el internet","hora":"a las 5"}"""),
+        )
+    }
+
+    @Test
     fun creatingAnExistingTaskEditsIt() {
         assertEquals(
             JarvisAction.EditTask(internet, due = LocalDate.of(2026, 11, 1), repeat = Recurrence(Frequency.MONTHLY, monthDay = 1)),
