@@ -420,4 +420,5 @@
     <string name="update_download">Download</string>
     <string name="update_later">Later</string>
     <string name="saved_to_todo">Saved to To do</string>
+    <string name="postpone">Snooze</string>
 </resources>
