@@ -425,4 +425,16 @@
     <string name="update_later">Más tarde</string>
     <string name="saved_to_todo">Guardado en Por hacer</string>
     <string name="postpone">Posponer</string>
+    <string name="appearance">Apariencia</string>
+    <string name="theme_mode">Modo</string>
+    <string name="theme_system">Como el teléfono</string>
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark">Oscuro</string>
+    <string name="palette">Color</string>
+    <string name="palette_wallpaper">De mi fondo de pantalla</string>
+    <string name="palette_blue">Azul</string>
+    <string name="palette_green">Verde</string>
+    <string name="palette_purple">Morado</string>
+    <string name="palette_orange">Naranja</string>
+    <string name="palette_pink">Rosa</string>
 </resources>

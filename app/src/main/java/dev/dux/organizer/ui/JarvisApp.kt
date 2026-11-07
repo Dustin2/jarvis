@@ -196,7 +196,7 @@ fun JarvisApp(
                 TaskDetailScreen(viewModel { TaskDetailViewModel(key.id, app.tasks, app.projects) }, onBack = { backStack.removeLastOrNull() })
             }
             entry<Settings> {
-                SettingsScreen(viewModel { SettingsViewModel(app.backups, app.contentResolver, app.autoBackup, app.askJarvis, app.morningBrief) }, onBack = { backStack.removeLastOrNull() })
+                SettingsScreen(viewModel { SettingsViewModel(app.backups, app.contentResolver, app.autoBackup, app.askJarvis, app.morningBrief, app.appearance) }, onBack = { backStack.removeLastOrNull() })
             }
             entry<Search> {
                 SearchScreen(

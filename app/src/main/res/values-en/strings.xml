@@ -421,4 +421,16 @@
     <string name="update_later">Later</string>
     <string name="saved_to_todo">Saved to To do</string>
     <string name="postpone">Snooze</string>
+    <string name="appearance">Appearance</string>
+    <string name="theme_mode">Mode</string>
+    <string name="theme_system">Same as phone</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="palette">Color</string>
+    <string name="palette_wallpaper">From my wallpaper</string>
+    <string name="palette_blue">Blue</string>
+    <string name="palette_green">Green</string>
+    <string name="palette_purple">Purple</string>
+    <string name="palette_orange">Orange</string>
+    <string name="palette_pink">Pink</string>
 </resources>

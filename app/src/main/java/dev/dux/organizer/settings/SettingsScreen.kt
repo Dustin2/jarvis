@@ -1,5 +1,21 @@
 package dev.dux.organizer.settings
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.dynamicLightColorScheme
+import dev.dux.organizer.ui.Choice
+import dev.dux.organizer.ui.theme.Appearance
+import dev.dux.organizer.ui.theme.AppearanceSettings
+import dev.dux.organizer.ui.theme.Palette
+import dev.dux.organizer.ui.theme.ThemeMode
+
 import dev.dux.organizer.reminders.BriefSettings
 import androidx.core.app.NotificationManagerCompat
 import androidx.compose.ui.semantics.Role
@@ -92,7 +108,13 @@ class SettingsViewModel(
     private val autoBackup: AutoBackup,
     private val ask: AskJarvis,
     private val morningBrief: MorningBrief,
+    private val appearance: Appearance,
 ) : ViewModel() {
+    /** null = still loading. */
+    val look = appearance.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    fun setThemeMode(mode: ThemeMode) = viewModelScope.launch { appearance.setMode(mode) }
+    fun setPalette(palette: Palette) = viewModelScope.launch { appearance.setPalette(palette) }
+
     /** null = still loading. */
     val auto = autoBackup.state.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
@@ -207,6 +229,7 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
     val auto by vm.auto.collectAsStateWithLifecycle()
     val model by vm.model.collectAsStateWithLifecycle()
     val brief by vm.brief.collectAsStateWithLifecycle()
+    val look by vm.look.collectAsStateWithLifecycle()
 
     vm.message?.let { message ->
         val text = stringResource(message.text) + (message.detail?.let { "\n$it" } ?: "")
@@ -235,6 +258,7 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
             auto?.let { AutoBackupSection(it, vm, onPickFolder = { folderLauncher.launch(null) }) }
             brief?.let { BriefSection(it, vm) }
             model?.let { ModelSection(it, vm) }
+            look?.let { AppearanceSection(it, vm) }
             Text(stringResource(R.string.backup), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp).asHeading())
             Text(stringResource(R.string.backup_explanation), color = MaterialTheme.colorScheme.onSurfaceVariant)
             OutlinedButton(
@@ -327,6 +351,32 @@ private fun ModelSection(state: ModelState, vm: SettingsViewModel) {
         }
     }
     Text(stringResource(R.string.model_credit), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AppearanceSection(settings: AppearanceSettings, vm: SettingsViewModel) {
+    val context = LocalContext.current
+    Text(stringResource(R.string.appearance), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp).asHeading())
+    Choice(R.string.theme_mode, ThemeMode.entries, settings.mode, { it.label }, vm::setThemeMode)
+    Text(stringResource(R.string.palette), style = MaterialTheme.typography.titleSmall, modifier = Modifier.asHeading())
+    FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // The wallpaper's own color, so that chip shows what it would look like too.
+        val wallpaper = remember(context) { dynamicLightColorScheme(context).primary }
+        Palette.entries.forEach { palette ->
+            val selected = palette == settings.palette
+            FilterChip(
+                selected = selected,
+                onClick = { vm.setPalette(palette) },
+                label = { Text(stringResource(palette.label)) },
+                // A dot in the palette's color, plus the check when picked: not color alone.
+                leadingIcon = {
+                    if (selected) Icon(painterResource(R.drawable.ic_check), contentDescription = null, Modifier.size(FilterChipDefaults.IconSize))
+                    else Box(Modifier.size(FilterChipDefaults.IconSize).background(if (palette == Palette.Wallpaper) wallpaper else palette.swatch, CircleShape))
+                },
+            )
+        }
+    }
 }
 
 /** Morning brief: on/off and the time. Turning it on asks for the notification permission if needed. */

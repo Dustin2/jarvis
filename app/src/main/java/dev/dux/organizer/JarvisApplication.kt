@@ -21,6 +21,7 @@ import dev.dux.organizer.data.ProjectRepository
 import dev.dux.organizer.data.ShoppingRepository
 import dev.dux.organizer.data.TaskRepository
 import dev.dux.organizer.data.TrashRepository
+import dev.dux.organizer.ui.theme.Appearance
 import dev.dux.organizer.reminders.Reminders
 import androidx.glance.appwidget.updateAll
 import dev.dux.organizer.widget.TodayWidget
@@ -43,6 +44,7 @@ class JarvisApplication : Application() {
     val askJarvis by lazy { AskJarvis(this) }
     val trash by lazy { TrashRepository(database, tasks) }
     val morningBrief by lazy { MorningBrief(this, tasks, finance) }
+    val appearance by lazy { Appearance(this) }
 
     override fun onCreate() {
         super.onCreate()
