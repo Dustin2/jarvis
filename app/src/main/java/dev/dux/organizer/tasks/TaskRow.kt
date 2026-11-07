@@ -7,6 +7,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
+import kotlin.math.cos
+import kotlin.math.sin
 
 import androidx.annotation.StringRes
 import androidx.compose.material3.Checkbox
@@ -61,23 +79,41 @@ fun TaskRow(
     containerColor: Color = Color.Unspecified,
     shapes: ListItemShapes = ListItemDefaults.shapes(),
 ) {
-    // Completing: the check and the strike-through show for a moment, with a tap of vibration, before the
-    // task leaves the list. Without it the row vanished the instant it was tapped, with no sign it worked.
+    // Completing: the check pops with a burst of dots, the row tints and strikes through, then slides away,
+    // with a tap of vibration. Without it the row vanished the instant it was tapped, with no sign it worked.
     var completing by remember(task.id) { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
+    val pop = remember(task.id) { Animatable(1f) }
+    val burst = remember(task.id) { Animatable(0f) }
+    val leave = remember(task.id) { Animatable(0f) }
     LaunchedEffect(completing) {
         if (completing) {
-            delay(COMPLETE_DELAY_MS)
+            launch { pop.animateTo(1f, keyframes { durationMillis = POP_MS; 0.6f at 0; 1.28f at POP_MS * 55 / 100 }) }
+            launch { burst.animateTo(1f, tween(POP_MS + 100, easing = LinearOutSlowInEasing)) }
+            delay(HOLD_MS)
+            leave.animateTo(1f, tween(LEAVE_MS, easing = FastOutLinearInEasing))
             onToggleDone?.invoke()
             completing = false
+            // Back in place in case the row stays (an undo, or a list that keeps finished tasks).
+            leave.snapTo(0f)
+            burst.snapTo(0f)
         }
     }
     val done = task.status == TaskStatus.DONE || task.status == TaskStatus.CANCELLED || completing
+    val tint by animateColorAsState(
+        if (completing) MaterialTheme.colorScheme.primaryContainer else containerColor.takeOrElse { ListItemDefaults.colors().containerColor },
+        label = "completing",
+    )
+    val slide = with(LocalDensity.current) { 48.dp.toPx() }
+    val rowModifier = modifier.graphicsLayer {
+        translationX = leave.value * slide
+        alpha = 1f - leave.value
+    }
     ListItem(
         onClick = onOpen,
-        modifier = modifier,
+        modifier = rowModifier,
         shapes = shapes,
-        colors = if (containerColor == Color.Unspecified) ListItemDefaults.colors() else ListItemDefaults.colors(containerColor = containerColor),
+        colors = ListItemDefaults.colors(containerColor = tint),
         // null when there is nothing to show: the row stays single-line.
         supportingContent = if (
             task.priority != Priority.NONE || task.dueDate != null || task.scheduledDate != null ||
@@ -87,7 +123,9 @@ fun TaskRow(
             {
                 // With the task name: TalkBack reads the checkbox separately and "Completar" alone does not say which.
                 val description = stringResource(R.string.complete_task, task.title)
-                Checkbox(
+                Box(contentAlignment = Alignment.Center) {
+                    Burst(burst.value)
+                    Checkbox(
                     checked = task.status == TaskStatus.DONE || completing,
                     onCheckedChange = {
                         when {
@@ -99,8 +137,9 @@ fun TaskRow(
                             else -> toggle()
                         }
                     },
-                    modifier = Modifier.semantics { contentDescription = description },
+                    modifier = Modifier.graphicsLayer { scaleX = pop.value; scaleY = pop.value }.semantics { contentDescription = description },
                 )
+                }
             }
         },
         trailingContent = trailing,
@@ -141,5 +180,26 @@ private fun Supporting(task: Task, projectName: String?) {
 
 private val OPEN = setOf(TaskStatus.INBOX, TaskStatus.TODO)
 
-/** Long enough to see the check, short enough not to feel slow. */
-private const val COMPLETE_DELAY_MS = 350L
+/** Eight dots flying out of the checkbox; [progress] 0..1. Drawn behind it, outside its bounds. */
+@Composable
+private fun Burst(progress: Float) {
+    if (progress == 0f || progress == 1f) return
+    val colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.secondary)
+    Canvas(Modifier.size(48.dp)) {
+        val distance = size.minDimension * (0.25f + 0.45f * progress)
+        val radius = 3.dp.toPx() * (1f - 0.6f * progress)
+        repeat(8) { i ->
+            val angle = Math.toRadians(i * 45.0 - 90)
+            drawCircle(
+                colors[i % colors.size].copy(alpha = 1f - progress),
+                radius,
+                center + Offset((cos(angle) * distance).toFloat(), (sin(angle) * distance).toFloat()),
+            )
+        }
+    }
+}
+
+// Long enough to see the check pop, short enough not to feel slow: about 0.75 s until the row is gone.
+private const val POP_MS = 450
+private const val HOLD_MS = 500L
+private const val LEAVE_MS = 250

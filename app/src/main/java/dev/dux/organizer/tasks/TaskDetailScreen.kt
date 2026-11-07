@@ -8,7 +8,17 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import kotlinx.coroutines.delay
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -75,6 +85,17 @@ fun TaskDetailScreen(vm: TaskDetailViewModel, onBack: () -> Unit) {
     val task by vm.task.collectAsStateWithLifecycle()
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
+    var celebrating by remember { mutableStateOf(false) }
+    val haptics = LocalHapticFeedback.current
+    val pop = remember { Animatable(1f) }
+    LaunchedEffect(celebrating) {
+        if (celebrating) {
+            pop.animateTo(1f, keyframes { durationMillis = 450; 0.92f at 0; 1.06f at 250 })
+            delay(250)
+            vm.setStatus(TaskStatus.DONE)
+            celebrating = false
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -110,10 +131,22 @@ fun TaskDetailScreen(vm: TaskDetailViewModel, onBack: () -> Unit) {
         bottomBar = {
             task?.let { current ->
                 Box(Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(horizontal = 16.dp, vertical = 12.dp)) {
-                    if (current.status in OPEN_STATUSES) {
-                        Button(onClick = { vm.setStatus(TaskStatus.DONE) }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                    if (current.status in OPEN_STATUSES || celebrating) {
+                        // Completing pops the button and turns it into "¡Hecha!" for a moment before saving, like a row does.
+                        val colors = MaterialTheme.colorScheme
+                        val container by animateColorAsState(if (celebrating) colors.tertiary else colors.primary, label = "complete")
+                        Button(
+                            onClick = {
+                                if (!celebrating) {
+                                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                                    celebrating = true
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = container, contentColor = if (celebrating) colors.onTertiary else colors.onPrimary),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).graphicsLayer { scaleX = pop.value; scaleY = pop.value },
+                        ) {
                             Icon(painterResource(R.drawable.ic_check), contentDescription = null)
-                            Text(stringResource(R.string.complete), Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleMedium)
+                            Text(stringResource(if (celebrating) R.string.done_exclaim else R.string.complete), Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleMedium)
                         }
                     } else {
                         OutlinedButton(onClick = { vm.setStatus(TaskStatus.TODO) }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
@@ -173,12 +206,13 @@ private fun TaskForm(task: Task, vm: TaskDetailViewModel, modifier: Modifier) {
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
             modifier = Modifier.fillMaxWidth().semantics { contentDescription = titleLabel },
         )
-        if (task.status !in OPEN_STATUSES) {
+        // Where the task is, always visible: "Por ordenar", "Por hacer", "Hecha"…
+        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.padding(horizontal = 16.dp)) {
             Text(
                 stringResource(task.status.label),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 16.dp),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             )
         }
         TextField(
@@ -197,105 +231,10 @@ private fun TaskForm(task: Task, vm: TaskDetailViewModel, modifier: Modifier) {
                 val projects by vm.projects.collectAsStateWithLifecycle()
                 ProjectField(projects.orEmpty(), task.projectId, vm::setProject)
                 ReminderField(task.reminderAt, vm::setReminder)
-                RepeatField(task, vm::setRecurrence)
+                RepeatField(task.recurrence, task.dueDate ?: task.scheduledDate, vm::setRecurrence)
             }
         }
     }
 }
 
 private val OPEN_STATUSES = setOf(TaskStatus.INBOX, TaskStatus.TODO)
-
-@Composable
-private fun PriorityField(priority: Priority, onSelect: (Priority) -> Unit) {
-    var open by remember { mutableStateOf(false) }
-    PlanRow(R.drawable.ic_flag, R.string.priority, stringResource(priority.label), isSet = priority != Priority.NONE, onClick = { open = true }) {
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            Priority.entries.forEach { option ->
-                DropdownMenuItem(text = { Text(stringResource(option.label)) }, onClick = { open = false; onSelect(option) })
-            }
-        }
-    }
-}
-
-@Composable
-private fun RepeatField(task: Task, onChange: (Recurrence?) -> Unit) {
-    var editing by rememberSaveable { mutableStateOf(false) }
-    PlanRow(R.drawable.ic_repeat, R.string.repeat, task.recurrence.describe(), isSet = task.recurrence != null, onClick = { editing = true })
-    if (editing) {
-        RepeatDialog(
-            initial = task.recurrence,
-            anchor = task.dueDate ?: task.scheduledDate ?: LocalDate.now(),
-            onDismiss = { editing = false },
-            onSave = { editing = false; onChange(it) },
-        )
-    }
-}
-
-@Composable
-private fun DateField(@DrawableRes icon: Int, @StringRes title: Int, date: LocalDate?, onChange: (LocalDate?) -> Unit) {
-    var picking by rememberSaveable { mutableStateOf(false) }
-    val today by rememberToday()
-    PlanRow(icon, title, date?.label(today) ?: stringResource(R.string.no_date), isSet = date != null, onClick = { picking = true })
-    if (picking) {
-        DatePickDialog(date ?: today, R.string.remove_date, canRemove = date != null, onDismiss = { picking = false }) {
-            picking = false
-            onChange(it)
-        }
-    }
-}
-
-/**
- * Date, then time. Asks for the notification permission here, the first time it is needed,
- * and not when the app opens.
- */
-@Composable
-private fun ReminderField(at: LocalDateTime?, onChange: (LocalDateTime?) -> Unit) {
-    val context = LocalContext.current
-    val today by rememberToday()
-    var pickingDate by rememberSaveable { mutableStateOf(false) }
-    var inPast by rememberSaveable { mutableStateOf(false) }
-    var notificationsOff by remember { mutableStateOf(!NotificationManagerCompat.from(context).areNotificationsEnabled()) }
-    val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        notificationsOff = !granted
-    }
-
-    // Same 12/24-hour format the user chose on the phone (and the picker uses).
-    val locale = appLocale()
-    val timeFormat = remember(locale) { DateTimeFormatter.ofPattern(if (DateFormat.is24HourFormat(context)) "H:mm" else "h:mm a", locale) }
-    val label = at?.let { "${it.toLocalDate().label(today)}, ${it.toLocalTime().format(timeFormat)}" } ?: stringResource(R.string.no_reminder)
-    PlanRow(R.drawable.ic_bell, R.string.reminder, label, isSet = at != null, onClick = {
-        inPast = false
-        pickingDate = true
-        if (notificationsOff) askPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-    })
-    val warning = Modifier.padding(start = 72.dp, end = 16.dp, bottom = 8.dp)
-    if (inPast) Text(stringResource(R.string.reminder_in_past), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = warning)
-    if (at != null && notificationsOff) {
-        Text(stringResource(R.string.notifications_off), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = warning)
-    }
-
-    if (pickingDate) {
-        ReminderDialogs(at, today, onDismiss = { pickingDate = false }, onPast = { pickingDate = false; inPast = true }) {
-            pickingDate = false
-            onChange(it)
-        }
-    }
-}
-
-@Composable
-private fun ProjectField(projects: List<Project>, selectedId: String?, onSelect: (String?) -> Unit) {
-    var open by remember { mutableStateOf(false) }
-    val name = when (selectedId) {
-        null -> stringResource(R.string.no_project)
-        // An archived project is not listed, but the task is still linked to it.
-        else -> projects.find { it.id == selectedId }?.name ?: stringResource(R.string.project_status_archived)
-    }
-    PlanRow(R.drawable.ic_projects, R.string.project, name, isSet = selectedId != null, onClick = { open = true }) {
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            DropdownMenuItem(text = { Text(stringResource(R.string.no_project)) }, onClick = { open = false; onSelect(null) })
-            projects.forEach { project ->
-                DropdownMenuItem(text = { Text(project.name) }, onClick = { open = false; onSelect(project.id) })
-            }
-        }
-    }
-}

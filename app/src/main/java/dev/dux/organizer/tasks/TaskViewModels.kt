@@ -33,7 +33,7 @@ class TaskListViewModel(private val repo: TaskRepository, projects: ProjectRepos
     val lists = combine(repo.pending, repo.finished) { pending, finished -> pending to finished }.state(this)
 
     fun capture(title: String, notes: String, details: CaptureDetails, onResult: (Boolean) -> Unit) {
-        viewModelScope.launch { onResult(repo.capture(title, notes, details.projectId, details.due, remindAt = details.remindAt)) }
+        viewModelScope.launch { onResult(repo.capture(title, notes, details.projectId, details.due, remindAt = details.remindAt, scheduledDate = details.scheduled, priority = details.priority, recurrence = details.recurrence)) }
     }
 
     fun setStatus(id: String, status: TaskStatus) {

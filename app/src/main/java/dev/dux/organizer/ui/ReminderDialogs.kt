@@ -9,6 +9,7 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -18,6 +19,7 @@ import dev.dux.organizer.R
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 /**
  * Picks a reminder: date, then time. [onResult] gets the chosen moment, or null for "Quitar recordatorio";
@@ -50,4 +52,13 @@ fun ReminderDialogs(at: LocalDateTime?, today: LocalDate, onDismiss: () -> Unit,
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
+}
+
+/** "Mañana, 9:00", in the phone's 12/24-hour format. */
+@Composable
+fun reminderLabel(at: LocalDateTime, today: LocalDate): String {
+    val context = LocalContext.current
+    val locale = appLocale()
+    val time = remember(locale) { DateTimeFormatter.ofPattern(if (DateFormat.is24HourFormat(context)) "H:mm" else "h:mm a", locale) }
+    return "${at.toLocalDate().label(today)}, ${at.toLocalTime().format(time)}"
 }
