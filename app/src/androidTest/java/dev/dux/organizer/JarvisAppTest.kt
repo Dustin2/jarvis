@@ -28,7 +28,7 @@ class JarvisAppTest {
         compose.onNode(hasText(text(R.string.finances)) and isSelectable()).performClick().assertIsSelected()
         compose.onNodeWithText(text(R.string.finance_summary)).assertExists()
 
-        // The Bandeja is a view inside Tareas ("Bandeja (n)").
+        // "Por ordenar" (the inbox) is a view inside Tareas ("Por ordenar (n)").
         compose.onNode(hasText(text(R.string.tab_tasks)) and isSelectable()).performClick().assertIsSelected()
         compose.onNode(hasText(text(R.string.status_inbox), substring = true) and isSelectable()).performClick().assertIsSelected()
     }
