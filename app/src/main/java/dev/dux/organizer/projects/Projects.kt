@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import dev.dux.organizer.ui.blockRowShapes
+import dev.dux.organizer.ui.inBlock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -41,6 +44,9 @@ import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TaskRepository
 import dev.dux.organizer.data.TaskStatus
 import dev.dux.organizer.data.TrashRepository
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.ListItemDefaults
+import dev.dux.organizer.ui.SwipeToDelete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import dev.dux.organizer.tasks.TaskRow
@@ -76,7 +82,7 @@ import dev.dux.organizer.ui.asHeading
 /** A project with its open tasks (already sorted: the first one is the next step). */
 data class ProjectSummary(val project: Project, val open: List<Task>)
 
-class ProjectsViewModel(private val projects: ProjectRepository, tasks: TaskRepository) : ViewModel() {
+class ProjectsViewModel(private val projects: ProjectRepository, tasks: TaskRepository, private val trash: TrashRepository) : ViewModel() {
     val summaries = combine(projects.visible, tasks.open) { list, open ->
         val byProject = open.groupBy { it.projectId }
         list.map { ProjectSummary(it, byProject[it.id].orEmpty()) }
@@ -85,6 +91,10 @@ class ProjectsViewModel(private val projects: ProjectRepository, tasks: TaskRepo
     fun create(name: String, onResult: (Boolean) -> Unit) {
         viewModelScope.launch { onResult(projects.create(name)) }
     }
+
+    /** To the trash with its tasks, like deleting from the detail; restorable. */
+    fun delete(id: String) = viewModelScope.launch { trash.deleteProject(id) }
+    fun restore(id: String) = viewModelScope.launch { trash.restoreProject(id) }
 }
 
 class ProjectDetailViewModel(
@@ -114,6 +124,9 @@ class ProjectDetailViewModel(
     }
 
     /** Reopens a finished task, or completes an open one and hands back an undo for the "Deshacer" message. */
+    fun deleteTask(task: Task) = viewModelScope.launch { tasks.delete(task.id) }
+    fun restoreTask(task: Task) = viewModelScope.launch { tasks.restore(task) }
+
     fun toggleDone(task: Task, onCompleted: (undo: () -> Unit) -> Unit) {
         viewModelScope.launch {
             if (task.status == TaskStatus.DONE) tasks.setStatus(task.id, TaskStatus.TODO)
@@ -138,23 +151,31 @@ fun ProjectsScreen(
     onSearch: () -> Unit,
     onOpenArchive: () -> Unit,
     onOpenTrash: () -> Unit,
+    offerUndo: (String, () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val summaries by vm.summaries.collectAsStateWithLifecycle()
+    val resources = LocalResources.current
     var creating by rememberSaveable { mutableStateOf(false) }
     val items = summaries ?: return
 
     LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
         item {
-            ScreenHeader(R.string.tab_projects, onSearch, menu = { close ->
+            ScreenHeader(R.string.tab_projects, onSearch, badge = pluralStringResource(R.plurals.projects_count, items.size, items.size), menu = { close ->
                 DropdownMenuItem(text = { Text(stringResource(R.string.new_project)) }, onClick = { close(); creating = true })
                 DropdownMenuItem(text = { Text(stringResource(R.string.archive)) }, onClick = { close(); onOpenArchive() })
                 DropdownMenuItem(text = { Text(stringResource(R.string.trash)) }, onClick = { close(); onOpenTrash() })
             })
         }
-        items(items, key = { it.project.id }) { (project, open) ->
+        itemsIndexed(items, key = { _, it -> it.project.id }) { index, (project, open) ->
+            Box(Modifier.animateItem().inBlock(index, items.lastIndex)) { SwipeToDelete(onDelete = {
+                vm.delete(project.id)
+                offerUndo(resources.getString(R.string.project_deleted, project.name)) { vm.restore(project.id) }
+            }) {
             ListItem(
                 onClick = { onOpen(project.id) },
+                shapes = blockRowShapes(),
+                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 supportingContent = {
                     Text(
                         open.firstOrNull()?.let { stringResource(R.string.next_label, it.title) } ?: stringResource(R.string.no_next_step),
@@ -165,6 +186,7 @@ fun ProjectsScreen(
                 overlineContent = if (project.status != ProjectStatus.ACTIVE) ({ Text(stringResource(project.status.label)) }) else null,
                 trailingContent = { Text(pluralStringResource(R.plurals.open_count, open.size, open.size)) },
             ) { Text(project.name, style = MaterialTheme.typography.titleMedium) }
+            } }
         }
     }
 
@@ -251,8 +273,14 @@ fun ProjectDetailScreen(vm: ProjectDetailViewModel, onOpenTask: (String) -> Unit
                     )
                 }
             }
-            items(list, key = { it.id }) { task ->
-                TaskRow(task, onOpen = { onOpenTask(task.id) }, onToggleDone = {
+            itemsIndexed(list, key = { _, task -> task.id }) { index, task ->
+                TaskRow(task, onOpen = { onOpenTask(task.id) }, modifier = Modifier.animateItem().inBlock(index, list.lastIndex), containerColor = MaterialTheme.colorScheme.surfaceContainer, shapes = blockRowShapes(), onDelete = {
+                    vm.deleteTask(task)
+                    scope.launch {
+                        val result = snackbar.showSnackbar(resources.getString(R.string.task_deleted, task.title), undoLabel, duration = SnackbarDuration.Long)
+                        if (result == SnackbarResult.ActionPerformed) vm.restoreTask(task)
+                    }
+                }, onToggleDone = {
                     vm.toggleDone(task) { undo ->
                         scope.launch {
                             val result = snackbar.showSnackbar(resources.getString(R.string.task_completed, task.title), undoLabel, duration = SnackbarDuration.Long)

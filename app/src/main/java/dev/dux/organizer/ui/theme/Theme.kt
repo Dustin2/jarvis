@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 fun JarvisTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     palette: Palette = Palette.Wallpaper,
+    style: Style = Style.Energy,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -30,9 +31,11 @@ fun JarvisTheme(
     }
     // Over budget is a warning, not an error: orange, told apart from blue by lightness too, and always with text.
     val warning = if (darkTheme) Color(0xFFFFB68A) else Color(0xFF8B4A00)
-    CompositionLocalProvider(LocalWarningColor provides warning) {
+    CompositionLocalProvider(LocalWarningColor provides warning, LocalStyle provides style) {
         MaterialExpressiveTheme(
             colorScheme = colorScheme,
+            typography = style.typography,
+            shapes = style.shapes,
             motionScheme = MotionScheme.expressive(),
             content = content,
         )

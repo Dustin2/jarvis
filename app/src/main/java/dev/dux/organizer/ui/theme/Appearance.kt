@@ -11,11 +11,12 @@ import kotlinx.coroutines.flow.map
 
 enum class ThemeMode(@StringRes val label: Int) { System(R.string.theme_system), Light(R.string.theme_light), Dark(R.string.theme_dark) }
 
-data class AppearanceSettings(val mode: ThemeMode = ThemeMode.System, val palette: Palette = Palette.Wallpaper)
+data class AppearanceSettings(val mode: ThemeMode = ThemeMode.System, val palette: Palette = Palette.Wallpaper, val style: Style = Style.Energy)
 
 private val Context.appearanceStore by preferencesDataStore("appearance")
 private val MODE = stringPreferencesKey("mode")
 private val PALETTE = stringPreferencesKey("palette")
+private val STYLE = stringPreferencesKey("style")
 
 /** Light/dark and colors chosen in Ajustes. Stored by name; an unknown name (from a newer version) falls back to the default. */
 class Appearance(private val context: Context) {
@@ -23,9 +24,11 @@ class Appearance(private val context: Context) {
         AppearanceSettings(
             ThemeMode.entries.find { it.name == p[MODE] } ?: ThemeMode.System,
             Palette.entries.find { it.name == p[PALETTE] } ?: Palette.Wallpaper,
+            Style.entries.find { it.name == p[STYLE] } ?: Style.Energy,
         )
     }
 
     suspend fun setMode(mode: ThemeMode) = context.appearanceStore.edit { it[MODE] = mode.name }
     suspend fun setPalette(palette: Palette) = context.appearanceStore.edit { it[PALETTE] = palette.name }
+    suspend fun setStyle(style: Style) = context.appearanceStore.edit { it[STYLE] = style.name }
 }
