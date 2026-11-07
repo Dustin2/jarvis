@@ -453,10 +453,8 @@
     <string name="style">Estilo</string>
     <string name="style_calm">Calma</string>
     <string name="style_energy">Energía</string>
-    <string name="style_night">Noche</string>
     <string name="style_calm_hint">Ligero y con aire: pocas palabras, un anillo fino.</string>
     <string name="style_energy_hint">Formas grandes y color: celebra cada tarea.</string>
-    <string name="style_night_hint">Siempre oscuro, acentos que brillan y Jarvis te habla.</string>
     <string name="greeting_morning">Buenos días</string>
     <string name="greeting_afternoon">Buenas tardes</string>
     <string name="greeting_evening">Buenas noches</string>
@@ -469,13 +467,17 @@
     <string name="day_done_energy">Día completo. ¡Eres imparable!</string>
     <string name="day_half_energy">Ya pasaste la mitad. ¡Sigue así!</string>
     <string name="day_start_energy">Buen arranque. Vamos por la siguiente.</string>
-    <string name="day_done_night">Terminaste todo. Buen trabajo.</string>
     <plurals name="day_left_calm">
         <item quantity="one">Te queda una cosa. Ya casi.</item>
         <item quantity="other">Te quedan %1$d cosas. Vas bien.</item>
     </plurals>
-    <plurals name="day_left_night">
-        <item quantity="one">Te queda una tarea.</item>
-        <item quantity="other">Te quedan %1$d tareas.</item>
+    <string name="project_deleted">«%1$s» y sus tareas se movieron a la papelera</string>
+    <plurals name="projects_count">
+        <item quantity="one">%1$d proyecto</item>
+        <item quantity="other">%1$d proyectos</item>
+    </plurals>
+    <plurals name="to_buy_count">
+        <item quantity="one">%1$d por comprar</item>
+        <item quantity="other">%1$d por comprar</item>
     </plurals>
 </resources>

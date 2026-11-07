@@ -9,7 +9,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.mutableStateOf
 import dev.dux.organizer.ui.JarvisApp
 import dev.dux.organizer.ui.theme.JarvisTheme
-import dev.dux.organizer.ui.theme.Style
 import dev.dux.organizer.ui.theme.ThemeMode
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -35,7 +34,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             // Nothing is drawn until the stored choice is read (a few milliseconds): no flash of the wrong theme.
             val appearance = app.appearance.settings.collectAsStateWithLifecycle(null).value ?: return@setContent
-            val dark = appearance.style == Style.Night || when (appearance.mode) {
+            val dark = when (appearance.mode) {
                 ThemeMode.System -> isSystemInDarkTheme()
                 ThemeMode.Light -> false
                 ThemeMode.Dark -> true

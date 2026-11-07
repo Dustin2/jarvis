@@ -177,7 +177,7 @@ fun JarvisApp(
                 MainScreen(
                     tasksVm = viewModel { TaskListViewModel(app.tasks, app.projects) },
                     todayVm = viewModel { TodayViewModel(app.tasks, app.projects, app.finance, app.autoBackup) },
-                    projectsVm = viewModel { ProjectsViewModel(app.projects, app.tasks) },
+                    projectsVm = viewModel { ProjectsViewModel(app.projects, app.tasks, app.trash) },
                     shoppingVm = viewModel { ShoppingViewModel(app.shopping) },
                     financesVm = viewModel { FinancesViewModel(app.finance) },
                     onOpenTask = openTask,
@@ -330,7 +330,7 @@ private fun MainScreen(
         when (tab) {
             Tab.Today -> TodayScreen(todayVm, onOpenTask, onOpenSettings, onOpenFinances, onSearch, offerUndo, modifier, askStart, onAskShown)
             Tab.Tasks -> TasksScreen(tasksVm, onOpenTask, onSearch, offerUndo, modifier)
-            Tab.Projects -> ProjectsScreen(projectsVm, onOpenProject, onSearch, onOpenArchive, onOpenTrash, modifier)
+            Tab.Projects -> ProjectsScreen(projectsVm, onOpenProject, onSearch, onOpenArchive, onOpenTrash, offerUndo, modifier)
             Tab.Shopping -> ShoppingScreen(shoppingVm, offerUndo, onSearch, modifier)
             Tab.Finances -> FinancesScreen(financesVm, onOpenDebt, onSearch, onBack = null, modifier = modifier)
         }

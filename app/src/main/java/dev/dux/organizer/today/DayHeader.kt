@@ -1,16 +1,8 @@
 package dev.dux.organizer.today
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LinearWavyProgressIndicator
@@ -31,8 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -59,7 +47,6 @@ fun DayHeader(done: Int, total: Int, overdue: Int, modifier: Modifier = Modifier
     when (LocalStyle.current) {
         Style.Calm -> Calm(greeting, done, total, left, progress, counted, m)
         Style.Energy -> Energy(greeting, done, total, left, progress, counted, m)
-        Style.Night -> Night(greeting, total, left, progress, counted, m)
     }
     if (overdue > 0) {
         Text(
@@ -132,37 +119,6 @@ private fun Energy(greeting: String, done: Int, total: Int, left: Int, progress:
                 },
                 style = MaterialTheme.typography.titleMedium,
             )
-        }
-    }
-}
-
-/** Night: a breathing orb speaks the day in one sentence; the progress glows segment by segment. */
-@Composable
-private fun Night(greeting: String, total: Int, left: Int, progress: Float, counted: String, modifier: Modifier) {
-    val accent = MaterialTheme.colorScheme.primary
-    val breath by rememberInfiniteTransition(label = "orb").animateFloat(1f, 1.07f, infiniteRepeatable(tween(2000), RepeatMode.Reverse), label = "breath")
-    Column(modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Box(Modifier.size(44.dp).scale(breath).border(2.dp, accent, CircleShape), contentAlignment = Alignment.Center) {
-                Box(Modifier.size(14.dp).background(accent, CircleShape))
-            }
-            val sentence = when { total == 0 -> stringResource(R.string.day_empty); left == 0 -> stringResource(R.string.day_done_night); else -> pluralStringResource(R.plurals.day_left_night, left, left) }
-            Text("$greeting. $sentence", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Normal)
-        }
-        if (total > 0) {
-            Row(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = counted }, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                // Up to 10 segments: with more, each would be too thin to read.
-                val segments = minOf(total, 10)
-                repeat(segments) { i ->
-                    val on = i < (progress * segments + 0.01f).toInt()
-                    val color by animateColorAsState(if (on) accent else MaterialTheme.colorScheme.surfaceContainerHighest, tween(400))
-                    Box(
-                        Modifier.weight(1f).height(6.dp)
-                            .then(if (on) Modifier.shadow(8.dp, RoundedCornerShape(3.dp), ambientColor = accent, spotColor = accent) else Modifier)
-                            .background(color, RoundedCornerShape(3.dp)),
-                    )
-                }
-            }
         }
     }
 }

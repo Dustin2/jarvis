@@ -22,13 +22,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Surface
+import androidx.compose.ui.text.font.FontWeight
+import dev.dux.organizer.ui.theme.LocalStyle
+import dev.dux.organizer.ui.theme.Style
 import dev.dux.organizer.R
 
 /**
  * The title row of every main tab, always in the same order: title, search, [extra] actions, and a "⋮"
  * menu that holds the "Nuevo…" entries (docs/design/navigation.md).
- * [menu] receives a callback that closes it.
+ * [menu] receives a callback that closes it. [badge]: a short count ("5 abiertas"). Drawn in the chosen style:
+ * Calm is light and quiet, Energy is bold with the count in a pill.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ScreenHeader(
     @StringRes title: Int,
@@ -36,15 +46,33 @@ fun ScreenHeader(
     extra: @Composable RowScope.() -> Unit = {},
     menu: (@Composable ColumnScope.(close: () -> Unit) -> Unit)? = null,
     overline: String? = null,
+    badge: String? = null,
 ) {
     var open by rememberSaveable { mutableStateOf(false) }
+    val energy = LocalStyle.current == Style.Energy
+    val colors = MaterialTheme.colorScheme
     Row(
-        Modifier.fillMaxWidth().padding(start = 24.dp, end = 4.dp, top = 16.dp, bottom = 12.dp),
+        Modifier.fillMaxWidth().padding(start = 24.dp, end = 4.dp, top = if (energy) 16.dp else 28.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            overline?.let { Text(it, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary) }
-            Text(stringResource(title), style = MaterialTheme.typography.displaySmall, modifier = Modifier.asHeading())
+            overline?.let {
+                if (energy) Text(it, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = colors.primary)
+                else Text(it, style = MaterialTheme.typography.labelLarge, color = colors.onSurfaceVariant)
+            }
+            if (energy) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(title), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold, modifier = Modifier.asHeading())
+                    badge?.let {
+                        Surface(shape = CircleShape, color = colors.primaryContainer, contentColor = colors.onPrimaryContainer) {
+                            Text(it, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
+                        }
+                    }
+                }
+            } else {
+                Text(stringResource(title), style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Light, modifier = Modifier.asHeading())
+                badge?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant) }
+            }
         }
         IconButton(onClick = onSearch) { Icon(painterResource(R.drawable.ic_search), stringResource(R.string.search)) }
         extra()

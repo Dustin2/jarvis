@@ -86,6 +86,7 @@ fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Uni
             ScreenHeader(
                 R.string.tab_shopping,
                 onSearch,
+                badge = list?.let { pluralStringResource(R.plurals.to_buy_count, current.pending.size, current.pending.size) },
                 extra = {
                     if (list != null) {
                         IconButton(
