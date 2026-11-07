@@ -20,6 +20,7 @@ import dev.dux.organizer.ui.Choice
 import dev.dux.organizer.ui.theme.Appearance
 import dev.dux.organizer.ui.theme.AppearanceSettings
 import dev.dux.organizer.ui.theme.Palette
+import dev.dux.organizer.ui.theme.Style
 import dev.dux.organizer.ui.theme.ThemeMode
 
 import dev.dux.organizer.reminders.BriefSettings
@@ -120,6 +121,7 @@ class SettingsViewModel(
     val look = appearance.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
     fun setThemeMode(mode: ThemeMode) = viewModelScope.launch { appearance.setMode(mode) }
     fun setPalette(palette: Palette) = viewModelScope.launch { appearance.setPalette(palette) }
+    fun setStyle(style: Style) = viewModelScope.launch { appearance.setStyle(style) }
 
     /** null = still loading. */
     val auto = autoBackup.state.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
@@ -365,6 +367,8 @@ private fun AppearanceSection(settings: AppearanceSettings, vm: SettingsViewMode
     val context = LocalContext.current
     Text(stringResource(R.string.appearance), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp).asHeading())
     AppearancePreview()
+    Choice(R.string.style, Style.entries, settings.style, { it.label }, vm::setStyle)
+    Text(stringResource(settings.style.hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Choice(R.string.theme_mode, ThemeMode.entries, settings.mode, { it.label }, vm::setThemeMode)
     Text(stringResource(R.string.palette), style = MaterialTheme.typography.titleSmall, modifier = Modifier.asHeading())
     FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

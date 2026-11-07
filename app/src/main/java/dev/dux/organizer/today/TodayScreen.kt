@@ -53,7 +53,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Alignment
 import dev.dux.organizer.ui.blockRowShapes
@@ -189,7 +188,7 @@ fun TodayScreen(
         if (backupOverdue) item { BackupWarningCard(onOpenSettings) }
         // Today's work: what was done today plus what is still due or planned for today.
         val total = doneToday + plan.overdue.size + plan.today.size
-        if (total > 0) item { ProgressCard(doneToday, total, plan.overdue.size) }
+        item { DayHeader(doneToday, total, plan.overdue.size) }
         val next = plan.nextStep
         item {
             NextStepCard(next, onOpen, onComplete = { task ->
@@ -204,27 +203,6 @@ fun TodayScreen(
     }
 }
 
-
-/** "3 de 8 hechas" with a ring, and the overdue count in words. */
-@Composable
-private fun ProgressCard(done: Int, total: Int, overdue: Int) {
-    Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
-        Row(Modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            CircularProgressIndicator(
-                progress = { done.toFloat() / total },
-                modifier = Modifier.size(56.dp),
-                strokeWidth = 7.dp,
-                trackColor = MaterialTheme.colorScheme.secondaryContainer,
-            )
-            Column {
-                Text(pluralStringResource(R.plurals.progress_done, total, done, total), style = MaterialTheme.typography.titleLarge)
-                if (overdue > 0) {
-                    Text(pluralStringResource(R.plurals.overdue_count, overdue, overdue), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
