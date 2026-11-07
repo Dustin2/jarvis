@@ -419,4 +419,5 @@
     <string name="update_body">Jarvis %1$s is ready. Download it and install it over this one: your data stays as it is.</string>
     <string name="update_download">Download</string>
     <string name="update_later">Later</string>
+    <string name="saved_to_todo">Saved to To do</string>
 </resources>

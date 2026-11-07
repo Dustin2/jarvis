@@ -1,5 +1,7 @@
 package dev.dux.organizer.tasks
 
+import dev.dux.organizer.inbox.CaptureDetails
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.dux.organizer.data.Priority
@@ -26,10 +28,12 @@ class TaskListViewModel(private val repo: TaskRepository, projects: ProjectRepos
     val inbox = repo.inbox.state(this)
     val projectNames = projects.visible.map { list -> list.associate { it.id to it.name } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+    /** For the capture sheet's project chip. */
+    val projects = projects.visible.state(this)
     val lists = combine(repo.pending, repo.finished) { pending, finished -> pending to finished }.state(this)
 
-    fun capture(title: String, notes: String, onResult: (Boolean) -> Unit) {
-        viewModelScope.launch { onResult(repo.capture(title, notes)) }
+    fun capture(title: String, notes: String, details: CaptureDetails, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch { onResult(repo.capture(title, notes, details.projectId, details.due, remindAt = details.remindAt)) }
     }
 
     fun setStatus(id: String, status: TaskStatus) {
