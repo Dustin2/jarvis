@@ -1,5 +1,8 @@
 package dev.dux.organizer.tasks
 
+import dev.dux.organizer.ui.SectionTitle
+import java.time.LocalDate
+
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.platform.LocalResources
@@ -27,7 +30,7 @@ import dev.dux.organizer.ui.ChoiceChips
 import dev.dux.organizer.ui.ScreenHeader
 import dev.dux.organizer.ui.SwipeToDelete
 
-/** The Bandeja is the first step of a task, so it lives here as a view (docs/design/navigation.md). */
+/** "Por ordenar" (the inbox) is the first step of a task, so it lives here as a view (docs/design/navigation.md). */
 enum class TaskView(@StringRes val label: Int) {
     Inbox(R.string.view_inbox),
     Pending(R.string.view_pending),
@@ -67,7 +70,8 @@ fun TasksScreen(
                         vm.delete(task)
                         offerUndo(resources.getString(R.string.task_deleted, task.title)) { vm.restore(task) }
                     }
-                    SwipeToDelete(onDelete = delete) {
+                    // animateItem: when a row leaves, the ones below slide up instead of jumping.
+                    Box(Modifier.animateItem()) { SwipeToDelete(onDelete = delete) {
                         TaskRow(
                             task,
                             onOpen = { onOpen(task.id) },
@@ -76,24 +80,28 @@ fun TasksScreen(
                                 TextButton(onClick = { vm.setStatus(task.id, TaskStatus.TODO) }) { Text(stringResource(R.string.plan)) }
                             },
                         )
-                    }
+                    } }
                 }
             }
             TaskView.Pending -> {
                 if (pending.isEmpty()) emptyMessage(R.string.empty_tasks)
-                items(pending, key = { it.id }) { task ->
-                    TaskRow(
-                        task,
-                        onOpen = { onOpen(task.id) },
-                        onToggleDone = { vm.complete(task) { undo -> offerUndo(resources.getString(R.string.task_completed, task.title), undo) } },
-                        projectName = projectNames[task.projectId],
-                    )
+                for ((group, tasks) in groupByDate(pending, LocalDate.now())) {
+                    item(key = group.name) { Box(Modifier.animateItem()) { SectionTitle(stringResource(group.label)) } }
+                    items(tasks, key = { it.id }) { task ->
+                        TaskRow(
+                            task,
+                            onOpen = { onOpen(task.id) },
+                            onToggleDone = { vm.complete(task) { undo -> offerUndo(resources.getString(R.string.task_completed, task.title), undo) } },
+                            projectName = projectNames[task.projectId],
+                            modifier = Modifier.animateItem(),
+                        )
+                    }
                 }
             }
             TaskView.Finished -> {
                 if (finished.isEmpty()) emptyMessage(R.string.empty_finished)
                 items(finished, key = { it.id }) { task ->
-                    TaskRow(task, onOpen = { onOpen(task.id) }, onToggleDone = { vm.setStatus(task.id, TaskStatus.TODO) }, projectName = projectNames[task.projectId])
+                    TaskRow(task, onOpen = { onOpen(task.id) }, onToggleDone = { vm.setStatus(task.id, TaskStatus.TODO) }, projectName = projectNames[task.projectId], modifier = Modifier.animateItem())
                 }
             }
         }

@@ -6,7 +6,7 @@
     <string name="tab_shopping">Shopping</string>
     <string name="next_step">Next step</string>
     <string name="empty_today">Nothing due today</string>
-    <string name="empty_inbox">Everything you capture quickly lands here.</string>
+    <string name="empty_inbox">What you capture quickly lands here. Sort it when you have a moment.</string>
     <string name="empty_tasks">No tasks yet.</string>
 
     <string name="capture">Capture</string>
@@ -16,9 +16,9 @@
     <string name="notes">Notes</string>
     <string name="save">Save</string>
     <string name="saved">Saved</string>
-    <string name="saved_to_inbox">Saved to Inbox</string>
+    <string name="saved_to_inbox">Saved to To sort</string>
     <string name="title_invalid">Write a title (200 characters max)</string>
-    <string name="plan">Plan</string>
+    <string name="plan">Sort</string>
     <string name="back">Back</string>
     <string name="delete">Delete</string>
     <string name="delete_confirm_title">Delete this task?</string>
@@ -28,7 +28,7 @@
     <string name="priority">Priority</string>
     <string name="complete_task">Complete “%1$s”</string>
 
-    <string name="status_inbox">Inbox</string>
+    <string name="status_inbox">To sort</string>
     <string name="status_todo">To do</string>
     <string name="status_done">Done</string>
     <string name="status_cancelled">Cancelled</string>
@@ -53,6 +53,7 @@
     <string name="no_project">None</string>
     <string name="overdue">Overdue</string>
     <string name="upcoming">Next 7 days</string>
+    <string name="later">Later</string>
     <plurals name="open_count">
         <item quantity="one">%1$d open</item>
         <item quantity="other">%1$d open</item>
@@ -254,16 +255,16 @@
     <string name="spent_of_budget_total">Spent: %1$s of %2$s</string>
     <string name="debt_overdue">Overdue: %1$s</string>
 
-    <string name="view_inbox">Inbox (%1$d)</string>
+    <string name="view_inbox">To sort (%1$d)</string>
     <string name="view_pending">To do (%1$d)</string>
-    <string name="view_finished">Finished (%1$d)</string>
+    <string name="view_finished">Done (%1$d)</string>
     <string name="empty_finished">You haven\'t finished any tasks yet.</string>
 
     <string name="complete">Complete</string>
     <string name="reopen">Reopen</string>
     <string name="cancel_task">Cancel task</string>
     <string name="move_to_todo">Move to To do</string>
-    <string name="back_to_inbox">Back to Inbox</string>
+    <string name="back_to_inbox">Back to To sort</string>
     <string name="add_notes">Add notes</string>
 
     <string name="task_completed">Completed “%1$s”</string>
@@ -418,4 +419,31 @@
     <string name="update_body">Jarvis %1$s is ready. Download it and install it over this one: your data stays as it is.</string>
     <string name="update_download">Download</string>
     <string name="update_later">Later</string>
+    <string name="saved_to_todo">Saved to To do</string>
+    <string name="postpone">Snooze</string>
+    <string name="appearance_preview">Preview</string>
+    <string name="preview_task_done">Call the dentist</string>
+    <string name="preview_task_open">Buy dog food</string>
+    <string name="preview_project">Home</string>
+    <string name="done_exclaim">Done!</string>
+    <string name="fewer_options">Fewer options</string>
+    <string name="goes_to">Goes to %1$s</string>
+    <string name="snooze_in_an_hour">In 1 hour</string>
+    <string name="snooze_this_evening">This evening</string>
+    <string name="snooze_tomorrow">Tomorrow</string>
+    <string name="snooze_next_monday">Monday</string>
+    <string name="snooze_pick">Pick date and time…</string>
+    <string name="snoozed_until">I\'ll remind you %1$s</string>
+    <string name="appearance">Appearance</string>
+    <string name="theme_mode">Mode</string>
+    <string name="theme_system">Same as phone</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="palette">Color</string>
+    <string name="palette_wallpaper">From my wallpaper</string>
+    <string name="palette_blue">Blue</string>
+    <string name="palette_green">Green</string>
+    <string name="palette_purple">Purple</string>
+    <string name="palette_orange">Orange</string>
+    <string name="palette_pink">Pink</string>
 </resources>

@@ -36,8 +36,9 @@ class TaskRepository(
     fun observeByProject(projectId: String): Flow<List<Task>> = dao.observeByProject(projectId)
 
     /**
-     * Quick capture to the Inbox; with [projectId] (added from a project) it is already sorted, so it goes
-     * straight to Pendientes in that project. Returns false if the title is not valid. [id]: so the caller can undo it.
+     * Quick capture. Just a title goes to "Por ordenar" (the inbox); with a project, a date or a reminder it is
+     * already sorted, so it goes straight to "Por hacer". Returns false if the title is not valid.
+     * [id]: so the caller can undo it.
      */
     suspend fun capture(
         title: String,
@@ -45,11 +46,24 @@ class TaskRepository(
         projectId: String? = null,
         dueDate: LocalDate? = null,
         id: String = UUID.randomUUID().toString(),
+        remindAt: LocalDateTime? = null,
+        scheduledDate: LocalDate? = null,
+        priority: Priority = Priority.NONE,
+        recurrence: Recurrence? = null,
     ): Boolean {
         val clean = cleanTitle(title) ?: return false
         val now = clock.instant()
-        val status = if (projectId == null) TaskStatus.INBOX else TaskStatus.TODO
-        dao.insert(Task(id = id, title = clean, notes = notes.trim().ifEmpty { null }, status = status, projectId = projectId, dueDate = dueDate, createdAt = now, updatedAt = now))
+        // Anything planned means it was already sorted: it skips "Por ordenar".
+        val sorted = projectId != null || dueDate != null || remindAt != null || scheduledDate != null || priority != Priority.NONE || recurrence != null
+        val task = Task(
+            id = id, title = clean, notes = notes.trim().ifEmpty { null }, status = if (sorted) TaskStatus.TODO else TaskStatus.INBOX,
+            projectId = projectId, dueDate = dueDate, scheduledDate = scheduledDate, priority = priority,
+            reminderAt = remindAt, createdAt = now, updatedAt = now,
+        )
+        dao.insert(task)
+        if (remindAt != null) reminders?.sync(task)
+        // Same rules as choosing it in the detail (series id, first date, reminder time).
+        if (recurrence != null) setRecurrence(id, recurrence)
         return true
     }
 
@@ -87,6 +101,19 @@ class TaskRepository(
     /** On a recurring task, the reminder time also goes into the rule so every occurrence keeps it. */
     suspend fun setReminder(id: String, at: LocalDateTime?) =
         edit(id) { it.copy(reminderAt = at, recurrence = it.recurrence?.copy(reminderTime = at?.toLocalTime())) }
+
+    /**
+     * "Posponer" from a reminder: rings again at [at], and a due or scheduled date before that day moves to it,
+     * so the task is not left overdue. A repeating task keeps its series time (only this occurrence moves).
+     */
+    suspend fun postpone(id: String, at: LocalDateTime) = edit(id) { task ->
+        val day = at.toLocalDate()
+        task.copy(
+            reminderAt = at,
+            dueDate = task.dueDate?.let { maxOf(it, day) },
+            scheduledDate = task.scheduledDate?.let { maxOf(it, day) },
+        )
+    }
 
     /**
      * Starts, changes or (with null) stops repeating. Repeating needs a date: a task without one gets the

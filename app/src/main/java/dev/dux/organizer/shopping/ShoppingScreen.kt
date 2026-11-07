@@ -66,7 +66,7 @@ import dev.dux.organizer.data.ShoppingItem
 import dev.dux.organizer.ui.NameDialog
 import dev.dux.organizer.ui.ScreenHeader
 import dev.dux.organizer.ui.SwipeToDelete
-import dev.dux.organizer.ui.asHeading
+import dev.dux.organizer.ui.SectionTitle
 
 private enum class ListDialog { Create, Rename, Delete }
 
@@ -189,23 +189,6 @@ fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Uni
             )
         }
         null -> {}
-    }
-}
-
-/**
- * A section title with optional actions at its end ("Desmarcar todo", "Quitar comprados"). The actions
- * wrap below at large font sizes; in a Row they crushed the title into one letter per line.
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun SectionTitle(text: String, actions: @Composable () -> Unit = {}) {
-    FlowRow(
-        Modifier.fillMaxWidth().padding(start = 24.dp, end = 8.dp, top = 16.dp, bottom = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        itemVerticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(text, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(end = 8.dp).asHeading())
-        Row { actions() }
     }
 }
 

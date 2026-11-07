@@ -23,7 +23,10 @@ private fun BroadcastReceiver.runAsync(block: suspend () -> Unit) {
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val taskId = intent.data?.lastPathSegment ?: return
-        runAsync { context.app.reminders.onAlarm(taskId) }
+        runAsync {
+            val app = context.app
+            if (intent.action == Reminders.ACTION_COMPLETE) app.reminders.completeFromNotification(taskId, app.tasks) else app.reminders.onAlarm(taskId)
+        }
     }
 }
 

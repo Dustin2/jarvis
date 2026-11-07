@@ -6,7 +6,7 @@
     <string name="tab_shopping">Compras</string>
     <string name="next_step">Siguiente paso</string>
     <string name="empty_today">Nada pendiente para hoy</string>
-    <string name="empty_inbox">Aquí caerá todo lo que captures rápido.</string>
+    <string name="empty_inbox">Aquí cae lo que capturas rápido. Ordénalo cuando puedas.</string>
     <string name="empty_tasks">Todavía no hay tareas.</string>
 
     <string name="capture">Capturar</string>
@@ -16,9 +16,9 @@
     <string name="notes">Notas</string>
     <string name="save">Guardar</string>
     <string name="saved">Guardado</string>
-    <string name="saved_to_inbox">Guardado en la Bandeja</string>
+    <string name="saved_to_inbox">Guardado en Por ordenar</string>
     <string name="title_invalid">Escribe un título (máximo 200 caracteres)</string>
-    <string name="plan">Planificar</string>
+    <string name="plan">Ordenar</string>
     <string name="back">Volver</string>
     <string name="delete">Eliminar</string>
     <string name="delete_confirm_title">¿Eliminar esta tarea?</string>
@@ -28,8 +28,8 @@
     <string name="priority">Prioridad</string>
     <string name="complete_task">Completar «%1$s»</string>
 
-    <string name="status_inbox">Bandeja</string>
-    <string name="status_todo">Pendiente</string>
+    <string name="status_inbox">Por ordenar</string>
+    <string name="status_todo">Por hacer</string>
     <string name="status_done">Hecha</string>
     <string name="status_cancelled">Cancelada</string>
 
@@ -53,6 +53,7 @@
     <string name="no_project">Ninguno</string>
     <string name="overdue">Vencidas</string>
     <string name="upcoming">Próximos 7 días</string>
+    <string name="later">Más adelante</string>
     <plurals name="open_count">
         <item quantity="one">%1$d abierta</item>
         <item quantity="other">%1$d abiertas</item>
@@ -255,16 +256,16 @@
     <string name="spent_of_budget_total">Gastado: %1$s de %2$s</string>
     <string name="debt_overdue">Vencida: %1$s</string>
 
-    <string name="view_inbox">Bandeja (%1$d)</string>
-    <string name="view_pending">Pendientes (%1$d)</string>
-    <string name="view_finished">Terminadas (%1$d)</string>
+    <string name="view_inbox">Por ordenar (%1$d)</string>
+    <string name="view_pending">Por hacer (%1$d)</string>
+    <string name="view_finished">Hechas (%1$d)</string>
     <string name="empty_finished">Todavía no has terminado ninguna tarea.</string>
 
     <string name="complete">Completar</string>
     <string name="reopen">Reabrir</string>
     <string name="cancel_task">Cancelar tarea</string>
-    <string name="move_to_todo">Mover a Pendientes</string>
-    <string name="back_to_inbox">Regresar a la Bandeja</string>
+    <string name="move_to_todo">Mover a Por hacer</string>
+    <string name="back_to_inbox">Regresar a Por ordenar</string>
     <string name="add_notes">Agregar notas</string>
 
     <string name="task_completed">Se completó «%1$s»</string>
@@ -422,4 +423,31 @@
     <string name="update_body">Jarvis %1$s está lista. Descárgala e instálala encima: tus datos se quedan como están.</string>
     <string name="update_download">Descargar</string>
     <string name="update_later">Más tarde</string>
+    <string name="saved_to_todo">Guardado en Por hacer</string>
+    <string name="postpone">Posponer</string>
+    <string name="appearance_preview">Vista previa</string>
+    <string name="preview_task_done">Llamar al dentista</string>
+    <string name="preview_task_open">Comprar croquetas</string>
+    <string name="preview_project">Casa</string>
+    <string name="done_exclaim">¡Hecha!</string>
+    <string name="fewer_options">Menos opciones</string>
+    <string name="goes_to">Va a %1$s</string>
+    <string name="snooze_in_an_hour">En 1 hora</string>
+    <string name="snooze_this_evening">Esta tarde</string>
+    <string name="snooze_tomorrow">Mañana</string>
+    <string name="snooze_next_monday">El lunes</string>
+    <string name="snooze_pick">Elegir fecha y hora…</string>
+    <string name="snoozed_until">Te aviso %1$s</string>
+    <string name="appearance">Apariencia</string>
+    <string name="theme_mode">Modo</string>
+    <string name="theme_system">Como el teléfono</string>
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark">Oscuro</string>
+    <string name="palette">Color</string>
+    <string name="palette_wallpaper">De mi fondo de pantalla</string>
+    <string name="palette_blue">Azul</string>
+    <string name="palette_green">Verde</string>
+    <string name="palette_purple">Morado</string>
+    <string name="palette_orange">Naranja</string>
+    <string name="palette_pink">Rosa</string>
 </resources>

@@ -1,5 +1,7 @@
 package dev.dux.organizer.ui
 
+import android.widget.Toast
+
 import dev.dux.organizer.ask.AskStart
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
@@ -38,6 +40,8 @@ import dev.dux.organizer.finances.DebtDetailViewModel
 import dev.dux.organizer.finances.FinancesScreen
 import dev.dux.organizer.finances.FinancesViewModel
 import dev.dux.organizer.inbox.CaptureSheet
+import dev.dux.organizer.inbox.CaptureDetails
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.dux.organizer.tasks.TaskDetailScreen
 import dev.dux.organizer.tasks.TaskDetailViewModel
 import dev.dux.organizer.tasks.TaskListViewModel
@@ -61,6 +65,7 @@ import dev.dux.organizer.today.TodayScreen
 import dev.dux.organizer.today.TodayViewModel
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import java.time.LocalDateTime
 import java.time.YearMonth
 
 @Serializable data object Main : NavKey
@@ -92,9 +97,20 @@ fun JarvisApp(
     onListShown: () -> Unit = {},
     askStart: AskStart? = null,
     onAskShown: () -> Unit = {},
+    taskToPostpone: String? = null,
+    onPostponeShown: () -> Unit = {},
 ) {
     // The back stack saves itself (rotation, process death); that is why the keys are @Serializable.
     val backStack = rememberNavBackStack(Main)
+    // "Posponer" on a reminder: the task opens (so it is clear which one) with the date and time pickers on top.
+    var postponing by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(taskToPostpone) {
+        if (taskToPostpone != null) {
+            backStack.add(TaskDetail(taskToPostpone))
+            postponing = taskToPostpone
+            onPostponeShown()
+        }
+    }
     LaunchedEffect(taskToOpen) {
         if (taskToOpen != null) {
             backStack.add(TaskDetail(taskToOpen))
@@ -128,6 +144,26 @@ fun JarvisApp(
         }
     }
     val openTask: (String) -> Unit = { backStack.add(TaskDetail(it)) }
+    postponing?.let { id ->
+        val context = LocalContext.current
+        val today by rememberToday()
+        val inPast = stringResource(R.string.reminder_in_past)
+        var picked by remember { mutableStateOf<LocalDateTime?>(null) }
+        picked?.let { at ->
+            // Confirms when it will ring again, so snoozing is not a leap of faith.
+            val message = stringResource(R.string.snoozed_until, reminderLabel(at, today).replaceFirstChar { it.lowercase() })
+            LaunchedEffect(at) {
+                app.tasks.postpone(id, at)
+                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                picked = null
+                postponing = null
+            }
+        }
+        if (picked == null) SnoozeSheet(
+            onDismiss = { postponing = null },
+            onPast = { Toast.makeText(context, inPast, Toast.LENGTH_LONG).show() },
+        ) { picked = it }
+    }
     NavDisplay(
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },
@@ -166,7 +202,7 @@ fun JarvisApp(
                 TaskDetailScreen(viewModel { TaskDetailViewModel(key.id, app.tasks, app.projects) }, onBack = { backStack.removeLastOrNull() })
             }
             entry<Settings> {
-                SettingsScreen(viewModel { SettingsViewModel(app.backups, app.contentResolver, app.autoBackup, app.askJarvis, app.morningBrief) }, onBack = { backStack.removeLastOrNull() })
+                SettingsScreen(viewModel { SettingsViewModel(app.backups, app.contentResolver, app.autoBackup, app.askJarvis, app.morningBrief, app.appearance) }, onBack = { backStack.removeLastOrNull() })
             }
             entry<Search> {
                 SearchScreen(
@@ -256,7 +292,8 @@ private fun MainScreen(
     }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val savedMessage = stringResource(R.string.saved_to_inbox)
+    val savedToInbox = stringResource(R.string.saved_to_inbox)
+    val savedToTodo = stringResource(R.string.saved_to_todo)
     val undoLabel = stringResource(R.string.undo)
     val drafts = rememberDrafts()
     /** A snackbar with "Deshacer" after deleting something. */
@@ -299,16 +336,20 @@ private fun MainScreen(
         }
     }
 
+    val projects by tasksVm.projects.collectAsStateWithLifecycle()
     if (capturing) {
         CaptureSheet(
             drafts = drafts,
             onDismiss = { capturing = false },
-            onSave = { title, notes ->
-                tasksVm.capture(title, notes) { saved ->
+            projects = projects,
+            onSave = { title, notes, details ->
+                tasksVm.capture(title, notes, details) { saved ->
                     if (saved) {
                         capturing = false
                         drafts.clear("capture.")
-                        scope.launch { snackbar.showSnackbar(savedMessage) }
+                        // Same rule as the repository: any detail means it is already sorted.
+                        val sorted = details != CaptureDetails()
+                        scope.launch { snackbar.showSnackbar(if (sorted) savedToTodo else savedToInbox) }
                     }
                 }
             },
