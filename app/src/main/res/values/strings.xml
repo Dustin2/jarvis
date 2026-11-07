@@ -424,4 +424,5 @@
     <string name="update_download">Descargar</string>
     <string name="update_later">Más tarde</string>
     <string name="saved_to_todo">Guardado en Por hacer</string>
+    <string name="postpone">Posponer</string>
 </resources>

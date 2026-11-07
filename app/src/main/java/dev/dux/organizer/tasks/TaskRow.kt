@@ -1,5 +1,13 @@
 package dev.dux.organizer.tasks
 
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import kotlinx.coroutines.delay
+
 import androidx.annotation.StringRes
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ListItem
@@ -53,7 +61,18 @@ fun TaskRow(
     containerColor: Color = Color.Unspecified,
     shapes: ListItemShapes = ListItemDefaults.shapes(),
 ) {
-    val done = task.status == TaskStatus.DONE || task.status == TaskStatus.CANCELLED
+    // Completing: the check and the strike-through show for a moment, with a tap of vibration, before the
+    // task leaves the list. Without it the row vanished the instant it was tapped, with no sign it worked.
+    var completing by remember(task.id) { mutableStateOf(false) }
+    val haptics = LocalHapticFeedback.current
+    LaunchedEffect(completing) {
+        if (completing) {
+            delay(COMPLETE_DELAY_MS)
+            onToggleDone?.invoke()
+            completing = false
+        }
+    }
+    val done = task.status == TaskStatus.DONE || task.status == TaskStatus.CANCELLED || completing
     ListItem(
         onClick = onOpen,
         modifier = modifier,
@@ -69,8 +88,17 @@ fun TaskRow(
                 // With the task name: TalkBack reads the checkbox separately and "Completar" alone does not say which.
                 val description = stringResource(R.string.complete_task, task.title)
                 Checkbox(
-                    checked = task.status == TaskStatus.DONE,
-                    onCheckedChange = { toggle() },
+                    checked = task.status == TaskStatus.DONE || completing,
+                    onCheckedChange = {
+                        when {
+                            completing -> Unit
+                            task.status in OPEN -> {
+                                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                                completing = true
+                            }
+                            else -> toggle()
+                        }
+                    },
                     modifier = Modifier.semantics { contentDescription = description },
                 )
             }
@@ -112,3 +140,6 @@ private fun Supporting(task: Task, projectName: String?) {
 }
 
 private val OPEN = setOf(TaskStatus.INBOX, TaskStatus.TODO)
+
+/** Long enough to see the check, short enough not to feel slow. */
+private const val COMPLETE_DELAY_MS = 350L

@@ -1,5 +1,7 @@
 package dev.dux.organizer.ui
 
+import android.widget.Toast
+
 import dev.dux.organizer.ask.AskStart
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
@@ -94,9 +96,20 @@ fun JarvisApp(
     onListShown: () -> Unit = {},
     askStart: AskStart? = null,
     onAskShown: () -> Unit = {},
+    taskToPostpone: String? = null,
+    onPostponeShown: () -> Unit = {},
 ) {
     // The back stack saves itself (rotation, process death); that is why the keys are @Serializable.
     val backStack = rememberNavBackStack(Main)
+    // "Posponer" on a reminder: the task opens (so it is clear which one) with the date and time pickers on top.
+    var postponing by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(taskToPostpone) {
+        if (taskToPostpone != null) {
+            backStack.add(TaskDetail(taskToPostpone))
+            postponing = taskToPostpone
+            onPostponeShown()
+        }
+    }
     LaunchedEffect(taskToOpen) {
         if (taskToOpen != null) {
             backStack.add(TaskDetail(taskToOpen))
@@ -130,6 +143,21 @@ fun JarvisApp(
         }
     }
     val openTask: (String) -> Unit = { backStack.add(TaskDetail(it)) }
+    postponing?.let { id ->
+        val context = LocalContext.current
+        val scope = rememberCoroutineScope()
+        val today by rememberToday()
+        val inPast = stringResource(R.string.reminder_in_past)
+        ReminderDialogs(
+            at = null,
+            today = today,
+            onDismiss = { postponing = null },
+            onPast = { Toast.makeText(context, inPast, Toast.LENGTH_LONG).show() },
+        ) { at ->
+            postponing = null
+            if (at != null) scope.launch { app.tasks.postpone(id, at) }
+        }
+    }
     NavDisplay(
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },

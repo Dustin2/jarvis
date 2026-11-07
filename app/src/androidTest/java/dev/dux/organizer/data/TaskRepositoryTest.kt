@@ -49,6 +49,22 @@ class TaskRepositoryTest {
         assertEquals(tomorrow.atTime(9, 0), todo.getValue("reminder").reminderAt)
     }
 
+    @Test fun postponeMovesEarlierDatesToTheNewDay() = runBlocking {
+        val today = java.time.LocalDate.now()
+        val later = today.plusDays(3).atTime(10, 0)
+        repo.capture("Vencida", dueDate = today.minusDays(1), id = "overdue")
+        repo.capture("Más adelante", dueDate = today.plusDays(10), id = "far")
+        repo.capture("Sin fecha", id = "none")
+
+        listOf("overdue", "far", "none").forEach { repo.postpone(it, later) }
+
+        val all = repo.all.first().associateBy { it.id }
+        assertEquals(later.toLocalDate(), all.getValue("overdue").dueDate)
+        assertEquals(today.plusDays(10), all.getValue("far").dueDate) // already later: stays
+        assertNull(all.getValue("none").dueDate)
+        assertTrue(all.values.all { it.reminderAt == later })
+    }
+
     @Test fun planCompleteAndReopen() = runBlocking {
         repo.capture("Revisar facturas")
         val id = repo.inbox.first().single().id

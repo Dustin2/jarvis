@@ -17,6 +17,8 @@ import dev.dux.organizer.MainActivity
 import dev.dux.organizer.R
 import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TaskDao
+import dev.dux.organizer.data.TaskRepository
+import dev.dux.organizer.data.TaskStatus
 import java.time.LocalDateTime
 import java.time.ZoneId
 
@@ -99,11 +101,44 @@ class Reminders(private val context: Context, private val dao: TaskDao) {
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(open)
             .setAutoCancel(true)
+            // Right from the notification: done, or a new date and time (Posponer opens the app to pick them).
+            .addAction(R.drawable.ic_check, context.getString(R.string.complete), completeIntent(task.id))
+            .addAction(R.drawable.ic_bell, context.getString(R.string.postpone), postponeIntent(task.id))
             .build()
-        manager.notify(task.id.hashCode(), notification)
+        manager.notify(notificationId(task.id), notification)
     }
+
+    /** Completed from the notification: same rules as in the app (a recurring task creates the next one). */
+    suspend fun completeFromNotification(taskId: String, tasks: TaskRepository) {
+        tasks.setStatus(taskId, TaskStatus.DONE)
+        NotificationManagerCompat.from(context).cancel(notificationId(taskId))
+    }
+
+    fun dismissNotification(taskId: String) = NotificationManagerCompat.from(context).cancel(notificationId(taskId))
+
+    // Own URIs: a PendingIntent per task and per button, distinct from the alarm's.
+    private fun completeIntent(taskId: String): PendingIntent = PendingIntent.getBroadcast(
+        context,
+        0,
+        Intent(context, ReminderReceiver::class.java).setAction(ACTION_COMPLETE).setData("jarvis://complete/$taskId".toUri()),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+
+    private fun postponeIntent(taskId: String): PendingIntent = PendingIntent.getActivity(
+        context,
+        0,
+        Intent(context, MainActivity::class.java)
+            .setAction(MainActivity.ACTION_POSTPONE)
+            .setData("jarvis://postpone/$taskId".toUri())
+            .putExtra(MainActivity.EXTRA_POSTPONE_ID, taskId)
+            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+
+    private fun notificationId(taskId: String) = taskId.hashCode()
 
     companion object {
         const val CHANNEL_ID = "reminders"
+        const val ACTION_COMPLETE = "dev.dux.organizer.COMPLETE_TASK"
     }
 }

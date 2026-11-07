@@ -96,6 +96,19 @@ class TaskRepository(
         edit(id) { it.copy(reminderAt = at, recurrence = it.recurrence?.copy(reminderTime = at?.toLocalTime())) }
 
     /**
+     * "Posponer" from a reminder: rings again at [at], and a due or scheduled date before that day moves to it,
+     * so the task is not left overdue. A repeating task keeps its series time (only this occurrence moves).
+     */
+    suspend fun postpone(id: String, at: LocalDateTime) = edit(id) { task ->
+        val day = at.toLocalDate()
+        task.copy(
+            reminderAt = at,
+            dueDate = task.dueDate?.let { maxOf(it, day) },
+            scheduledDate = task.scheduledDate?.let { maxOf(it, day) },
+        )
+    }
+
+    /**
      * Starts, changes or (with null) stops repeating. Repeating needs a date: a task without one gets the
      * rule's first occurrence as its scheduled date.
      */
