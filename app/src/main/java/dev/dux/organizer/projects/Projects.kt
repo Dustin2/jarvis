@@ -1,5 +1,7 @@
 package dev.dux.organizer.projects
 
+import dev.dux.organizer.inbox.CaptureDetails
+
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -107,8 +109,8 @@ class ProjectDetailViewModel(
         viewModelScope.launch { trash.deleteProject(id); onDone() }
     }
 
-    fun addTask(title: String, notes: String, onResult: (Boolean) -> Unit) {
-        viewModelScope.launch { onResult(tasks.capture(title, notes, projectId = id)) }
+    fun addTask(title: String, notes: String, details: CaptureDetails, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch { onResult(tasks.capture(title, notes, projectId = id, dueDate = details.due, remindAt = details.remindAt)) }
     }
 
     /** Reopens a finished task, or completes an open one and hands back an undo for the "Deshacer" message. */
@@ -221,8 +223,8 @@ fun ProjectDetailScreen(vm: ProjectDetailViewModel, onOpenTask: (String) -> Unit
                 heading = stringResource(R.string.add_task_to, current.name),
                 draftKey = "project-task",
                 onDismiss = { adding = false },
-                onSave = { title, notes ->
-                    vm.addTask(title, notes) { ok ->
+                onSave = { title, notes, details ->
+                    vm.addTask(title, notes, details) { ok ->
                         if (ok) {
                             adding = false
                             drafts.clear("project-task.")

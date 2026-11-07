@@ -423,4 +423,5 @@
     <string name="update_body">Jarvis %1$s está lista. Descárgala e instálala encima: tus datos se quedan como están.</string>
     <string name="update_download">Descargar</string>
     <string name="update_later">Más tarde</string>
+    <string name="saved_to_todo">Guardado en Por hacer</string>
 </resources>

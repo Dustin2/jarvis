@@ -36,6 +36,19 @@ class TaskRepositoryTest {
         assertNull(inbox[0].notes)
     }
 
+    @Test fun captureWithADetailIsAlreadySorted() = runBlocking {
+        val tomorrow = java.time.LocalDate.now().plusDays(1)
+        repo.capture("Pagar la luz", dueDate = tomorrow, id = "due")
+        repo.capture("Llamar a mamá", remindAt = tomorrow.atTime(9, 0), id = "reminder")
+        repo.capture("Solo el título", id = "plain")
+
+        assertEquals(listOf("plain"), repo.inbox.first().map { it.id })
+        val todo = repo.pending.first().associateBy { it.id }
+        assertEquals(setOf("due", "reminder"), todo.keys)
+        assertEquals(tomorrow, todo.getValue("due").dueDate)
+        assertEquals(tomorrow.atTime(9, 0), todo.getValue("reminder").reminderAt)
+    }
+
     @Test fun planCompleteAndReopen() = runBlocking {
         repo.capture("Revisar facturas")
         val id = repo.inbox.first().single().id

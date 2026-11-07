@@ -36,8 +36,9 @@ class TaskRepository(
     fun observeByProject(projectId: String): Flow<List<Task>> = dao.observeByProject(projectId)
 
     /**
-     * Quick capture to the Inbox; with [projectId] (added from a project) it is already sorted, so it goes
-     * straight to Pendientes in that project. Returns false if the title is not valid. [id]: so the caller can undo it.
+     * Quick capture. Just a title goes to "Por ordenar" (the inbox); with a project, a date or a reminder it is
+     * already sorted, so it goes straight to "Por hacer". Returns false if the title is not valid.
+     * [id]: so the caller can undo it.
      */
     suspend fun capture(
         title: String,
@@ -45,11 +46,17 @@ class TaskRepository(
         projectId: String? = null,
         dueDate: LocalDate? = null,
         id: String = UUID.randomUUID().toString(),
+        remindAt: LocalDateTime? = null,
     ): Boolean {
         val clean = cleanTitle(title) ?: return false
         val now = clock.instant()
-        val status = if (projectId == null) TaskStatus.INBOX else TaskStatus.TODO
-        dao.insert(Task(id = id, title = clean, notes = notes.trim().ifEmpty { null }, status = status, projectId = projectId, dueDate = dueDate, createdAt = now, updatedAt = now))
+        val sorted = projectId != null || dueDate != null || remindAt != null
+        val task = Task(
+            id = id, title = clean, notes = notes.trim().ifEmpty { null }, status = if (sorted) TaskStatus.TODO else TaskStatus.INBOX,
+            projectId = projectId, dueDate = dueDate, reminderAt = remindAt, createdAt = now, updatedAt = now,
+        )
+        dao.insert(task)
+        if (remindAt != null) reminders?.sync(task)
         return true
     }
 

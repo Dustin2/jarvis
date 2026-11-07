@@ -31,16 +31,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,6 +55,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.dux.organizer.R
 import dev.dux.organizer.ui.DatePickDialog
+import dev.dux.organizer.ui.ReminderDialogs
 import dev.dux.organizer.ui.PlanRow
 import dev.dux.organizer.data.Priority
 import dev.dux.organizer.data.Project
@@ -69,7 +67,6 @@ import dev.dux.organizer.ui.label
 import dev.dux.organizer.ui.rememberToday
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 /** Changes save instantly: there is no Save button and no way to lose an edit. */
@@ -251,13 +248,10 @@ private fun DateField(@DrawableRes icon: Int, @StringRes title: Int, date: Local
  * Date, then time. Asks for the notification permission here, the first time it is needed,
  * and not when the app opens.
  */
-// TimePicker is still marked experimental, but it is the official M3 picker.
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReminderField(at: LocalDateTime?, onChange: (LocalDateTime?) -> Unit) {
     val context = LocalContext.current
     val today by rememberToday()
-    var pickedDate by rememberSaveable { mutableStateOf<LocalDate?>(null) }
     var pickingDate by rememberSaveable { mutableStateOf(false) }
     var inPast by rememberSaveable { mutableStateOf(false) }
     var notificationsOff by remember { mutableStateOf(!NotificationManagerCompat.from(context).areNotificationsEnabled()) }
@@ -281,27 +275,10 @@ private fun ReminderField(at: LocalDateTime?, onChange: (LocalDateTime?) -> Unit
     }
 
     if (pickingDate) {
-        DatePickDialog(at?.toLocalDate() ?: today, R.string.remove_reminder, canRemove = at != null, onDismiss = { pickingDate = false }) { date ->
+        ReminderDialogs(at, today, onDismiss = { pickingDate = false }, onPast = { pickingDate = false; inPast = true }) {
             pickingDate = false
-            if (date == null) onChange(null) else pickedDate = date
+            onChange(it)
         }
-    }
-    pickedDate?.let { date ->
-        val initial = at?.toLocalTime() ?: LocalTime.of(9, 0)
-        val state = rememberTimePickerState(initial.hour, initial.minute, is24Hour = DateFormat.is24HourFormat(context))
-        AlertDialog(
-            onDismissRequest = { pickedDate = null },
-            title = { Text(stringResource(R.string.pick_time)) },
-            text = { TimePicker(state) },
-            confirmButton = {
-                TextButton(onClick = {
-                    pickedDate = null
-                    val chosen = date.atTime(state.hour, state.minute)
-                    if (chosen <= LocalDateTime.now()) inPast = true else onChange(chosen)
-                }) { Text(stringResource(R.string.accept)) }
-            },
-            dismissButton = { TextButton(onClick = { pickedDate = null }) { Text(stringResource(R.string.cancel)) } },
-        )
     }
 }
 

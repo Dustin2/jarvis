@@ -38,6 +38,8 @@ import dev.dux.organizer.finances.DebtDetailViewModel
 import dev.dux.organizer.finances.FinancesScreen
 import dev.dux.organizer.finances.FinancesViewModel
 import dev.dux.organizer.inbox.CaptureSheet
+import dev.dux.organizer.inbox.CaptureDetails
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.dux.organizer.tasks.TaskDetailScreen
 import dev.dux.organizer.tasks.TaskDetailViewModel
 import dev.dux.organizer.tasks.TaskListViewModel
@@ -256,7 +258,8 @@ private fun MainScreen(
     }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val savedMessage = stringResource(R.string.saved_to_inbox)
+    val savedToInbox = stringResource(R.string.saved_to_inbox)
+    val savedToTodo = stringResource(R.string.saved_to_todo)
     val undoLabel = stringResource(R.string.undo)
     val drafts = rememberDrafts()
     /** A snackbar with "Deshacer" after deleting something. */
@@ -299,16 +302,20 @@ private fun MainScreen(
         }
     }
 
+    val projects by tasksVm.projects.collectAsStateWithLifecycle()
     if (capturing) {
         CaptureSheet(
             drafts = drafts,
             onDismiss = { capturing = false },
-            onSave = { title, notes ->
-                tasksVm.capture(title, notes) { saved ->
+            projects = projects,
+            onSave = { title, notes, details ->
+                tasksVm.capture(title, notes, details) { saved ->
                     if (saved) {
                         capturing = false
                         drafts.clear("capture.")
-                        scope.launch { snackbar.showSnackbar(savedMessage) }
+                        // Same rule as the repository: any detail means it is already sorted.
+                        val sorted = details != CaptureDetails()
+                        scope.launch { snackbar.showSnackbar(if (sorted) savedToTodo else savedToInbox) }
                     }
                 }
             },
