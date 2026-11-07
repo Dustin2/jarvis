@@ -39,7 +39,7 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.Light -> false
                 ThemeMode.Dark -> true
             }
-            JarvisTheme(darkTheme = dark, palette = appearance.palette) {
+            JarvisTheme(darkTheme = dark, palette = appearance.palette, style = appearance.style) {
                 JarvisApp(
                     taskToOpen = taskToOpen.value,
                     onTaskOpened = { taskToOpen.value = null },

@@ -53,7 +53,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Alignment
 import dev.dux.organizer.ui.blockRowShapes
@@ -77,6 +76,7 @@ import dev.dux.organizer.data.TaskRepository
 import dev.dux.organizer.data.TaskStatus
 import dev.dux.organizer.tasks.TaskRow
 import dev.dux.organizer.ui.ScreenHeader
+import dev.dux.organizer.ui.SectionTitle
 import dev.dux.organizer.ui.rememberToday
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -108,6 +108,9 @@ class TodayViewModel(private val tasks: TaskRepository, projects: ProjectReposit
     val doneToday = combine(tasks.finished, todayFlow()) { list, today ->
         list.count { it.status == TaskStatus.DONE && it.completedAt?.atZone(ZoneId.systemDefault())?.toLocalDate() == today }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    fun delete(task: Task) = viewModelScope.launch { tasks.delete(task.id) }
+    fun restore(task: Task) = viewModelScope.launch { tasks.restore(task) }
 
     /** Completes the task and hands back an undo for the "Deshacer" message. */
     fun complete(task: Task, onCompleted: (undo: () -> Unit) -> Unit) {
@@ -171,6 +174,10 @@ fun TodayScreen(
             modifier = blockModifier,
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
             shapes = blockRowShapes(),
+            onDelete = {
+                vm.delete(task)
+                offerUndo(resources.getString(R.string.task_deleted, task.title)) { vm.restore(task) }
+            },
         )
     }
 
@@ -189,7 +196,7 @@ fun TodayScreen(
         if (backupOverdue) item { BackupWarningCard(onOpenSettings) }
         // Today's work: what was done today plus what is still due or planned for today.
         val total = doneToday + plan.overdue.size + plan.today.size
-        if (total > 0) item { ProgressCard(doneToday, total, plan.overdue.size) }
+        item { DayHeader(doneToday, total, plan.overdue.size) }
         val next = plan.nextStep
         item {
             NextStepCard(next, onOpen, onComplete = { task ->
@@ -204,27 +211,6 @@ fun TodayScreen(
     }
 }
 
-
-/** "3 de 8 hechas" with a ring, and the overdue count in words. */
-@Composable
-private fun ProgressCard(done: Int, total: Int, overdue: Int) {
-    Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
-        Row(Modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            CircularProgressIndicator(
-                progress = { done.toFloat() / total },
-                modifier = Modifier.size(56.dp),
-                strokeWidth = 7.dp,
-                trackColor = MaterialTheme.colorScheme.secondaryContainer,
-            )
-            Column {
-                Text(pluralStringResource(R.plurals.progress_done, total, done, total), style = MaterialTheme.typography.titleLarge)
-                if (overdue > 0) {
-                    Text(pluralStringResource(R.plurals.overdue_count, overdue, overdue), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -302,13 +288,6 @@ private fun MonthRow(summary: MonthSummary, onClick: () -> Unit) {
 /** A titled group of tasks drawn as one rounded block, like the task detail's options. */
 private fun LazyListScope.section(@StringRes title: Int, tasks: List<Task>, row: @Composable (Task, Modifier) -> Unit) {
     if (tasks.isEmpty()) return
-    item(key = "header-$title") {
-        Text(
-            stringResource(title),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 8.dp).asHeading(),
-        )
-    }
+    item(key = "header-$title") { SectionTitle(stringResource(title)) }
     itemsIndexed(tasks, key = { _, task -> "$title-${task.id}" }) { index, task -> row(task, Modifier.inBlock(index, tasks.lastIndex)) }
 }

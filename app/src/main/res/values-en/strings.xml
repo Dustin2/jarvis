@@ -446,4 +446,34 @@
     <string name="palette_purple">Purple</string>
     <string name="palette_orange">Orange</string>
     <string name="palette_pink">Pink</string>
+    <string name="style">Style</string>
+    <string name="style_calm">Calm</string>
+    <string name="style_energy">Energy</string>
+    <string name="style_calm_hint">Light and airy: few words, a thin ring.</string>
+    <string name="style_energy_hint">Big shapes and color: celebrates every task.</string>
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <plurals name="of_total_done">
+        <item quantity="one">of %1$d done</item>
+        <item quantity="other">of %1$d done</item>
+    </plurals>
+    <string name="day_empty">Nothing due today.</string>
+    <string name="day_done_calm">All done for today. Enjoy the rest of your day.</string>
+    <string name="day_done_energy">Day complete. You\'re unstoppable!</string>
+    <string name="day_half_energy">Past halfway. Keep it up!</string>
+    <string name="day_start_energy">Good start. On to the next one.</string>
+    <plurals name="day_left_calm">
+        <item quantity="one">One thing left. Almost there.</item>
+        <item quantity="other">%1$d things left. You\'re doing well.</item>
+    </plurals>
+    <string name="project_deleted">“%1$s” and its tasks moved to the trash</string>
+    <plurals name="projects_count">
+        <item quantity="one">%1$d project</item>
+        <item quantity="other">%1$d projects</item>
+    </plurals>
+    <plurals name="to_buy_count">
+        <item quantity="one">%1$d to buy</item>
+        <item quantity="other">%1$d to buy</item>
+    </plurals>
 </resources>
