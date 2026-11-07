@@ -49,6 +49,17 @@ class TaskRepositoryTest {
         assertEquals(tomorrow.atTime(9, 0), todo.getValue("reminder").reminderAt)
     }
 
+    @Test fun captureWithPriorityAndRepeatStartsTheSeries() = runBlocking {
+        repo.capture("Regar plantas", priority = Priority.HIGH, recurrence = Recurrence(Frequency.DAILY), id = "plants")
+
+        val task = repo.pending.first().single()
+        assertEquals(Priority.HIGH, task.priority)
+        assertEquals(Frequency.DAILY, task.recurrence?.frequency)
+        assertEquals("plants", task.seriesId)
+        // A repeating task without a date gets its first day, as when repeat is chosen in the detail.
+        assertEquals(java.time.LocalDate.now(), task.scheduledDate)
+    }
+
     @Test fun postponeMovesEarlierDatesToTheNewDay() = runBlocking {
         val today = java.time.LocalDate.now()
         val later = today.plusDays(3).atTime(10, 0)

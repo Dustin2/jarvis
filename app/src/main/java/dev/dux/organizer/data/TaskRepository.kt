@@ -47,16 +47,23 @@ class TaskRepository(
         dueDate: LocalDate? = null,
         id: String = UUID.randomUUID().toString(),
         remindAt: LocalDateTime? = null,
+        scheduledDate: LocalDate? = null,
+        priority: Priority = Priority.NONE,
+        recurrence: Recurrence? = null,
     ): Boolean {
         val clean = cleanTitle(title) ?: return false
         val now = clock.instant()
-        val sorted = projectId != null || dueDate != null || remindAt != null
+        // Anything planned means it was already sorted: it skips "Por ordenar".
+        val sorted = projectId != null || dueDate != null || remindAt != null || scheduledDate != null || priority != Priority.NONE || recurrence != null
         val task = Task(
             id = id, title = clean, notes = notes.trim().ifEmpty { null }, status = if (sorted) TaskStatus.TODO else TaskStatus.INBOX,
-            projectId = projectId, dueDate = dueDate, reminderAt = remindAt, createdAt = now, updatedAt = now,
+            projectId = projectId, dueDate = dueDate, scheduledDate = scheduledDate, priority = priority,
+            reminderAt = remindAt, createdAt = now, updatedAt = now,
         )
         dao.insert(task)
         if (remindAt != null) reminders?.sync(task)
+        // Same rules as choosing it in the detail (series id, first date, reminder time).
+        if (recurrence != null) setRecurrence(id, recurrence)
         return true
     }
 

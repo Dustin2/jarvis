@@ -1,6 +1,12 @@
 package dev.dux.organizer.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -358,6 +364,7 @@ private fun ModelSection(state: ModelState, vm: SettingsViewModel) {
 private fun AppearanceSection(settings: AppearanceSettings, vm: SettingsViewModel) {
     val context = LocalContext.current
     Text(stringResource(R.string.appearance), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp).asHeading())
+    AppearancePreview()
     Choice(R.string.theme_mode, ThemeMode.entries, settings.mode, { it.label }, vm::setThemeMode)
     Text(stringResource(R.string.palette), style = MaterialTheme.typography.titleSmall, modifier = Modifier.asHeading())
     FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -375,6 +382,46 @@ private fun AppearanceSection(settings: AppearanceSettings, vm: SettingsViewMode
                     else Box(Modifier.size(FilterChipDefaults.IconSize).background(if (palette == Palette.Wallpaper) wallpaper else palette.swatch, CircleShape))
                 },
             )
+        }
+    }
+}
+
+/** A few sample tasks in the current colors: the whole app recolors live, so this shows the pick at a glance. */
+@Composable
+private fun AppearancePreview() {
+    val colors = MaterialTheme.colorScheme
+    val description = stringResource(R.string.appearance_preview)
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = colors.surfaceContainer,
+        modifier = Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = description },
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(description, style = MaterialTheme.typography.labelLarge, color = colors.primary)
+            Row(
+                Modifier.fillMaxWidth().background(colors.primaryContainer, RoundedCornerShape(16.dp)).padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(Modifier.size(24.dp).background(colors.primary, CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(painterResource(R.drawable.ic_check), contentDescription = null, Modifier.size(16.dp), tint = colors.onPrimary)
+                }
+                Text(stringResource(R.string.preview_task_done), color = colors.onPrimaryContainer, textDecoration = TextDecoration.LineThrough)
+            }
+            Row(
+                Modifier.fillMaxWidth().background(colors.surface, RoundedCornerShape(16.dp)).padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(Modifier.size(24.dp).border(2.dp, colors.outline, CircleShape))
+                Text(stringResource(R.string.preview_task_open), Modifier.weight(1f))
+                Text(
+                    stringResource(R.string.preview_project),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.onSecondaryContainer,
+                    modifier = Modifier.background(colors.secondaryContainer, CircleShape).padding(horizontal = 10.dp, vertical = 4.dp),
+                )
+            }
         }
     }
 }

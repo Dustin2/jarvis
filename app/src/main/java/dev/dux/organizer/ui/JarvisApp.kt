@@ -65,6 +65,7 @@ import dev.dux.organizer.today.TodayScreen
 import dev.dux.organizer.today.TodayViewModel
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import java.time.LocalDateTime
 import java.time.YearMonth
 
 @Serializable data object Main : NavKey
@@ -145,18 +146,23 @@ fun JarvisApp(
     val openTask: (String) -> Unit = { backStack.add(TaskDetail(it)) }
     postponing?.let { id ->
         val context = LocalContext.current
-        val scope = rememberCoroutineScope()
         val today by rememberToday()
         val inPast = stringResource(R.string.reminder_in_past)
-        ReminderDialogs(
-            at = null,
-            today = today,
+        var picked by remember { mutableStateOf<LocalDateTime?>(null) }
+        picked?.let { at ->
+            // Confirms when it will ring again, so snoozing is not a leap of faith.
+            val message = stringResource(R.string.snoozed_until, reminderLabel(at, today).replaceFirstChar { it.lowercase() })
+            LaunchedEffect(at) {
+                app.tasks.postpone(id, at)
+                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                picked = null
+                postponing = null
+            }
+        }
+        if (picked == null) SnoozeSheet(
             onDismiss = { postponing = null },
             onPast = { Toast.makeText(context, inPast, Toast.LENGTH_LONG).show() },
-        ) { at ->
-            postponing = null
-            if (at != null) scope.launch { app.tasks.postpone(id, at) }
-        }
+        ) { picked = it }
     }
     NavDisplay(
         backStack = backStack,

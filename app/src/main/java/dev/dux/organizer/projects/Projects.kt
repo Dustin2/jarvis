@@ -110,7 +110,7 @@ class ProjectDetailViewModel(
     }
 
     fun addTask(title: String, notes: String, details: CaptureDetails, onResult: (Boolean) -> Unit) {
-        viewModelScope.launch { onResult(tasks.capture(title, notes, projectId = id, dueDate = details.due, remindAt = details.remindAt)) }
+        viewModelScope.launch { onResult(tasks.capture(title, notes, projectId = id, dueDate = details.due, remindAt = details.remindAt, scheduledDate = details.scheduled, priority = details.priority, recurrence = details.recurrence)) }
     }
 
     /** Reopens a finished task, or completes an open one and hands back an undo for the "Deshacer" message. */

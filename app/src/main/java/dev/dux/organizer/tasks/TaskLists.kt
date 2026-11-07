@@ -70,7 +70,8 @@ fun TasksScreen(
                         vm.delete(task)
                         offerUndo(resources.getString(R.string.task_deleted, task.title)) { vm.restore(task) }
                     }
-                    SwipeToDelete(onDelete = delete) {
+                    // animateItem: when a row leaves, the ones below slide up instead of jumping.
+                    Box(Modifier.animateItem()) { SwipeToDelete(onDelete = delete) {
                         TaskRow(
                             task,
                             onOpen = { onOpen(task.id) },
@@ -79,19 +80,20 @@ fun TasksScreen(
                                 TextButton(onClick = { vm.setStatus(task.id, TaskStatus.TODO) }) { Text(stringResource(R.string.plan)) }
                             },
                         )
-                    }
+                    } }
                 }
             }
             TaskView.Pending -> {
                 if (pending.isEmpty()) emptyMessage(R.string.empty_tasks)
                 for ((group, tasks) in groupByDate(pending, LocalDate.now())) {
-                    item(key = group.name) { SectionTitle(stringResource(group.label)) }
+                    item(key = group.name) { Box(Modifier.animateItem()) { SectionTitle(stringResource(group.label)) } }
                     items(tasks, key = { it.id }) { task ->
                         TaskRow(
                             task,
                             onOpen = { onOpen(task.id) },
                             onToggleDone = { vm.complete(task) { undo -> offerUndo(resources.getString(R.string.task_completed, task.title), undo) } },
                             projectName = projectNames[task.projectId],
+                            modifier = Modifier.animateItem(),
                         )
                     }
                 }
@@ -99,7 +101,7 @@ fun TasksScreen(
             TaskView.Finished -> {
                 if (finished.isEmpty()) emptyMessage(R.string.empty_finished)
                 items(finished, key = { it.id }) { task ->
-                    TaskRow(task, onOpen = { onOpen(task.id) }, onToggleDone = { vm.setStatus(task.id, TaskStatus.TODO) }, projectName = projectNames[task.projectId])
+                    TaskRow(task, onOpen = { onOpen(task.id) }, onToggleDone = { vm.setStatus(task.id, TaskStatus.TODO) }, projectName = projectNames[task.projectId], modifier = Modifier.animateItem())
                 }
             }
         }
