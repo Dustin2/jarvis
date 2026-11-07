@@ -15,14 +15,23 @@ android {
         // 33: required for USE_EXACT_ALARM and POST_NOTIFICATIONS (milestone 4).
         minSdk = 33
         targetSdk = 37
-        versionCode = 25
-        versionName = "0.20.0"
+        versionCode = 26
+        versionName = "0.21.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Only 64-bit ARM phones: LiteRT-LM's native libs for x86_64 (emulators) add ~26 MB.
         ndk { abiFilters += "arm64-v8a" }
     }
     // Phone-only app: no ChromeOS (x86_64) build, see abiFilters.
     lint { disable += "ChromeOsAbiSupport" }
+
+    // Releases are installed over the previous version: every one must be signed with this same key.
+    val storeFile = providers.gradleProperty("JARVIS_STORE_FILE").orNull
+    if (storeFile != null) signingConfigs.create("release") {
+        this.storeFile = file(storeFile)
+        storePassword = providers.gradleProperty("JARVIS_STORE_PASSWORD").get()
+        keyAlias = providers.gradleProperty("JARVIS_KEY_ALIAS").get()
+        keyPassword = providers.gradleProperty("JARVIS_KEY_PASSWORD").get()
+    }
 
     buildTypes {
         debug {
@@ -35,9 +44,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // shortcut: signed with the debug key so it installs over the debug build without losing data.
-            // If the APK is ever published or shared, create a dedicated key (and back it up).
-            signingConfig = signingConfigs.getByName("debug")
+            // The release key lives outside the repo (~/.gradle/gradle.properties); CI has no key, so it
+            // signs with its debug key only to check the build. APKs from CI must never be shared.
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
 

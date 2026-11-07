@@ -7,7 +7,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Android clears alarms on reboot: they have to be scheduled again. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <!-- Only to download the on-device model (Pregúntale a Jarvis); questions and data never leave the phone. -->
+    <!-- Only to download the on-device model (Pregúntale a Jarvis) and check GitHub for new versions; questions and data never leave the phone. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- Android 11+ hides other apps by default: without this, text to speech cannot find the voice engine. -->
