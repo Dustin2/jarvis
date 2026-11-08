@@ -476,4 +476,8 @@
         <item quantity="one">%1$d to buy</item>
         <item quantity="other">%1$d to buy</item>
     </plurals>
+    <string name="dictate">Dictate</string>
+    <string name="voice_missing">This phone has no voice dictation.</string>
+    <string name="spotted">%1$s · tap to ignore</string>
+    <string name="spotted_description">Understood %1$s. It will be saved as “%2$s”. Tap to ignore.</string>
 </resources>
