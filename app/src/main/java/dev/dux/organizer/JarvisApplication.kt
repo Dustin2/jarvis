@@ -54,7 +54,13 @@ class JarvisApplication : Application() {
         addAskShortcut()
         MainScope().launch {
             // First start only: the starting lists and categories in the phone's language (then they are the user's data).
-            projects.seedIfEmpty(resources.getStringArray(R.array.seed_projects).toList())
+            // Projects can be deleted, so "no projects" is not "first run": a stored flag seeds them once ever.
+            // Installs from before the flag still have their projects, and seedIfEmpty leaves those alone.
+            val seed = getSharedPreferences("seed", MODE_PRIVATE)
+            if (!seed.getBoolean("projects", false)) {
+                projects.seedIfEmpty(resources.getStringArray(R.array.seed_projects).toList())
+                seed.edit { putBoolean("projects", true) }
+            }
             shopping.seedIfEmpty(getString(R.string.seed_list))
             finance.seedIfEmpty(resources.getStringArray(R.array.seed_expense_categories).toList(), resources.getStringArray(R.array.seed_income_categories).toList())
             autoBackup.scheduleIfEnabled()
