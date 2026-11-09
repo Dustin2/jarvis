@@ -135,7 +135,7 @@ fun CaptureSheet(
     val focus = remember { FocusRequester() }
     val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
     // "mañana a las 10" typed or dictated in the title: used unless the user dismissed it or set that field by hand.
-    val spotted = remember(title, today) { spotWhen(title, LocalDateTime.now()) }
+    val spotted = remember(title, today, due) { spotWhen(title, LocalDateTime.now(), due) }
     var dismissed by rememberSaveable { mutableStateOf<String?>(null) }
     val spot = spotted?.takeIf { "${it.due}|${it.remindAt}" != dismissed }
     val finalTitle = spot?.title ?: title

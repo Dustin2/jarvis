@@ -156,11 +156,36 @@ fun relativeDate(text: String, today: LocalDate, past: Boolean = false): LocalDa
         return if (m.groupValues[3].startsWith("d")) today.plusDays(n) else today.plusWeeks(n)
     }
     dayOfMonth.matchEntire(words)?.let { m -> return nearestDayOfMonth(m.groupValues[1].toInt(), today, past) }
+    monthDay.matchEntire(words)?.let { m ->
+        val g = m.groupValues
+        val month = monthOf(g[2].ifEmpty { g[3] }) ?: return null
+        return nearestMonthDay(month, g[1].ifEmpty { g[4] }.toInt(), today, past)
+    }
     val day = weekdays[words.removePrefix("el ").removePrefix("este ").removePrefix("on ").removePrefix("next ").removePrefix("this ")] ?: return null
     return today.with(if (past) TemporalAdjusters.previous(day) else TemporalAdjusters.next(day))
 }
 
 private val inAmount = Regex("""(en|in) (\d{1,3}|un|una|a|an) (dias?|days?|semanas?|weeks?)""")
+// "15 de noviembre", "el 15 de nov", "november 15th", "15th of november".
+private val monthDay = Regex("""(?:el (?:dia )?|on (?:the )?|the )?(?:(\d{1,2})(?:st|nd|rd|th)? (?:de |of )?(\p{L}+)|(\p{L}+) (\d{1,2})(?:st|nd|rd|th)?)""")
+private val months = listOf(
+    "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+    "january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december",
+)
+/** A full month name or its first three letters ("nov"), Spanish or English; "sept" too. */
+private fun monthOf(word: String): Int? =
+    months.indexOfFirst { word == it || word == it.take(3) || word == "sept" && it.startsWith("sep") }.takeIf { it >= 0 }?.let { it % 12 + 1 }
+
+/** The next (or, for [past], the last) [month]/[day]; null when that date does not exist (30 de febrero). */
+private fun nearestMonthDay(month: Int, day: Int, today: LocalDate, past: Boolean): LocalDate? {
+    val date = runCatching { LocalDate.of(today.year, month, day) }.getOrNull() ?: return null
+    return when {
+        past && date.isAfter(today) -> date.minusYears(1)
+        !past && date.isBefore(today) -> date.plusYears(1)
+        else -> date
+    }
+}
+
 private val dayOfMonth = Regex("""(?:el (?:dia )?|on (?:the )?|the )?(\d{1,2})(?:st|nd|rd|th)?""")
 
 /** The next (or, for [past], the last) date with that day of the month; skips months that do not have it. */

@@ -31,6 +31,20 @@ class SpotWhenTest {
         assertEquals(Spotted("Call mom", today.plusDays(1), today.plusDays(1).atTime(18, 30)), spotWhen("Call mom tomorrow at 6:30 pm", now))
     }
 
+    @Test fun monthNames() {
+        val nov15 = LocalDate.of(2026, 11, 15)
+        assertEquals(Spotted("Pagar renta", nov15, null), spotWhen("Pagar renta el 15 de noviembre", now))
+        assertEquals(Spotted("Cita", nov15, nov15.atTime(10, 0)), spotWhen("Cita 15 nov a las 10", now))
+        assertEquals(Spotted("Renew passport", LocalDate.of(2027, 3, 2), null), spotWhen("Renew passport on March 2nd", now))
+        assertNull(spotWhen("Comprar 30 de febrero", now)) // no such date
+    }
+
+    @Test fun handPickedDateWinsForTheTime() {
+        // At 9:00 "a las 8" is 20:00 today when today was picked, not 8:00 tomorrow.
+        assertEquals(Spotted("Correr", null, today.atTime(20, 0)), spotWhen("Correr a las 8", now, due = today))
+        assertNull(spotWhen("Correr a las 8 am", now, due = today)) // already gone on the picked day
+    }
+
     @Test fun nothingToSpot() {
         assertNull(spotWhen("Comprar 2 leches", now))
         assertNull(spotWhen("Comprar 5 kilos de arroz", now))
