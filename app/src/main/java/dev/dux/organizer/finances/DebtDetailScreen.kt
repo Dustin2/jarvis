@@ -14,38 +14,51 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.dux.organizer.R
+import dev.dux.organizer.data.Debt
+import dev.dux.organizer.data.DebtPayment
 import dev.dux.organizer.data.formatMoney
 import dev.dux.organizer.ui.SavedIndicator
 import dev.dux.organizer.ui.asHeading
 import dev.dux.organizer.ui.inlineLabel
 import dev.dux.organizer.ui.label
 import dev.dux.organizer.ui.rememberToday
+import kotlinx.coroutines.launch
 
 @Composable
-fun DebtDetailScreen(vm: DebtDetailViewModel, onBack: () -> Unit) {
+fun DebtDetailScreen(vm: DebtDetailViewModel, onBack: () -> Unit, onDeleted: (Debt, List<DebtPayment>) -> Unit) {
     val item by vm.debt.collectAsStateWithLifecycle()
     val payments by vm.payments.collectAsStateWithLifecycle()
     val today by rememberToday()
     var editing by rememberSaveable { mutableStateOf(false) }
     var paying by rememberSaveable { mutableStateOf(false) }
-    var confirmDelete by rememberSaveable { mutableStateOf(false) }
-    var deletingPayment by rememberSaveable { mutableStateOf<String?>(null) }
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val resources = LocalResources.current
+    val undoLabel = stringResource(R.string.undo)
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = { SavedIndicator(item?.debt?.updatedAt) },
@@ -55,7 +68,7 @@ fun DebtDetailScreen(vm: DebtDetailViewModel, onBack: () -> Unit) {
                 actions = {
                     if (item != null) {
                         TextButton(onClick = { editing = true }) { Text(stringResource(R.string.edit)) }
-                        IconButton(onClick = { confirmDelete = true }) { Icon(painterResource(R.drawable.ic_delete), stringResource(R.string.delete_debt)) }
+                        IconButton(onClick = { vm.delete(onDeleted) }) { Icon(painterResource(R.drawable.ic_delete), stringResource(R.string.delete_debt)) }
                     }
                 },
             )
@@ -101,7 +114,16 @@ fun DebtDetailScreen(vm: DebtDetailViewModel, onBack: () -> Unit) {
                 ListItem(
                     supportingContent = { Text(payment.date.label(today)) },
                     trailingContent = {
-                        IconButton(onClick = { deletingPayment = payment.id }) {
+                        IconButton(onClick = {
+                            vm.deletePayment(payment.id) { gone, before ->
+                                scope.launch {
+                                    val message = resources.getString(R.string.payment_deleted, formatMoney(gone.amountCents))
+                                    if (snackbar.showSnackbar(message, undoLabel, duration = SnackbarDuration.Long) == SnackbarResult.ActionPerformed) {
+                                        vm.restorePayment(gone, before)
+                                    }
+                                }
+                            }
+                        }) {
                             Icon(painterResource(R.drawable.ic_delete), stringResource(R.string.delete_payment, formatMoney(payment.amountCents)))
                         }
                     },
@@ -120,12 +142,6 @@ fun DebtDetailScreen(vm: DebtDetailViewModel, onBack: () -> Unit) {
             PaymentDialog(current.remainingCents, onDismiss = { paying = false }) { cents, date, done ->
                 vm.addPayment(cents, date) { ok -> done(ok); if (ok) paying = false }
             }
-        }
-        deletingPayment?.let { id ->
-            ConfirmDelete(R.string.delete_payment_confirm, onDismiss = { deletingPayment = null }) { vm.deletePayment(id) }
-        }
-        if (confirmDelete) {
-            ConfirmDelete(R.string.delete_debt_confirm, onDismiss = { confirmDelete = false }) { vm.delete(onBack) }
         }
     }
 }

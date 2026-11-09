@@ -102,7 +102,9 @@ class FinanceRepository(private val dao: FinanceDao, private val clock: Clock = 
         return dao.addPayment(DebtPayment(debtId = debtId, amountCents = amountCents, date = date, createdAt = now), now)
     }
 
-    suspend fun deletePayment(id: String) = dao.removePayment(id, clock.instant())
+    suspend fun deletePayment(id: String): Pair<DebtPayment, Debt>? = dao.takePayment(id, clock.instant())
+
+    suspend fun restorePayment(payment: DebtPayment, before: Debt) = dao.putPayment(payment, before)
 
     private fun validAmount(cents: Long) = cents in 1..MAX_AMOUNT_CENTS
     private fun validBudget(kind: MoneyKind, cents: Long?) = cents == null || (kind == MoneyKind.EXPENSE && validAmount(cents))

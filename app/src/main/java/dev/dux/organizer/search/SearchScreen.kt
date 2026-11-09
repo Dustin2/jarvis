@@ -48,6 +48,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import dev.dux.organizer.R
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.rememberCoroutineScope
+import dev.dux.organizer.ui.OfferPendingUndo
+import dev.dux.organizer.ui.PendingUndo
+import kotlinx.coroutines.launch
 import dev.dux.organizer.data.DebtDirection
 import dev.dux.organizer.data.FinanceRepository
 import dev.dux.organizer.data.MoneyKind
@@ -94,14 +102,29 @@ class SearchViewModel(tasks: TaskRepository, projects: ProjectRepository, shoppi
 private const val PREVIEW = 5
 
 @Composable
-fun SearchScreen(vm: SearchViewModel, onOpen: (SearchTarget) -> Unit, onBack: () -> Unit) {
+fun SearchScreen(
+    vm: SearchViewModel,
+    onOpen: (SearchTarget) -> Unit,
+    onBack: () -> Unit,
+    pendingUndo: PendingUndo? = null,
+    onUndoShown: () -> Unit = {},
+) {
     val query by vm.query.collectAsStateWithLifecycle()
     val results by vm.results.collectAsStateWithLifecycle()
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     val today by rememberToday()
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val undoLabel = stringResource(R.string.undo)
+    OfferPendingUndo(pendingUndo, onUndoShown) { message, undo ->
+        scope.launch {
+            if (snackbar.showSnackbar(message, undoLabel, duration = SnackbarDuration.Long) == SnackbarResult.ActionPerformed) undo()
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 navigationIcon = {

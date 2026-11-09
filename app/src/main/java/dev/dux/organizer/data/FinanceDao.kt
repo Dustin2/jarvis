@@ -79,12 +79,21 @@ interface FinanceDao {
         return true
     }
 
+    /** Deletes the payment (reopening a settled debt) and returns it with the debt as it was, for "Deshacer". */
     @Transaction
-    suspend fun removePayment(id: String, now: Instant) {
-        val payment = getPayment(id) ?: return
+    suspend fun takePayment(id: String, now: Instant): Pair<DebtPayment, Debt>? {
+        val payment = getPayment(id) ?: return null
         deletePayment(id)
-        val debt = getDebt(payment.debtId) ?: return
+        val debt = getDebt(payment.debtId) ?: return null
         if (debt.settledAt != null) updateDebt(debt.copy(settledAt = null, updatedAt = now))
+        return payment to debt
+    }
+
+    @Transaction
+    suspend fun putPayment(payment: DebtPayment, before: Debt) {
+        val debt = getDebt(payment.debtId) ?: return
+        insertPayment(payment)
+        if (before.settledAt != null) updateDebt(debt.copy(settledAt = before.settledAt, updatedAt = before.updatedAt))
     }
 
     @Query("SELECT * FROM finance_debt_payments WHERE debtId = :debtId") suspend fun getPayments(debtId: String): List<DebtPayment>

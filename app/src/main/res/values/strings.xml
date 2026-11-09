@@ -206,9 +206,7 @@
     <string name="payment_invalid">Escribe un monto válido que no pase de lo que falta (%1$s)</string>
     <string name="pay_all">Todo: %1$s</string>
     <string name="delete_payment">Eliminar abono de %1$s</string>
-    <string name="delete_payment_confirm">¿Eliminar este abono?</string>
     <string name="delete_debt">Eliminar deuda</string>
-    <string name="delete_debt_confirm">¿Eliminar esta deuda y sus abonos?</string>
     <string name="month_spent">Gastado: %1$s</string>
 
     <string name="auto_backup">Respaldo automático</string>
@@ -506,4 +504,5 @@
     <string name="add">Agregar</string>
     <string name="movement_deleted">Movimiento de %1$s eliminado</string>
     <string name="debt_deleted">Deuda con %1$s eliminada</string>
+    <string name="payment_deleted">Abono de %1$s eliminado</string>
 </resources>

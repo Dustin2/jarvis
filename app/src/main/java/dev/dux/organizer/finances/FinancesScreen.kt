@@ -58,6 +58,8 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import dev.dux.organizer.R
+import dev.dux.organizer.ui.OfferPendingUndo
+import dev.dux.organizer.ui.PendingUndo
 import dev.dux.organizer.data.Category
 import dev.dux.organizer.data.DebtDirection
 import dev.dux.organizer.data.DebtWithPaid
@@ -100,6 +102,8 @@ fun FinancesScreen(
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
     initialMovement: String? = null,
+    pendingUndo: PendingUndo? = null,
+    onUndoShown: () -> Unit = {},
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
     // Opened from the search: straight to that movement.
@@ -119,6 +123,7 @@ fun FinancesScreen(
             if (snackbar.showSnackbar(message, actionLabel = undoLabel, duration = SnackbarDuration.Long) == SnackbarResult.ActionPerformed) undo()
         }
     }
+    OfferPendingUndo(pendingUndo, onUndoShown, offerUndo)
     val drafts = rememberDrafts()
 
     val newCategory: @Composable ColumnScope.(() -> Unit) -> Unit = { close ->

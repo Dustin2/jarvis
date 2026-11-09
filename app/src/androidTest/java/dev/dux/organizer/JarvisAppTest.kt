@@ -18,6 +18,10 @@ import android.os.ParcelFileDescriptor
 import android.view.KeyEvent
 import dev.dux.organizer.ui.JarvisApp
 import dev.dux.organizer.ui.theme.JarvisTheme
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import dev.dux.organizer.data.DebtDirection
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
 
@@ -82,5 +86,29 @@ class JarvisAppTest {
 
         instrumentation.sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
         compose.waitUntil(5_000) { compose.onAllNodesWithText(title).fetchSemanticsNodes().isEmpty() }
+    }
+
+    @Test
+    fun deletingADebtFromItsScreenOffersUndoOnTheList() {
+        val finance = compose.activity.app.finance
+        val person = "Undo " + System.nanoTime().toString().takeLast(5)
+        runBlocking { finance.addDebt(person, DebtDirection.I_OWE, 1_000, null) }
+        compose.setContent { JarvisTheme { JarvisApp() } }
+        fun text(id: Int) = compose.activity.getString(id)
+        fun shown(t: String) = compose.onAllNodesWithText(t, substring = true).fetchSemanticsNodes().isNotEmpty()
+
+        compose.onNode(hasText(text(R.string.finances)) and isSelectable()).performClick()
+        compose.onNodeWithText(text(R.string.finance_debts)).performClick()
+        compose.waitUntil(5_000) { shown(person) }
+        compose.onNodeWithText(person).performClick()
+        compose.waitUntil(5_000) { compose.onAllNodesWithContentDescription(text(R.string.delete_debt)).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithContentDescription(text(R.string.delete_debt)).performClick()
+
+        // Back on the list, with "Deshacer".
+        val message = compose.activity.getString(R.string.debt_deleted, person)
+        compose.waitUntil(5_000) { shown(message) }
+        compose.onNodeWithText(text(R.string.undo)).performClick()
+        compose.waitUntil(5_000) { !shown(message) && shown(person) }
+        runBlocking { finance.debts.first().first { it.debt.person == person }.let { finance.deleteDebt(it.debt.id) } }
     }
 }
