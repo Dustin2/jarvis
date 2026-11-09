@@ -138,11 +138,10 @@
 
     <string name="quantity_optional">Quantity (optional)</string>
     <string name="item_invalid">Write the item (200 characters max) and a quantity of up to 40</string>
-    <string name="added_item">Added: %1$s</string>
     <string name="in_cart">In the cart · %1$d</string>
     <string name="remove_checked">Remove bought</string>
     <string name="uncheck_all">Uncheck all</string>
-    <string name="empty_shopping_list">The list is empty. Type what you need above.</string>
+    <string name="empty_shopping_list">The list is empty. Tap + to add what you need.</string>
     <string name="new_list">New list</string>
     <string name="list_name">List name</string>
     <string name="rename_list">Rename list</string>
@@ -480,4 +479,25 @@
     <string name="voice_missing">This phone has no voice dictation.</string>
     <string name="spotted">%1$s · tap to ignore</string>
     <string name="spotted_description">Understood %1$s. It will be saved as “%2$s”. Tap to ignore.</string>
+    <string name="settings_general">General</string>
+    <string name="settings_assistant">Assistant</string>
+    <string name="settings_data">Data</string>
+    <string name="backup_restore">Backup and restore</string>
+    <string name="about">About</string>
+    <string name="version">Version %1$s</string>
+    <string name="off">Off</string>
+    <string name="brief_at">Every day at %1$s</string>
+    <string name="model_ready">Ready on this phone</string>
+    <string name="model_absent">Not downloaded</string>
+    <string name="model_downloading_short">Downloading…</string>
+    <string name="auto_backup_off_short">Automatic backup off</string>
+    <string name="about_tagline">Your personal organizer for Android</string>
+    <string name="about_source">Source code</string>
+    <string name="about_fonts">Fonts</string>
+    <string name="about_fonts_hint">Manrope and Outfit, SIL Open Font License</string>
+    <string name="add_item">Add item</string>
+    <string name="add_to_list">Add to “%1$s”</string>
+    <string name="add_items_tip">Several at once: milk, bread and eggs</string>
+    <string name="done">Done</string>
+    <string name="add">Add</string>
 </resources>

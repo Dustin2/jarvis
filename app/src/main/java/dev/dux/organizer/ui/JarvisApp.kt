@@ -1,5 +1,16 @@
 package dev.dux.organizer.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MotionScheme
 import android.widget.Toast
 
 import dev.dux.organizer.ask.AskStart
@@ -8,8 +19,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ShortNavigationBar
-import androidx.compose.material3.ShortNavigationBarItem
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -17,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -164,9 +175,13 @@ fun JarvisApp(
             onPast = { Toast.makeText(context, inPast, Toast.LENGTH_LONG).show() },
         ) { picked = it }
     }
+    val motion = MaterialTheme.motionScheme
     NavDisplay(
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },
+        // Springs from the expressive motion scheme: screens glide in and settle instead of moving on a fixed timer.
+        transitionSpec = { screenEnter(motion, forward = true) },
+        popTransitionSpec = { screenEnter(motion, forward = false) },
         // Each screen has its own saved state and its own ViewModels.
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
@@ -290,6 +305,10 @@ private fun MainScreen(
             onCaptureShown()
         }
     }
+    var compactNav by rememberSaveable { mutableStateOf(false) }
+    var shoppingAdds by remember { mutableIntStateOf(0) }
+    LaunchedEffect(tab) { compactNav = false }
+    val navFold = remember { NavFold { compactNav = it } }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val savedToInbox = stringResource(R.string.saved_to_inbox)
@@ -306,34 +325,28 @@ private fun MainScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
-            // In Compras the button adds items to the open list; everywhere else it captures a task.
-            val shoppingTab = tab == Tab.Shopping
-            // Finanzas has its own button ("Registrar" / "Nueva deuda"); Compras adds from the field at the top of its list.
-            if (tab != Tab.Finances && !shoppingTab) {
-                AddButton(stringResource(R.string.capture)) { capturing = true }
+            // Finanzas shows the same round button inside its screen, with its own action; Compras jumps to its add field.
+            val shopping = tab == Tab.Shopping
+            RoundAddButton(stringResource(if (shopping) R.string.add_item else R.string.capture), visible = tab != Tab.Finances) {
+                if (shopping) shoppingAdds++ else capturing = true
             }
         },
-        bottomBar = {
-            ShortNavigationBar {
-                Tab.entries.forEach {
-                    ShortNavigationBarItem(
-                        selected = it == tab,
-                        onClick = { onTabChange(it) },
-                        icon = { Icon(painterResource(it.icon), contentDescription = null) },
-                        label = { CappedLabel(stringResource(it.label)) },
-                    )
-                }
-            }
-        },
+        bottomBar = { FloatingNav(tab, onTabChange, compactNav) },
     ) { padding ->
-        val modifier = Modifier.padding(padding)
-        when (tab) {
+        val modifier = Modifier.padding(padding).nestedScroll(navFold)
+        // Fade through between tabs: the old one fades out quickly, the new one fades and grows in on a spring.
+        val motion = MaterialTheme.motionScheme
+        AnimatedContent(
+            tab,
+            transitionSpec = { (fadeIn(motion.defaultEffectsSpec()) + scaleIn(motion.defaultSpatialSpec(), initialScale = 0.96f)) togetherWith fadeOut(motion.fastEffectsSpec()) },
+            label = "tab",
+        ) { tab -> when (tab) {
             Tab.Today -> TodayScreen(todayVm, onOpenTask, onOpenSettings, onOpenFinances, onSearch, offerUndo, modifier, askStart, onAskShown)
             Tab.Tasks -> TasksScreen(tasksVm, onOpenTask, onSearch, offerUndo, modifier)
             Tab.Projects -> ProjectsScreen(projectsVm, onOpenProject, onSearch, onOpenArchive, onOpenTrash, offerUndo, modifier)
-            Tab.Shopping -> ShoppingScreen(shoppingVm, offerUndo, onSearch, modifier)
+            Tab.Shopping -> ShoppingScreen(shoppingVm, offerUndo, onSearch, modifier, shoppingAdds)
             Tab.Finances -> FinancesScreen(financesVm, onOpenDebt, onSearch, onBack = null, modifier = modifier)
-        }
+        } }
     }
 
     val projects by tasksVm.projects.collectAsStateWithLifecycle()
@@ -358,3 +371,11 @@ private fun MainScreen(
 
 }
 
+
+/** Forward slides in from the right, back from the left; a short distance and a fade, both on springs. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+internal fun screenEnter(motion: MotionScheme, forward: Boolean): ContentTransform {
+    val dir = if (forward) 1 else -1
+    return (slideInHorizontally(motion.defaultSpatialSpec()) { dir * it / 4 } + fadeIn(motion.defaultEffectsSpec())) togetherWith
+        (slideOutHorizontally(motion.defaultSpatialSpec()) { -dir * it / 4 } + fadeOut(motion.fastEffectsSpec()))
+}

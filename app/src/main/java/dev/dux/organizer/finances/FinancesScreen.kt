@@ -60,7 +60,7 @@ import dev.dux.organizer.data.DebtWithPaid
 import dev.dux.organizer.data.MoneyKind
 import dev.dux.organizer.data.Movement
 import dev.dux.organizer.data.formatMoney
-import dev.dux.organizer.ui.AddButton
+import dev.dux.organizer.ui.RoundAddButton
 import dev.dux.organizer.ui.theme.LocalWarningColor
 import dev.dux.organizer.ui.ScreenHeader
 import androidx.compose.foundation.layout.ColumnScope
@@ -129,7 +129,8 @@ fun FinancesScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
             val debts = tab == FinanceTab.Debts
-            AddButton(stringResource(if (debts) R.string.new_debt else R.string.register)) {
+            // The same round "+" as the other tabs; the description says what it adds here.
+            RoundAddButton(stringResource(if (debts) R.string.new_debt else R.string.register)) {
                 if (debts) creatingDebt = true else movement = NEW
             }
         },
