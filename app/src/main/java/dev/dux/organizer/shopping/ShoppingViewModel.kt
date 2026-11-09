@@ -68,9 +68,10 @@ class ShoppingViewModel(private val repo: ShoppingRepository) : ViewModel() {
         viewModelScope.launch { repo.deleteList(id) }
     }
 
-    fun add(name: String, quantity: String, onResult: (Boolean) -> Unit) {
+    /** One after another, so they keep the order they were written in. */
+    fun addAll(names: List<String>, quantity: String, onResult: (String, Boolean) -> Unit) {
         val id = currentId ?: return
-        viewModelScope.launch { onResult(repo.addItem(id, name, quantity)) }
+        viewModelScope.launch { names.forEach { onResult(it, repo.addItem(id, it, quantity)) } }
     }
 
     fun toggle(item: ShoppingItem) = launch { repo.setChecked(item.id, !item.checked) }

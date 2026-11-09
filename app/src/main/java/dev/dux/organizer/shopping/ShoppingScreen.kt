@@ -1,5 +1,7 @@
 package dev.dux.organizer.shopping
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
@@ -25,11 +28,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
@@ -41,25 +41,11 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.runtime.remember
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import dev.dux.organizer.ui.inBlock
 import dev.dux.organizer.R
 import dev.dux.organizer.data.ShoppingItem
@@ -73,13 +59,21 @@ private enum class ListDialog { Create, Rename, Delete }
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 /** [offerUndo] shows a message with "Deshacer" after something is deleted. */
-fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Unit, onSearch: () -> Unit, modifier: Modifier = Modifier) {
+/** [addRequests] grows each time the round "+" is tapped: it opens the sheet to add items. */
+fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Unit, onSearch: () -> Unit, modifier: Modifier = Modifier, addRequests: Int = 0) {
     val resources = LocalResources.current
     val state by vm.state.collectAsStateWithLifecycle()
     var dialog by rememberSaveable { mutableStateOf<ListDialog?>(null) }
     val context = LocalContext.current
+    var adding by rememberSaveable { mutableStateOf(false) }
     val current = state ?: return
     val list = current.current
+    LaunchedEffect(addRequests) {
+        if (addRequests == 0) return@LaunchedEffect
+        // No list yet: the first thing to add is the list itself.
+        if (list == null) dialog = ListDialog.Create else adding = true
+    }
+    if (adding && list != null) AddItemsSheet(list.name, onAdd = vm::addAll, onDismiss = { adding = false })
 
     LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
         item {
@@ -126,7 +120,6 @@ fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Uni
                 }
             }
         }
-        if (list != null) item { QuickAdd(onAdd = vm::add) }
         if (list != null && current.pending.isEmpty() && current.inCart.isEmpty()) {
             item {
                 Text(
@@ -190,82 +183,6 @@ fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Uni
             )
         }
         null -> {}
-    }
-}
-
-/**
- * Adds items right in the list, without opening a sheet: type, press Enter, and the field stays ready for
- * the next one. The quantity is optional and only shows when asked for.
- */
-@Composable
-private fun QuickAdd(onAdd: (String, String, (Boolean) -> Unit) -> Unit) {
-    var name by rememberSaveable { mutableStateOf("") }
-    var quantity by rememberSaveable { mutableStateOf("") }
-    var withQuantity by rememberSaveable { mutableStateOf(false) }
-    var error by rememberSaveable { mutableStateOf(false) }
-    var lastAdded by rememberSaveable { mutableStateOf<String?>(null) }
-    val focus = remember { FocusRequester() }
-    val add = {
-        val added = name.trim()
-        onAdd(name, quantity) { ok ->
-            error = !ok
-            if (ok) {
-                lastAdded = added
-                name = ""
-                quantity = ""
-                withQuantity = false
-                focus.requestFocus()
-            }
-        }
-    }
-    val plain = TextFieldDefaults.colors(
-        focusedContainerColor = Color.Transparent,
-        unfocusedContainerColor = Color.Transparent,
-        errorContainerColor = Color.Transparent,
-        focusedIndicatorColor = Color.Transparent,
-        unfocusedIndicatorColor = Color.Transparent,
-        errorIndicatorColor = Color.Transparent,
-    )
-    Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp, end = 8.dp)) {
-                Icon(painterResource(R.drawable.ic_add), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                TextField(
-                    value = name,
-                    onValueChange = { name = it; error = false },
-                    placeholder = { Text(stringResource(R.string.add_item_hint)) },
-                    singleLine = true,
-                    isError = error,
-                    colors = plain,
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { add() }),
-                    modifier = Modifier.weight(1f).focusRequester(focus),
-                )
-                if (!withQuantity) TextButton(onClick = { withQuantity = true }) { Text(stringResource(R.string.quantity)) }
-            }
-            if (withQuantity) {
-                TextField(
-                    value = quantity,
-                    onValueChange = { quantity = it; error = false },
-                    placeholder = { Text(stringResource(R.string.quantity_optional)) },
-                    singleLine = true,
-                    colors = plain,
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { add() }),
-                    modifier = Modifier.fillMaxWidth().padding(start = 40.dp),
-                )
-            }
-            val message = if (error) stringResource(R.string.item_invalid) else lastAdded?.let { stringResource(R.string.added_item, it) }
-            message?.let {
-                // Confirms each item (TalkBack announces it): the field clears right away.
-                Text(
-                    it,
-                    color = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(start = 56.dp, end = 16.dp, bottom = 12.dp).semantics { liveRegion = LiveRegionMode.Polite },
-                )
-            }
-        }
     }
 }
 
