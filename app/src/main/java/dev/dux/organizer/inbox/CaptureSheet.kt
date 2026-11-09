@@ -75,6 +75,14 @@ import dev.dux.organizer.ui.reminderLabel
 import dev.dux.organizer.ui.rememberToday
 import java.time.LocalDate
 import java.time.LocalDateTime
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.speech.RecognizerIntent
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
+import androidx.compose.material3.InputChipDefaults
+import dev.dux.organizer.ui.appLocale
+import dev.dux.organizer.ui.inlineLabel
 
 /** What can be set while capturing, besides the title and notes. All optional. */
 data class CaptureDetails(
@@ -126,9 +134,37 @@ fun CaptureSheet(
     val today by rememberToday()
     val focus = remember { FocusRequester() }
     val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    // "mañana a las 10" typed or dictated in the title: used unless the user dismissed it or set that field by hand.
+    val spotted = remember(title, today, due) { spotWhen(title, LocalDateTime.now(), due) }
+    var dismissed by rememberSaveable { mutableStateOf<String?>(null) }
+    val spot = spotted?.takeIf { "${it.due}|${it.remindAt}" != dismissed }
+    val finalTitle = spot?.title ?: title
+    val finalRemind = remindAt ?: spot?.remindAt
     // A reminder without a date makes its day the date, as when asking Jarvis by voice.
-    val details = CaptureDetails(due ?: remindAt?.toLocalDate(), remindAt, projectId, scheduled, priority, recurrence)
-    val save = { if (cleanTitle(title) == null) showError = true else onSave(title, notes, details) }
+    val details = CaptureDetails(due ?: spot?.due ?: finalRemind?.toLocalDate(), finalRemind, projectId, scheduled, priority, recurrence)
+    val save = { if (cleanTitle(finalTitle) == null) showError = true else onSave(finalTitle, notes, details) }
+    // The system dictation screen: no microphone permission needed in Jarvis. Appended to what is already typed.
+    var voiceMissing by rememberSaveable { mutableStateOf(false) }
+    val listen = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()?.let { spoken ->
+            title = if (title.isBlank()) spoken.replaceFirstChar { it.uppercase() } else "${title.trimEnd()} $spoken"
+            showError = false
+        }
+    }
+    val locale = appLocale()
+    val dictatePrompt = stringResource(R.string.capture_title)
+    val dictate = {
+        try {
+            listen.launch(
+                Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                    .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    .putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale.toLanguageTag())
+                    .putExtra(RecognizerIntent.EXTRA_PROMPT, dictatePrompt),
+            )
+        } catch (e: ActivityNotFoundException) {
+            voiceMissing = true
+        }
+    }
 
     // Title and notes without boxes, as in the task detail.
     val plain = TextFieldDefaults.colors(
@@ -148,7 +184,12 @@ fun CaptureSheet(
                 onValueChange = { title = it; showError = false },
                 placeholder = { Text(titleLabel) },
                 isError = showError,
-                supportingText = if (showError) ({ Text(stringResource(R.string.title_invalid)) }) else null,
+                supportingText = when {
+                    showError -> ({ Text(stringResource(R.string.title_invalid)) })
+                    voiceMissing -> ({ Text(stringResource(R.string.voice_missing)) })
+                    else -> null
+                },
+                trailingIcon = { IconButton(onClick = dictate) { Icon(painterResource(R.drawable.ic_mic), stringResource(R.string.dictate)) } },
                 singleLine = true,
                 textStyle = MaterialTheme.typography.headlineSmall,
                 colors = plain,
@@ -165,6 +206,22 @@ fun CaptureSheet(
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = Modifier.fillMaxWidth().semantics { contentDescription = notesLabel },
             )
+            // What was understood from the title, before saving; tap to ignore it.
+            AnimatedVisibility(spot != null) {
+                val shown = spot ?: spotted
+                if (shown != null) {
+                    val label = shown.remindAt?.let { reminderLabel(it, today) } ?: shown.due?.inlineLabel(today).orEmpty().replaceFirstChar { it.uppercase() }
+                    val description = stringResource(R.string.spotted_description, label, shown.title)
+                    InputChip(
+                        selected = true,
+                        onClick = { dismissed = "${shown.due}|${shown.remindAt}" },
+                        label = { Text(stringResource(R.string.spotted, label)) },
+                        leadingIcon = { Icon(painterResource(if (shown.remindAt != null) R.drawable.ic_bell else R.drawable.ic_today), contentDescription = null, Modifier.size(InputChipDefaults.IconSize)) },
+                        trailingIcon = { Icon(painterResource(R.drawable.ic_close), contentDescription = null, Modifier.size(InputChipDefaults.IconSize)) },
+                        modifier = Modifier.padding(horizontal = 12.dp).semantics { contentDescription = description },
+                    )
+                }
+            }
             FlowRow(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val tomorrow = today.plusDays(1)
                 Chip(stringResource(R.string.today), due == today, R.drawable.ic_today) { due = if (due == today) null else today }
