@@ -480,4 +480,8 @@
         <item quantity="one">%1$d por comprar</item>
         <item quantity="other">%1$d por comprar</item>
     </plurals>
+    <string name="dictate">Dictar</string>
+    <string name="voice_missing">Este teléfono no tiene dictado por voz.</string>
+    <string name="spotted">%1$s · toca para ignorar</string>
+    <string name="spotted_description">Entendí %1$s. Se guardará como «%2$s». Toca para ignorar.</string>
 </resources>
