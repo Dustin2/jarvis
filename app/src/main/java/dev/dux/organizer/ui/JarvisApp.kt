@@ -8,8 +8,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ShortNavigationBar
-import androidx.compose.material3.ShortNavigationBarItem
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -290,6 +289,9 @@ private fun MainScreen(
             onCaptureShown()
         }
     }
+    var compactNav by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(tab) { compactNav = false }
+    val navFold = remember { NavFold { compactNav = it } }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val savedToInbox = stringResource(R.string.saved_to_inbox)
@@ -305,28 +307,12 @@ private fun MainScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
-        floatingActionButton = {
-            // In Compras the button adds items to the open list; everywhere else it captures a task.
-            val shoppingTab = tab == Tab.Shopping
-            // Finanzas has its own button ("Registrar" / "Nueva deuda"); Compras adds from the field at the top of its list.
-            if (tab != Tab.Finances && !shoppingTab) {
-                AddButton(stringResource(R.string.capture)) { capturing = true }
-            }
-        },
         bottomBar = {
-            ShortNavigationBar {
-                Tab.entries.forEach {
-                    ShortNavigationBarItem(
-                        selected = it == tab,
-                        onClick = { onTabChange(it) },
-                        icon = { Icon(painterResource(it.icon), contentDescription = null) },
-                        label = { CappedLabel(stringResource(it.label)) },
-                    )
-                }
-            }
+            // Finanzas has its own button ("Registrar" / "Nueva deuda"); Compras adds from the field at the top of its list.
+            FloatingNav(tab, onTabChange, compactNav, onCapture = if (tab != Tab.Finances && tab != Tab.Shopping) ({ capturing = true }) else null)
         },
     ) { padding ->
-        val modifier = Modifier.padding(padding)
+        val modifier = Modifier.padding(padding).nestedScroll(navFold)
         when (tab) {
             Tab.Today -> TodayScreen(todayVm, onOpenTask, onOpenSettings, onOpenFinances, onSearch, offerUndo, modifier, askStart, onAskShown)
             Tab.Tasks -> TasksScreen(tasksVm, onOpenTask, onSearch, offerUndo, modifier)
