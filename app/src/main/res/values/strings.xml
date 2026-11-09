@@ -484,4 +484,20 @@
     <string name="voice_missing">Este teléfono no tiene dictado por voz.</string>
     <string name="spotted">%1$s · toca para ignorar</string>
     <string name="spotted_description">Entendí %1$s. Se guardará como «%2$s». Toca para ignorar.</string>
+    <string name="settings_general">General</string>
+    <string name="settings_assistant">Asistente</string>
+    <string name="settings_data">Datos</string>
+    <string name="backup_restore">Respaldo y restauración</string>
+    <string name="about">Acerca de</string>
+    <string name="version">Versión %1$s</string>
+    <string name="off">Apagado</string>
+    <string name="brief_at">Todos los días a las %1$s</string>
+    <string name="model_ready">Listo en este teléfono</string>
+    <string name="model_absent">Sin descargar</string>
+    <string name="model_downloading_short">Descargando…</string>
+    <string name="auto_backup_off_short">Respaldo automático apagado</string>
+    <string name="about_tagline">Tu organizador personal para Android</string>
+    <string name="about_source">Código fuente</string>
+    <string name="about_fonts">Fuentes</string>
+    <string name="about_fonts_hint">Manrope y Outfit, SIL Open Font License</string>
 </resources>
