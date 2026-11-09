@@ -324,7 +324,7 @@ private fun MainScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
             // Finanzas has its own button ("Registrar" / "Nueva deuda"); Compras adds from the field at the top of its list.
-            CaptureButton(tab != Tab.Finances && tab != Tab.Shopping) { capturing = true }
+            RoundAddButton(stringResource(R.string.capture), visible = tab != Tab.Finances && tab != Tab.Shopping) { capturing = true }
         },
         bottomBar = { FloatingNav(tab, onTabChange, compactNav) },
     ) { padding ->

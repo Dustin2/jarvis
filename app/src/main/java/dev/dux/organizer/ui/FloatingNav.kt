@@ -104,17 +104,19 @@ fun FloatingNav(tab: Tab, onTabChange: (Tab) -> Unit, compact: Boolean, modifier
     }
 }
 
-/** The round capture button, floating above the bar; it pops in and out on a spring. */
+/**
+ * The round "+" floating above the bar, the same on every tab; [text] says what it adds, for TalkBack.
+ * It pops in and out on a spring.
+ */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun CaptureButton(visible: Boolean, onClick: () -> Unit) {
+fun RoundAddButton(text: String, visible: Boolean = true, onClick: () -> Unit) {
     val motion = MaterialTheme.motionScheme
     AnimatedVisibility(
         visible,
         enter = scaleIn(motion.fastSpatialSpec()) + fadeIn(motion.defaultEffectsSpec()),
         exit = scaleOut(motion.fastSpatialSpec()) + fadeOut(motion.fastEffectsSpec()),
     ) {
-        val text = stringResource(R.string.capture)
         FloatingActionButton(
             onClick = onClick,
             shape = CircleShape,
