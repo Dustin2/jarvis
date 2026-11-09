@@ -3,11 +3,7 @@ package dev.dux.organizer.settings
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
+import dev.dux.organizer.ui.screenEnter
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -293,13 +289,10 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
         },
     ) { padding ->
         // Forward slides in from the right, back from the left, like opening and closing a screen.
+        val motion = MaterialTheme.motionScheme
         AnimatedContent(
             page,
-            transitionSpec = {
-                val forward = targetState != null
-                (slideInHorizontally { if (forward) it / 3 else -it / 3 } + fadeIn()) togetherWith
-                    (slideOutHorizontally { if (forward) -it / 3 else it / 3 } + fadeOut())
-            },
+            transitionSpec = { screenEnter(motion, forward = targetState != null) },
             modifier = Modifier.padding(padding),
             label = "settings page",
         ) { shown ->

@@ -1,5 +1,16 @@
 package dev.dux.organizer.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MotionScheme
 import android.widget.Toast
 
 import dev.dux.organizer.ask.AskStart
@@ -163,9 +174,13 @@ fun JarvisApp(
             onPast = { Toast.makeText(context, inPast, Toast.LENGTH_LONG).show() },
         ) { picked = it }
     }
+    val motion = MaterialTheme.motionScheme
     NavDisplay(
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },
+        // Springs from the expressive motion scheme: screens glide in and settle instead of moving on a fixed timer.
+        transitionSpec = { screenEnter(motion, forward = true) },
+        popTransitionSpec = { screenEnter(motion, forward = false) },
         // Each screen has its own saved state and its own ViewModels.
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
@@ -307,19 +322,26 @@ private fun MainScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
-        bottomBar = {
+        floatingActionButton = {
             // Finanzas has its own button ("Registrar" / "Nueva deuda"); Compras adds from the field at the top of its list.
-            FloatingNav(tab, onTabChange, compactNav, onCapture = if (tab != Tab.Finances && tab != Tab.Shopping) ({ capturing = true }) else null)
+            CaptureButton(tab != Tab.Finances && tab != Tab.Shopping) { capturing = true }
         },
+        bottomBar = { FloatingNav(tab, onTabChange, compactNav) },
     ) { padding ->
         val modifier = Modifier.padding(padding).nestedScroll(navFold)
-        when (tab) {
+        // Fade through between tabs: the old one fades out quickly, the new one fades and grows in on a spring.
+        val motion = MaterialTheme.motionScheme
+        AnimatedContent(
+            tab,
+            transitionSpec = { (fadeIn(motion.defaultEffectsSpec()) + scaleIn(motion.defaultSpatialSpec(), initialScale = 0.96f)) togetherWith fadeOut(motion.fastEffectsSpec()) },
+            label = "tab",
+        ) { tab -> when (tab) {
             Tab.Today -> TodayScreen(todayVm, onOpenTask, onOpenSettings, onOpenFinances, onSearch, offerUndo, modifier, askStart, onAskShown)
             Tab.Tasks -> TasksScreen(tasksVm, onOpenTask, onSearch, offerUndo, modifier)
             Tab.Projects -> ProjectsScreen(projectsVm, onOpenProject, onSearch, onOpenArchive, onOpenTrash, offerUndo, modifier)
             Tab.Shopping -> ShoppingScreen(shoppingVm, offerUndo, onSearch, modifier)
             Tab.Finances -> FinancesScreen(financesVm, onOpenDebt, onSearch, onBack = null, modifier = modifier)
-        }
+        } }
     }
 
     val projects by tasksVm.projects.collectAsStateWithLifecycle()
@@ -344,3 +366,11 @@ private fun MainScreen(
 
 }
 
+
+/** Forward slides in from the right, back from the left; a short distance and a fade, both on springs. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+internal fun screenEnter(motion: MotionScheme, forward: Boolean): ContentTransform {
+    val dir = if (forward) 1 else -1
+    return (slideInHorizontally(motion.defaultSpatialSpec()) { dir * it / 4 } + fadeIn(motion.defaultEffectsSpec())) togetherWith
+        (slideOutHorizontally(motion.defaultSpatialSpec()) { -dir * it / 4 } + fadeOut(motion.fastEffectsSpec()))
+}
