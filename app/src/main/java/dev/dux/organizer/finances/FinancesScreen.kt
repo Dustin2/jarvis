@@ -1,5 +1,9 @@
 package dev.dux.organizer.finances
 
+import dev.dux.organizer.ui.SwipeToDelete
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SnackbarDuration
 import dev.dux.organizer.ui.rememberDateFormat
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
@@ -107,6 +111,14 @@ fun FinancesScreen(
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val savedMessage = stringResource(R.string.movement_saved)
+    val resources = LocalResources.current
+    val undoLabel = stringResource(R.string.undo)
+    /** A snackbar with "Deshacer" after deleting: what was deleted goes back exactly as it was. */
+    val offerUndo: (String, () -> Unit) -> Unit = { message, undo ->
+        scope.launch {
+            if (snackbar.showSnackbar(message, actionLabel = undoLabel, duration = SnackbarDuration.Long) == SnackbarResult.ActionPerformed) undo()
+        }
+    }
     val drafts = rememberDrafts()
 
     val newCategory: @Composable ColumnScope.(() -> Unit) -> Unit = { close ->
@@ -144,8 +156,17 @@ fun FinancesScreen(
             }
             when (tab) {
                 FinanceTab.Summary -> SummaryTab(s, vm, onEditCategory = { category = it })
-                FinanceTab.Movements -> MovementsTab(s, vm, onEdit = { movement = it })
-                FinanceTab.Debts -> DebtsTab(s.debts, onOpenDebt)
+                FinanceTab.Movements -> MovementsTab(s, vm, onEdit = { movement = it }, onDelete = { m ->
+                    vm.deleteMovement(m.id) { gone ->
+                        val name = s.categories.firstOrNull { it.id == gone.categoryId }?.name.orEmpty()
+                        offerUndo(resources.getString(R.string.movement_deleted, name)) { vm.restoreMovement(gone) }
+                    }
+                })
+                FinanceTab.Debts -> DebtsTab(s.debts, onOpenDebt, onDelete = { id ->
+                    vm.deleteDebt(id) { debt, payments ->
+                        offerUndo(resources.getString(R.string.debt_deleted, debt.person)) { vm.restoreDebt(debt, payments) }
+                    }
+                })
             }
         }
 
@@ -166,7 +187,15 @@ fun FinancesScreen(
                         }
                     }
                 },
-                onDelete = editing?.let { { vm.deleteMovement(it.id); movement = null } },
+                onDelete = editing?.let { m ->
+                    {
+                        movement = null
+                        vm.deleteMovement(m.id) { gone ->
+                            val name = s.categories.firstOrNull { it.id == gone.categoryId }?.name.orEmpty()
+                            offerUndo(resources.getString(R.string.movement_deleted, name)) { vm.restoreMovement(gone) }
+                        }
+                    }
+                },
             )
         }
         val editingCategory = s.categories.firstOrNull { it.id == category }
@@ -369,7 +398,7 @@ private fun categoryIcon(category: Category): Int = when {
 private fun categoryName(c: Category) = if (c.archived) stringResource(R.string.archived_name, c.name) else c.name
 
 @Composable
-private fun MovementsTab(s: FinancesState, vm: FinancesViewModel, onEdit: (String) -> Unit) {
+private fun MovementsTab(s: FinancesState, vm: FinancesViewModel, onEdit: (String) -> Unit, onDelete: (Movement) -> Unit) {
     val today by rememberToday()
     val names = s.categories.associate { it.id to it.name }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
@@ -391,7 +420,9 @@ private fun MovementsTab(s: FinancesState, vm: FinancesViewModel, onEdit: (Strin
                     }
                 }
             }
-            items(day, key = { it.id }) { m -> MovementRow(m, names[m.categoryId].orEmpty(), onClick = { onEdit(m.id) }) }
+            items(day, key = { it.id }) { m ->
+                Box(Modifier.animateItem()) { SwipeToDelete(onDelete = { onDelete(m) }) { MovementRow(m, names[m.categoryId].orEmpty(), onClick = { onEdit(m.id) }) } }
+            }
         }
     }
 }
@@ -414,7 +445,7 @@ private fun MovementRow(m: Movement, categoryName: String, onClick: () -> Unit) 
 }
 
 @Composable
-private fun DebtsTab(debts: List<DebtWithPaid>, onOpen: (String) -> Unit) {
+private fun DebtsTab(debts: List<DebtWithPaid>, onOpen: (String) -> Unit, onDelete: (String) -> Unit) {
     val open = debts.filter { it.debt.settledAt == null }
     val iOwe = open.filter { it.debt.direction == DebtDirection.I_OWE }
     val owedToMe = open.filter { it.debt.direction == DebtDirection.OWED_TO_ME }
@@ -432,16 +463,18 @@ private fun DebtsTab(debts: List<DebtWithPaid>, onOpen: (String) -> Unit) {
         if (debts.isEmpty()) {
             item { Text(stringResource(R.string.empty_debts), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(24.dp)) }
         }
-        debtSection(R.string.debt_i_owe, iOwe, onOpen)
-        debtSection(R.string.debt_owed_to_me, owedToMe, onOpen)
-        debtSection(R.string.debts_settled, settled, onOpen)
+        debtSection(R.string.debt_i_owe, iOwe, onOpen, onDelete)
+        debtSection(R.string.debt_owed_to_me, owedToMe, onOpen, onDelete)
+        debtSection(R.string.debts_settled, settled, onOpen, onDelete)
     }
 }
 
-private fun LazyListScope.debtSection(@StringRes title: Int, debts: List<DebtWithPaid>, onOpen: (String) -> Unit) {
+private fun LazyListScope.debtSection(@StringRes title: Int, debts: List<DebtWithPaid>, onOpen: (String) -> Unit, onDelete: (String) -> Unit) {
     if (debts.isEmpty()) return
     heading(title)
-    items(debts, key = { it.debt.id }) { DebtRow(it, onClick = { onOpen(it.debt.id) }) }
+    items(debts, key = { it.debt.id }) {
+        Box(Modifier.animateItem()) { SwipeToDelete(onDelete = { onDelete(it.debt.id) }) { DebtRow(it, onClick = { onOpen(it.debt.id) }) } }
+    }
 }
 
 @Composable

@@ -87,6 +87,23 @@ interface FinanceDao {
         if (debt.settledAt != null) updateDebt(debt.copy(settledAt = null, updatedAt = now))
     }
 
+    @Query("SELECT * FROM finance_debt_payments WHERE debtId = :debtId") suspend fun getPayments(debtId: String): List<DebtPayment>
+
+    /** Deletes the debt (its payments go with it) and returns both, so "Deshacer" can put them back. */
+    @Transaction
+    suspend fun takeDebt(id: String): Pair<Debt, List<DebtPayment>>? {
+        val debt = getDebt(id) ?: return null
+        val payments = getPayments(id)
+        deleteDebt(id)
+        return debt to payments
+    }
+
+    @Transaction
+    suspend fun putDebt(debt: Debt, payments: List<DebtPayment>) {
+        insertDebt(debt)
+        insertPayments(payments)
+    }
+
     /** Rejects an amount below what was already paid; keeps [Debt.settledAt] consistent with the payments. */
     @Transaction
     suspend fun updateDebtChecked(changed: Debt, now: Instant): Boolean {
