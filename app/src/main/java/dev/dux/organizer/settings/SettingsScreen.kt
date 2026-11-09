@@ -1,5 +1,25 @@
 package dev.dux.organizer.settings
 
+import androidx.activity.compose.BackHandler
+import androidx.annotation.DrawableRes
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.font.FontWeight
+import dev.dux.organizer.ui.SectionTitle
+import dev.dux.organizer.ui.blockRowShapes
+import dev.dux.organizer.ui.inBlock
+import dev.dux.organizer.ui.theme.LocalStyle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -221,6 +241,16 @@ class SettingsViewModel(
     }
 }
 
+/** One screen of Ajustes, opened from the index. */
+private enum class Page(@StringRes val title: Int, @DrawableRes val icon: Int) {
+    Appearance(R.string.appearance, R.drawable.ic_palette),
+    Brief(R.string.brief_setting, R.drawable.ic_bell),
+    Model(R.string.ask_jarvis, R.drawable.ic_ask),
+    Backup(R.string.backup_restore, R.drawable.ic_backup),
+    About(R.string.about, R.drawable.ic_info),
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
     val snackbar = remember { SnackbarHostState() }
@@ -238,6 +268,8 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
     val model by vm.model.collectAsStateWithLifecycle()
     val brief by vm.brief.collectAsStateWithLifecycle()
     val look by vm.look.collectAsStateWithLifecycle()
+    var page by rememberSaveable { mutableStateOf<Page?>(null) }
+    BackHandler(page != null) { page = null }
 
     vm.message?.let { message ->
         val text = stringResource(message.text) + (message.detail?.let { "\n$it" } ?: "")
@@ -251,38 +283,56 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings)) },
+                title = { page?.let { Text(stringResource(it.title)) } },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.back)) }
+                    IconButton(onClick = { if (page != null) page = null else onBack() }) {
+                        Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.back))
+                    }
                 },
             )
         },
     ) { padding ->
-        Column(
-            Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            // Automatic first: it is the one that protects the data without remembering to do anything.
-            auto?.let { AutoBackupSection(it, vm, onPickFolder = { folderLauncher.launch(null) }) }
-            brief?.let { BriefSection(it, vm) }
-            model?.let { ModelSection(it, vm) }
-            look?.let { AppearanceSection(it, vm) }
-            Text(stringResource(R.string.backup), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp).asHeading())
-            Text(stringResource(R.string.backup_explanation), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            OutlinedButton(
-                onClick = { exportLauncher.launch("jarvis-respaldo-${LocalDate.now()}.json") },
-                enabled = !vm.busy,
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text(stringResource(R.string.export_backup)) }
-            OutlinedButton(
-                onClick = { importLauncher.launch(arrayOf("application/json", "application/octet-stream", "text/plain")) },
-                enabled = !vm.busy,
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text(stringResource(R.string.restore_backup)) }
-            if (vm.canUndo) {
-                TextButton(onClick = vm::undo, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.undo_restore))
+        // Forward slides in from the right, back from the left, like opening and closing a screen.
+        AnimatedContent(
+            page,
+            transitionSpec = {
+                val forward = targetState != null
+                (slideInHorizontally { if (forward) it / 3 else -it / 3 } + fadeIn()) togetherWith
+                    (slideOutHorizontally { if (forward) -it / 3 else it / 3 } + fadeOut())
+            },
+            modifier = Modifier.padding(padding),
+            label = "settings page",
+        ) { shown ->
+            val scroll = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            val body = scroll.padding(horizontal = 24.dp, vertical = 8.dp)
+            val spaced = Arrangement.spacedBy(12.dp)
+            when (shown) {
+                null -> Index(look, brief, model, auto, onOpen = { page = it }, modifier = scroll)
+                Page.Appearance -> Column(body, verticalArrangement = spaced) { look?.let { AppearanceSection(it, vm) } }
+                Page.Brief -> Column(body, verticalArrangement = spaced) { brief?.let { BriefSection(it, vm) } }
+                Page.Model -> Column(body, verticalArrangement = spaced) { model?.let { ModelSection(it, vm) } }
+                Page.Backup -> Column(body, verticalArrangement = spaced) {
+                    // Automatic first: it is the one that protects the data without remembering to do anything.
+                    auto?.let { AutoBackupSection(it, vm, onPickFolder = { folderLauncher.launch(null) }) }
+                    Text(stringResource(R.string.backup), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp).asHeading())
+                    Text(stringResource(R.string.backup_explanation), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    OutlinedButton(
+                        onClick = { exportLauncher.launch("jarvis-respaldo-${LocalDate.now()}.json") },
+                        enabled = !vm.busy,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.export_backup)) }
+                    OutlinedButton(
+                        onClick = { importLauncher.launch(arrayOf("application/json", "application/octet-stream", "text/plain")) },
+                        enabled = !vm.busy,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.restore_backup)) }
+                    if (vm.canUndo) {
+                        TextButton(onClick = vm::undo, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
+                            Text(stringResource(R.string.undo_restore))
+                        }
+                    }
                 }
+                Page.About -> About(scroll)
             }
         }
     }
@@ -296,6 +346,127 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
             dismissButton = { TextButton(onClick = vm::cancelRestore) { Text(stringResource(R.string.cancel)) } },
         )
     }
+}
+
+/** The big title and the groups, each row saying what is set right now. */
+@Composable
+private fun Index(
+    look: AppearanceSettings?,
+    brief: BriefSettings?,
+    model: ModelState?,
+    auto: AutoBackupState?,
+    onOpen: (Page) -> Unit,
+    modifier: Modifier,
+) {
+    val today by rememberToday()
+    val calm = LocalStyle.current == Style.Calm
+    Column(modifier.padding(bottom = 24.dp)) {
+        Text(
+            stringResource(R.string.settings),
+            style = if (calm) MaterialTheme.typography.displaySmall else MaterialTheme.typography.headlineLarge,
+            fontWeight = if (calm) FontWeight.Light else FontWeight.ExtraBold,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp).asHeading(),
+        )
+        SectionTitle(stringResource(R.string.settings_general))
+        val appearance = look?.let { listOf(it.style.label, it.mode.label, it.palette.label).map { id -> stringResource(id) }.joinToString(" · ") }
+        val briefText = brief?.let { if (it.enabled) stringResource(R.string.brief_at, timeText(it.time)) else stringResource(R.string.off) }
+        Group(listOf(Page.Appearance to appearance, Page.Brief to briefText), onOpen)
+        SectionTitle(stringResource(R.string.settings_assistant))
+        val modelText = when (model) {
+            ModelState.Installed -> stringResource(R.string.model_ready)
+            is ModelState.Downloading -> stringResource(R.string.model_downloading_short)
+            null -> null
+            else -> stringResource(R.string.model_absent)
+        }
+        Group(listOf(Page.Model to modelText), onOpen)
+        SectionTitle(stringResource(R.string.settings_data))
+        val last = auto?.lastSuccess?.atZone(ZoneId.systemDefault())
+        val backupText = when {
+            auto == null -> null
+            auto.folder == null -> stringResource(R.string.auto_backup_off_short)
+            last == null -> stringResource(R.string.auto_backup_never)
+            else -> stringResource(R.string.auto_backup_last, last.toLocalDate().inlineLabel(today), last.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(appLocale())))
+        }
+        Group(listOf(Page.Backup to backupText), onOpen)
+        Spacer(Modifier.height(8.dp))
+        Group(listOf(Page.About to stringResource(R.string.version, versionName())), onOpen)
+    }
+}
+
+@Composable
+private fun Group(rows: List<Pair<Page, String?>>, onOpen: (Page) -> Unit) {
+    rows.forEachIndexed { i, (page, summary) ->
+        ListItem(
+            onClick = { onOpen(page) },
+            shapes = blockRowShapes(),
+            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+            leadingContent = { IconTile(page) },
+            supportingContent = summary?.let { { Text(it) } },
+            trailingContent = { Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null) },
+            modifier = Modifier.inBlock(i, rows.lastIndex),
+        ) { Text(stringResource(page.title)) }
+    }
+}
+
+/** The icon on a tinted tile; each page keeps its own tint, all taken from the current palette. */
+@Composable
+private fun IconTile(page: Page) {
+    val c = MaterialTheme.colorScheme
+    val (container, content) = when (page) {
+        Page.Appearance, Page.About -> c.tertiaryContainer to c.onTertiaryContainer
+        Page.Brief, Page.Backup -> c.secondaryContainer to c.onSecondaryContainer
+        Page.Model -> c.primaryContainer to c.onPrimaryContainer
+    }
+    Box(Modifier.size(40.dp).background(container, MaterialTheme.shapes.medium), contentAlignment = Alignment.Center) {
+        Icon(painterResource(page.icon), contentDescription = null, tint = content, modifier = Modifier.size(22.dp))
+    }
+}
+
+/** Name, version and credits. */
+@Composable
+private fun About(modifier: Modifier) {
+    val uri = LocalUriHandler.current
+    Column(modifier.padding(vertical = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.ExtraBold)
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier.padding(top = 12.dp),
+        ) {
+            Text(stringResource(R.string.version, versionName()), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+        }
+        Text(
+            stringResource(R.string.about_tagline),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 12.dp, bottom = 24.dp),
+        )
+        val rows = listOf(
+            Triple(R.string.about_source, "github.com/Dustin2/jarvis", "https://github.com/Dustin2/jarvis"),
+            Triple(R.string.about_fonts, stringResource(R.string.about_fonts_hint), null),
+        )
+        rows.forEachIndexed { i, (title, hint, link) ->
+            val colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+            val m = Modifier.inBlock(i, rows.lastIndex)
+            if (link != null) {
+                ListItem(onClick = { uri.openUri(link) }, shapes = blockRowShapes(), colors = colors, supportingContent = { Text(hint) }, modifier = m) { Text(stringResource(title)) }
+            } else {
+                ListItem(headlineContent = { Text(stringResource(title)) }, supportingContent = { Text(hint) }, colors = colors, modifier = m)
+            }
+        }
+    }
+}
+
+@Composable
+private fun versionName(): String {
+    val context = LocalContext.current
+    return remember(context) { context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty() }
+}
+
+@Composable
+private fun timeText(time: LocalTime): String {
+    val is24Hour = DateFormat.is24HourFormat(LocalContext.current)
+    return time.format(DateTimeFormatter.ofPattern(if (is24Hour) "H:mm" else "h:mm a", appLocale()))
 }
 
 
@@ -324,7 +495,6 @@ private fun AutoBackupSection(state: AutoBackupState, vm: SettingsViewModel, onP
 
 @Composable
 private fun ModelSection(state: ModelState, vm: SettingsViewModel) {
-    Text(stringResource(R.string.ask_jarvis), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp).asHeading())
     Text(stringResource(R.string.model_explanation, MODEL_BYTES / 1_000_000_000.0), color = MaterialTheme.colorScheme.onSurfaceVariant)
     when (state) {
         ModelState.NotInstalled, ModelState.Failed -> {
@@ -365,7 +535,6 @@ private fun ModelSection(state: ModelState, vm: SettingsViewModel) {
 @Composable
 private fun AppearanceSection(settings: AppearanceSettings, vm: SettingsViewModel) {
     val context = LocalContext.current
-    Text(stringResource(R.string.appearance), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp).asHeading())
     AppearancePreview()
     Choice(R.string.style, Style.entries, settings.style, { it.label }, vm::setStyle)
     Text(stringResource(settings.style.hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -440,10 +609,8 @@ private fun BriefSection(settings: BriefSettings, vm: SettingsViewModel) {
     val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> notificationsOff = !granted }
     var picking by remember { mutableStateOf(false) }
     val is24Hour = DateFormat.is24HourFormat(context)
-    val locale = appLocale()
-    val timeText = settings.time.format(DateTimeFormatter.ofPattern(if (is24Hour) "H:mm" else "h:mm a", locale))
+    val timeText = timeText(settings.time)
 
-    Text(stringResource(R.string.brief_setting), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp).asHeading())
     Text(stringResource(R.string.brief_explanation), color = MaterialTheme.colorScheme.onSurfaceVariant)
     Row(
         Modifier.fillMaxWidth().toggleable(settings.enabled, role = Role.Switch) { on ->
