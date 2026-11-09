@@ -66,7 +66,10 @@ class FinanceRepository(private val dao: FinanceDao, private val clock: Clock = 
         return true
     }
 
-    suspend fun deleteMovement(id: String) = dao.deleteMovement(id)
+    /** Returns what was deleted, for "Deshacer". */
+    suspend fun deleteMovement(id: String): Movement? = dao.getMovement(id)?.also { dao.deleteMovement(id) }
+
+    suspend fun restoreMovement(movement: Movement) = dao.insertMovement(movement)
 
     suspend fun addDebt(person: String, direction: DebtDirection, amountCents: Long, dueDate: LocalDate?, note: String = ""): Boolean {
         val clean = cleanTitle(person) ?: return false
@@ -87,7 +90,10 @@ class FinanceRepository(private val dao: FinanceDao, private val clock: Clock = 
         return changed == current || dao.updateDebtChecked(changed, clock.instant())
     }
 
-    suspend fun deleteDebt(id: String) = dao.deleteDebt(id)
+    /** Returns the debt and its payments, for "Deshacer". */
+    suspend fun deleteDebt(id: String): Pair<Debt, List<DebtPayment>>? = dao.takeDebt(id)
+
+    suspend fun restoreDebt(debt: Debt, payments: List<DebtPayment>) = dao.putDebt(debt, payments)
 
     /** Returns false if the amount is not valid or is larger than what is left. */
     suspend fun addPayment(debtId: String, amountCents: Long, date: LocalDate): Boolean {

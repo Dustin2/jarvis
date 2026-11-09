@@ -104,4 +104,27 @@ class FinanceRepositoryTest {
         finance.deleteDebt(id)
         assertTrue(db.finance().getAllPayments().isEmpty())
     }
+
+    @Test fun undoPutsBackADeletedMovementAsItWas() = runBlocking {
+        finance.seedIfEmpty()
+        finance.addMovement(2_500, category("Comida").id, LocalDate.of(2026, 10, 5), "tacos")
+        val before = db.finance().getAllMovements().single()
+        val gone = finance.deleteMovement(before.id)!!
+        assertTrue(db.finance().getAllMovements().isEmpty())
+        finance.restoreMovement(gone)
+        assertEquals(before, db.finance().getAllMovements().single())
+    }
+
+    @Test fun undoPutsBackADeletedDebtWithItsPayments() = runBlocking {
+        finance.addDebt("Ana", DebtDirection.I_OWE, 10_000, null)
+        val id = debt().debt.id
+        finance.addPayment(id, 4_000, LocalDate.of(2026, 10, 27))
+        finance.addPayment(id, 6_000, LocalDate.of(2026, 10, 28)) // pays it off
+        val before = debt()
+        val payments = db.finance().getAllPayments()
+        val (gone, goneP) = finance.deleteDebt(id)!!
+        finance.restoreDebt(gone, goneP)
+        assertEquals(before, debt())
+        assertEquals(payments, db.finance().getAllPayments())
+    }
 }
