@@ -496,4 +496,5 @@
     <string name="about_source">Source code</string>
     <string name="about_fonts">Fonts</string>
     <string name="about_fonts_hint">Manrope and Outfit, SIL Open Font License</string>
+    <string name="add_item">Add item</string>
 </resources>

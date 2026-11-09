@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
@@ -70,18 +72,31 @@ import dev.dux.organizer.ui.SectionTitle
 
 private enum class ListDialog { Create, Rename, Delete }
 
+// After the header and the list chips.
+private const val QUICK_ADD_INDEX = 2
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 /** [offerUndo] shows a message with "Deshacer" after something is deleted. */
-fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Unit, onSearch: () -> Unit, modifier: Modifier = Modifier) {
+/** [addRequests] grows each time the round "+" is tapped: it scrolls up to the add field and opens the keyboard. */
+fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Unit, onSearch: () -> Unit, modifier: Modifier = Modifier, addRequests: Int = 0) {
     val resources = LocalResources.current
     val state by vm.state.collectAsStateWithLifecycle()
     var dialog by rememberSaveable { mutableStateOf<ListDialog?>(null) }
     val context = LocalContext.current
+    val listState = rememberLazyListState()
+    val addFocus = remember { FocusRequester() }
     val current = state ?: return
     val list = current.current
+    LaunchedEffect(addRequests) {
+        if (addRequests == 0) return@LaunchedEffect
+        // No list yet: the first thing to add is the list itself.
+        if (list == null) { dialog = ListDialog.Create; return@LaunchedEffect }
+        listState.animateScrollToItem(QUICK_ADD_INDEX)
+        addFocus.requestFocus()
+    }
 
-    LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
+    LazyColumn(modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(bottom = 88.dp)) {
         item {
             ScreenHeader(
                 R.string.tab_shopping,
@@ -126,7 +141,7 @@ fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Uni
                 }
             }
         }
-        if (list != null) item { QuickAdd(onAdd = vm::add) }
+        if (list != null) item { QuickAdd(onAdd = vm::add, focus = addFocus) } // index QUICK_ADD_INDEX
         if (list != null && current.pending.isEmpty() && current.inCart.isEmpty()) {
             item {
                 Text(
@@ -198,13 +213,12 @@ fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Uni
  * the next one. The quantity is optional and only shows when asked for.
  */
 @Composable
-private fun QuickAdd(onAdd: (String, String, (Boolean) -> Unit) -> Unit) {
+private fun QuickAdd(onAdd: (String, String, (Boolean) -> Unit) -> Unit, focus: FocusRequester) {
     var name by rememberSaveable { mutableStateOf("") }
     var quantity by rememberSaveable { mutableStateOf("") }
     var withQuantity by rememberSaveable { mutableStateOf(false) }
     var error by rememberSaveable { mutableStateOf(false) }
     var lastAdded by rememberSaveable { mutableStateOf<String?>(null) }
-    val focus = remember { FocusRequester() }
     val add = {
         val added = name.trim()
         onAdd(name, quantity) { ok ->

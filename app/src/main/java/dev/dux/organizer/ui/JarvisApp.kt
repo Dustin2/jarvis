@@ -27,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -305,6 +306,7 @@ private fun MainScreen(
         }
     }
     var compactNav by rememberSaveable { mutableStateOf(false) }
+    var shoppingAdds by remember { mutableIntStateOf(0) }
     LaunchedEffect(tab) { compactNav = false }
     val navFold = remember { NavFold { compactNav = it } }
     val snackbar = remember { SnackbarHostState() }
@@ -323,8 +325,11 @@ private fun MainScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
-            // Finanzas has its own button ("Registrar" / "Nueva deuda"); Compras adds from the field at the top of its list.
-            RoundAddButton(stringResource(R.string.capture), visible = tab != Tab.Finances && tab != Tab.Shopping) { capturing = true }
+            // Finanzas shows the same round button inside its screen, with its own action; Compras jumps to its add field.
+            val shopping = tab == Tab.Shopping
+            RoundAddButton(stringResource(if (shopping) R.string.add_item else R.string.capture), visible = tab != Tab.Finances) {
+                if (shopping) shoppingAdds++ else capturing = true
+            }
         },
         bottomBar = { FloatingNav(tab, onTabChange, compactNav) },
     ) { padding ->
@@ -339,7 +344,7 @@ private fun MainScreen(
             Tab.Today -> TodayScreen(todayVm, onOpenTask, onOpenSettings, onOpenFinances, onSearch, offerUndo, modifier, askStart, onAskShown)
             Tab.Tasks -> TasksScreen(tasksVm, onOpenTask, onSearch, offerUndo, modifier)
             Tab.Projects -> ProjectsScreen(projectsVm, onOpenProject, onSearch, onOpenArchive, onOpenTrash, offerUndo, modifier)
-            Tab.Shopping -> ShoppingScreen(shoppingVm, offerUndo, onSearch, modifier)
+            Tab.Shopping -> ShoppingScreen(shoppingVm, offerUndo, onSearch, modifier, shoppingAdds)
             Tab.Finances -> FinancesScreen(financesVm, onOpenDebt, onSearch, onBack = null, modifier = modifier)
         } }
     }

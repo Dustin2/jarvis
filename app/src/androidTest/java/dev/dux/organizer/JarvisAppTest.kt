@@ -3,6 +3,8 @@ package dev.dux.organizer
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
+import androidx.compose.ui.test.isFocused
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import dev.dux.organizer.TestHostActivity
 import androidx.compose.ui.test.onNodeWithText
@@ -31,5 +33,16 @@ class JarvisAppTest {
         // "Por ordenar" (the inbox) is a view inside Tareas ("Por ordenar (n)").
         compose.onNode(hasText(text(R.string.tab_tasks)) and isSelectable()).performClick().assertIsSelected()
         compose.onNode(hasText(text(R.string.status_inbox), substring = true) and isSelectable()).performClick().assertIsSelected()
+    }
+
+    @Test
+    fun roundAddButtonOnComprasOpensTheAddField() {
+        compose.setContent { JarvisTheme { JarvisApp() } }
+        fun text(id: Int) = compose.activity.getString(id)
+
+        compose.onNode(hasText(text(R.string.tab_shopping)) and isSelectable()).performClick()
+        // A shopping list is seeded on first run, so the add field is there.
+        compose.onNodeWithContentDescription(text(R.string.add_item)).performClick()
+        compose.onNode(hasText(text(R.string.add_item_hint)) and isFocused()).assertExists()
     }
 }

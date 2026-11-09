@@ -500,4 +500,5 @@
     <string name="about_source">Código fuente</string>
     <string name="about_fonts">Fuentes</string>
     <string name="about_fonts_hint">Manrope y Outfit, SIL Open Font License</string>
+    <string name="add_item">Agregar artículo</string>
 </resources>
