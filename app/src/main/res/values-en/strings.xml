@@ -206,9 +206,7 @@
     <string name="payment_invalid">Write a valid amount no greater than what\'s left (%1$s)</string>
     <string name="pay_all">All: %1$s</string>
     <string name="delete_payment">Delete payment of %1$s</string>
-    <string name="delete_payment_confirm">Delete this payment?</string>
     <string name="delete_debt">Delete debt</string>
-    <string name="delete_debt_confirm">Delete this debt and its payments?</string>
     <string name="month_spent">Spent: %1$s</string>
 
     <string name="auto_backup">Automatic backup</string>
@@ -500,4 +498,7 @@
     <string name="add_items_tip">Several at once: milk, bread and eggs</string>
     <string name="done">Done</string>
     <string name="add">Add</string>
+    <string name="movement_deleted">%1$s movement deleted</string>
+    <string name="debt_deleted">Debt with %1$s deleted</string>
+    <string name="payment_deleted">%1$s payment deleted</string>
 </resources>

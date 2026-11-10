@@ -79,12 +79,38 @@ interface FinanceDao {
         return true
     }
 
+    /** Deletes the payment (reopening a settled debt) and returns it with the debt as it was, for "Deshacer". */
     @Transaction
-    suspend fun removePayment(id: String, now: Instant) {
-        val payment = getPayment(id) ?: return
+    suspend fun takePayment(id: String, now: Instant): Pair<DebtPayment, Debt>? {
+        val payment = getPayment(id) ?: return null
         deletePayment(id)
-        val debt = getDebt(payment.debtId) ?: return
+        val debt = getDebt(payment.debtId) ?: return null
         if (debt.settledAt != null) updateDebt(debt.copy(settledAt = null, updatedAt = now))
+        return payment to debt
+    }
+
+    @Transaction
+    suspend fun putPayment(payment: DebtPayment, before: Debt) {
+        val debt = getDebt(payment.debtId) ?: return
+        insertPayment(payment)
+        if (before.settledAt != null) updateDebt(debt.copy(settledAt = before.settledAt, updatedAt = before.updatedAt))
+    }
+
+    @Query("SELECT * FROM finance_debt_payments WHERE debtId = :debtId") suspend fun getPayments(debtId: String): List<DebtPayment>
+
+    /** Deletes the debt (its payments go with it) and returns both, so "Deshacer" can put them back. */
+    @Transaction
+    suspend fun takeDebt(id: String): Pair<Debt, List<DebtPayment>>? {
+        val debt = getDebt(id) ?: return null
+        val payments = getPayments(id)
+        deleteDebt(id)
+        return debt to payments
+    }
+
+    @Transaction
+    suspend fun putDebt(debt: Debt, payments: List<DebtPayment>) {
+        insertDebt(debt)
+        insertPayments(payments)
     }
 
     /** Rejects an amount below what was already paid; keeps [Debt.settledAt] consistent with the payments. */

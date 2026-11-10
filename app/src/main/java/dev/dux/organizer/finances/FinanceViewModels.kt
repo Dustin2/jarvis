@@ -1,5 +1,6 @@
 package dev.dux.organizer.finances
 
+import dev.dux.organizer.data.Debt
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.dux.organizer.data.Category
@@ -47,8 +48,21 @@ class FinancesViewModel(private val repo: FinanceRepository, initialMonth: YearM
         }
     }
 
-    fun deleteMovement(id: String) {
-        viewModelScope.launch { repo.deleteMovement(id) }
+    fun deleteMovement(id: String, onDeleted: (Movement) -> Unit) {
+        viewModelScope.launch { repo.deleteMovement(id)?.let(onDeleted) }
+    }
+
+    fun restoreMovement(movement: Movement) {
+        viewModelScope.launch { repo.restoreMovement(movement) }
+    }
+
+    /** The debt goes with its payments; [onDeleted] gets both back for "Deshacer". */
+    fun deleteDebt(id: String, onDeleted: (Debt, List<DebtPayment>) -> Unit) {
+        viewModelScope.launch { repo.deleteDebt(id)?.let { (debt, payments) -> onDeleted(debt, payments) } }
+    }
+
+    fun restoreDebt(debt: Debt, payments: List<DebtPayment>) {
+        viewModelScope.launch { repo.restoreDebt(debt, payments) }
     }
 
     /** [id] null = new category of [kind]. */
@@ -76,11 +90,16 @@ class DebtDetailViewModel(private val id: String, private val repo: FinanceRepos
         viewModelScope.launch { onResult(repo.addPayment(id, amountCents, date)) }
     }
 
-    fun deletePayment(paymentId: String) {
-        viewModelScope.launch { repo.deletePayment(paymentId) }
+    fun deletePayment(paymentId: String, onDeleted: (DebtPayment, Debt) -> Unit) {
+        viewModelScope.launch { repo.deletePayment(paymentId)?.let { (payment, debt) -> onDeleted(payment, debt) } }
     }
 
-    fun delete(onDone: () -> Unit) {
-        viewModelScope.launch { repo.deleteDebt(id); onDone() }
+    fun restorePayment(payment: DebtPayment, before: Debt) {
+        viewModelScope.launch { repo.restorePayment(payment, before) }
+    }
+
+    /** The screen closes right after, so "Deshacer" for the debt is offered (and run) by the screen underneath. */
+    fun delete(onDeleted: (Debt, List<DebtPayment>) -> Unit) {
+        viewModelScope.launch { repo.deleteDebt(id)?.let { (debt, payments) -> onDeleted(debt, payments) } }
     }
 }
