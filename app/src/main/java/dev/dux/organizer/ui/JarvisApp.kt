@@ -33,6 +33,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -135,6 +136,10 @@ fun JarvisApp(
         }
     }
     val app = LocalContext.current.app
+    // Undo for a debt deleted from its own screen, which closes: the screen underneath offers it.
+    var pendingUndo by remember { mutableStateOf<PendingUndo?>(null) }
+    val appScope = rememberCoroutineScope()
+    val resources = LocalResources.current
     // Hoisted so the search can open Compras on a given list.
     var tab by rememberSaveable { mutableStateOf(Tab.Today) }
     LaunchedEffect(askStart) {
@@ -211,6 +216,8 @@ fun JarvisApp(
                     askStart = askStart,
                     onAskShown = onAskShown,
                     onCaptureShown = onCaptureShown,
+                    pendingUndo = pendingUndo,
+                    onUndoShown = { pendingUndo = null },
                 )
             }
             entry<TaskDetail> { key ->
@@ -237,6 +244,8 @@ fun JarvisApp(
                         }
                     },
                     onBack = { backStack.removeLastOrNull() },
+                    pendingUndo = pendingUndo,
+                    onUndoShown = { pendingUndo = null },
                 )
             }
             entry<Finances> { key ->
@@ -246,10 +255,21 @@ fun JarvisApp(
                     initialMovement = key.movementId,
                     onOpenDebt = { backStack.add(DebtDetail(it)) },
                     onBack = { backStack.removeLastOrNull() },
+                    pendingUndo = pendingUndo,
+                    onUndoShown = { pendingUndo = null },
                 )
             }
             entry<DebtDetail> { key ->
-                DebtDetailScreen(viewModel { DebtDetailViewModel(key.id, app.finance) }, onBack = { backStack.removeLastOrNull() })
+                DebtDetailScreen(
+                    viewModel { DebtDetailViewModel(key.id, app.finance) },
+                    onBack = { backStack.removeLastOrNull() },
+                    onDeleted = { debt, payments ->
+                        pendingUndo = PendingUndo(resources.getString(R.string.debt_deleted, debt.person)) {
+                            appScope.launch { app.finance.restoreDebt(debt, payments) }
+                        }
+                        backStack.removeLastOrNull()
+                    },
+                )
             }
             entry<Trash> {
                 TrashScreen(viewModel { TrashViewModel(app.trash) }, onBack = { backStack.removeLastOrNull() })
@@ -291,6 +311,8 @@ private fun MainScreen(
     onCaptureShown: () -> Unit,
     askStart: AskStart?,
     onAskShown: () -> Unit,
+    pendingUndo: PendingUndo?,
+    onUndoShown: () -> Unit,
 ) {
     LaunchedEffect(listToOpen) {
         if (listToOpen != null) {
@@ -321,6 +343,7 @@ private fun MainScreen(
             if (snackbar.showSnackbar(message, actionLabel = undoLabel, duration = SnackbarDuration.Long) == SnackbarResult.ActionPerformed) undo()
         }
     }
+    OfferPendingUndo(pendingUndo, onUndoShown, offerUndo)
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
@@ -378,4 +401,18 @@ internal fun screenEnter(motion: MotionScheme, forward: Boolean): ContentTransfo
     val dir = if (forward) 1 else -1
     return (slideInHorizontally(motion.defaultSpatialSpec()) { dir * it / 4 } + fadeIn(motion.defaultEffectsSpec())) togetherWith
         (slideOutHorizontally(motion.defaultSpatialSpec()) { -dir * it / 4 } + fadeOut(motion.fastEffectsSpec()))
+}
+
+/** "Deshacer" for something deleted on a screen that then closed. */
+class PendingUndo(val message: String, val undo: () -> Unit)
+
+/** Offers [pending] on this screen's snackbar, once. */
+@Composable
+fun OfferPendingUndo(pending: PendingUndo?, onShown: () -> Unit, offerUndo: (String, () -> Unit) -> Unit) {
+    LaunchedEffect(pending) {
+        if (pending != null) {
+            offerUndo(pending.message, pending.undo)
+            onShown()
+        }
+    }
 }

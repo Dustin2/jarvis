@@ -90,11 +90,16 @@ class DebtDetailViewModel(private val id: String, private val repo: FinanceRepos
         viewModelScope.launch { onResult(repo.addPayment(id, amountCents, date)) }
     }
 
-    fun deletePayment(paymentId: String) {
-        viewModelScope.launch { repo.deletePayment(paymentId) }
+    fun deletePayment(paymentId: String, onDeleted: (DebtPayment, Debt) -> Unit) {
+        viewModelScope.launch { repo.deletePayment(paymentId)?.let { (payment, debt) -> onDeleted(payment, debt) } }
     }
 
-    fun delete(onDone: () -> Unit) {
-        viewModelScope.launch { repo.deleteDebt(id); onDone() }
+    fun restorePayment(payment: DebtPayment, before: Debt) {
+        viewModelScope.launch { repo.restorePayment(payment, before) }
+    }
+
+    /** The screen closes right after, so "Deshacer" for the debt is offered (and run) by the screen underneath. */
+    fun delete(onDeleted: (Debt, List<DebtPayment>) -> Unit) {
+        viewModelScope.launch { repo.deleteDebt(id)?.let { (debt, payments) -> onDeleted(debt, payments) } }
     }
 }

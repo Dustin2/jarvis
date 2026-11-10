@@ -127,4 +127,16 @@ class FinanceRepositoryTest {
         assertEquals(before, debt())
         assertEquals(payments, db.finance().getAllPayments())
     }
+
+    @Test fun undoPutsBackADeletedPaymentAndSettlesTheDebtAgain() = runBlocking {
+        finance.addDebt("Luis", DebtDirection.OWED_TO_ME, 5_000, null)
+        val id = debt().debt.id
+        finance.addPayment(id, 5_000, LocalDate.of(2026, 10, 27)) // pays it off
+        val before = debt()
+        val (gone, debtBefore) = finance.deletePayment(finance.payments(id).first().single().id)!!
+        assertNull(debt().debt.settledAt)
+        finance.restorePayment(gone, debtBefore)
+        assertEquals(before, debt())
+        assertEquals(listOf(gone), db.finance().getAllPayments())
+    }
 }
