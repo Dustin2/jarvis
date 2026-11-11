@@ -142,4 +142,21 @@ class MigrationTest {
         assertEquals(listOf("Ana"), debts.map { it.person })
         assertTrue(trashed.isEmpty())
     }
+
+    @Test fun v7ToV8KeepsShoppingAndStartsWithNoHistory() {
+        helper.createDatabase(dbName, 7).apply {
+            execSQL("INSERT INTO shopping_lists VALUES ('l1', 'Súper', 0, 0, 0)")
+            execSQL("INSERT INTO shopping_items VALUES ('i1', 'l1', 'Leche', NULL, 0, 0, 0, 0)")
+            close()
+        }
+
+        helper.runMigrationsAndValidate(dbName, 8, true).close()
+
+        val db = Room.databaseBuilder(context, AppDatabase::class.java, dbName).build()
+        val items = runBlocking { db.shopping().getAllItems() }
+        val history = runBlocking { db.shopping().observeHistory().first() }
+        db.close()
+        assertEquals(listOf("Leche"), items.map { it.name })
+        assertTrue(history.isEmpty())
+    }
 }

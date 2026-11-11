@@ -36,3 +36,18 @@ data class ShoppingItem(
     val createdAt: Instant,
     val updatedAt: Instant,
 )
+
+/** Every item ever added, by name, for the suggestions while adding: it outlives the items ("Quitar comprados"). */
+@Entity(tableName = "shopping_history")
+data class ShoppingHistory(
+    /** [itemKey] of the name: "Leche" and "leché " are the same thing. */
+    @PrimaryKey val nameKey: String,
+    /** As it was written the last time. */
+    val name: String,
+    val timesAdded: Int,
+    val lastAddedAt: Instant,
+)
+
+/** Lowercase, trimmed, without accents. */
+fun itemKey(name: String): String =
+    java.text.Normalizer.normalize(name.trim().lowercase(), java.text.Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "")

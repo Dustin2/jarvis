@@ -73,7 +73,11 @@ fun ShoppingScreen(vm: ShoppingViewModel, offerUndo: (String, () -> Unit) -> Uni
         // No list yet: the first thing to add is the list itself.
         if (list == null) dialog = ListDialog.Create else adding = true
     }
-    if (adding && list != null) AddItemsSheet(list.name, onAdd = vm::addAll, onDismiss = { adding = false })
+    val known by vm.known.collectAsStateWithLifecycle()
+    if (adding && list != null) {
+        val onList = state?.let { s -> (s.pending + s.inCart).map { it.name } }.orEmpty()
+        AddItemsSheet(list.name, onAdd = vm::addAll, onDismiss = { adding = false }) { typed -> suggestItems(typed, known.first, known.second, onList) }
+    }
 
     LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
         item {

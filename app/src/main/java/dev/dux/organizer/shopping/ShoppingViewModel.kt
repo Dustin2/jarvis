@@ -46,6 +46,10 @@ class ShoppingViewModel(private val repo: ShoppingRepository) : ViewModel() {
 
     private val currentId get() = state.value?.current?.id
 
+    /** What the add sheet suggests from: the history and every name on any list. */
+    val known = combine(repo.history, repo.allItems) { history, items -> history to items.map { it.name } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList<dev.dux.organizer.data.ShoppingHistory>() to emptyList())
+
     fun select(id: String) {
         selectedId.value = id
     }
