@@ -3,6 +3,8 @@ package dev.dux.organizer.data
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import java.time.Clock
+import java.time.Instant
+import org.json.JSONObject
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -66,10 +68,10 @@ class FinanceRepository(private val dao: FinanceDao, private val clock: Clock = 
         return true
     }
 
-    /** Returns what was deleted, for "Deshacer". */
-    suspend fun deleteMovement(id: String): Movement? = dao.getMovement(id)?.also { dao.deleteMovement(id) }
+    /** Moves it to the trash; returns what was deleted, for "Deshacer". */
+    suspend fun deleteMovement(id: String): Movement? = dao.trashMovement(id, clock.instant())
 
-    suspend fun restoreMovement(movement: Movement) = dao.insertMovement(movement)
+    suspend fun restoreMovement(movement: Movement) = dao.putMovement(movement)
 
     suspend fun addDebt(person: String, direction: DebtDirection, amountCents: Long, dueDate: LocalDate?, note: String = ""): Boolean {
         val clean = cleanTitle(person) ?: return false
@@ -90,8 +92,26 @@ class FinanceRepository(private val dao: FinanceDao, private val clock: Clock = 
         return changed == current || dao.updateDebtChecked(changed, clock.instant())
     }
 
-    /** Returns the debt and its payments, for "Deshacer". */
-    suspend fun deleteDebt(id: String): Pair<Debt, List<DebtPayment>>? = dao.takeDebt(id)
+    /** Moves the debt and its payments to the trash; returns them, for "Deshacer". */
+    suspend fun deleteDebt(id: String): Pair<Debt, List<DebtPayment>>? = dao.takeDebt(id, clock.instant())
+
+    val trashed: Flow<List<TrashedFinance>> = dao.observeTrashed()
+
+    /** Puts it back from the trash exactly as it was. */
+    suspend fun restoreTrashed(item: TrashedFinance) {
+        val data = JSONObject(item.data)
+        when (item.kind) {
+            TrashedKind.MOVEMENT -> dao.putMovement(data.toMovement("Papelera"))
+            TrashedKind.DEBT -> {
+                val payments = data.getJSONArray("payments").let { a -> List(a.length()) { a.getJSONObject(it).toDebtPayment("Papelera") } }
+                dao.putDebt(data.getJSONObject("debt").toDebt("Papelera"), payments)
+            }
+        }
+    }
+
+    suspend fun deleteTrashedForever(id: String) = dao.deleteTrashed(id)
+
+    suspend fun purgeTrashedBefore(before: Instant) = dao.deleteTrashedBefore(before)
 
     suspend fun restoreDebt(debt: Debt, payments: List<DebtPayment>) = dao.putDebt(debt, payments)
 

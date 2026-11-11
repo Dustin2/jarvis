@@ -502,7 +502,7 @@
     <string name="add_items_tip">Varios a la vez: leche, pan y huevos</string>
     <string name="done">Listo</string>
     <string name="add">Agregar</string>
-    <string name="movement_deleted">Movimiento de %1$s eliminado</string>
-    <string name="debt_deleted">Deuda con %1$s eliminada</string>
+    <string name="movement_deleted">Movimiento de %1$s movido a la papelera</string>
+    <string name="debt_deleted">Deuda con %1$s movida a la papelera</string>
     <string name="payment_deleted">Abono de %1$s eliminado</string>
 </resources>

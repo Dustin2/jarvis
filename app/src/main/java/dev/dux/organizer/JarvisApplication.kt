@@ -42,7 +42,7 @@ class JarvisApplication : Application() {
     val backups by lazy { BackupRepository(database, File(filesDir, "backups"), reminders = reminders) }
     val autoBackup by lazy { AutoBackup(this, backups) }
     val askJarvis by lazy { AskJarvis(this) }
-    val trash by lazy { TrashRepository(database, tasks) }
+    val trash by lazy { TrashRepository(database, tasks, finance) }
     val morningBrief by lazy { MorningBrief(this, tasks, finance) }
     val appearance by lazy { Appearance(this) }
 
