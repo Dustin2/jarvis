@@ -39,6 +39,9 @@ import dev.dux.organizer.data.ProjectRepository
 import dev.dux.organizer.data.ProjectStatus
 import dev.dux.organizer.data.Task
 import dev.dux.organizer.data.TrashRepository
+import dev.dux.organizer.data.TrashedFinance
+import dev.dux.organizer.data.TrashedKind
+import dev.dux.organizer.data.formatMoney
 import dev.dux.organizer.ui.asHeading
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -55,6 +58,8 @@ class TrashViewModel(private val repo: TrashRepository) : ViewModel() {
     fun deleteProjectForever(id: String) = launch { repo.deleteProjectForever(id) }
     fun restoreTask(task: Task) = launch { repo.restoreTask(task) }
     fun deleteTaskForever(id: String) = launch { repo.deleteTaskForever(id) }
+    fun restoreFinance(item: TrashedFinance) = launch { repo.restoreFinance(item) }
+    fun deleteFinanceForever(id: String) = launch { repo.deleteFinanceForever(id) }
     fun empty() = launch { repo.empty() }
 }
 
@@ -93,6 +98,18 @@ fun TrashScreen(vm: TrashViewModel, onBack: () -> Unit) {
             if (current.tasks.isNotEmpty()) heading(R.string.tab_tasks)
             items(current.tasks, key = { "t" + it.id }) { task ->
                 TrashRow(task.title, null, onRestore = { vm.restoreTask(task) }, onDelete = { forever = { vm.deleteTaskForever(task.id) } })
+            }
+            // Finanzas: movements and debts, each under its own heading like in Finanzas.
+            current.finance.groupBy { it.kind }.toSortedMap().forEach { (kind, list) ->
+                heading(if (kind == TrashedKind.MOVEMENT) R.string.finance_movements else R.string.finance_debts)
+                items(list, key = { "f" + it.id }) { item ->
+                    TrashRow(
+                        item.label,
+                        formatMoney(item.amountCents),
+                        onRestore = { vm.restoreFinance(item) },
+                        onDelete = { forever = { vm.deleteFinanceForever(item.id) } },
+                    )
+                }
             }
         }
     }

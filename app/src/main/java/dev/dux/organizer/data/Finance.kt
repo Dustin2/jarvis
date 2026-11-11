@@ -72,6 +72,24 @@ data class DebtPayment(
     val createdAt: Instant,
 )
 
+enum class TrashedKind { MOVEMENT, DEBT }
+
+/**
+ * A deleted movement or debt, waiting in the trash. It leaves the finance tables, so totals, budgets and the
+ * brief never see it; [data] keeps it exactly as it was (a debt with its payments), in the backup's JSON.
+ */
+@Entity(tableName = "finance_trash", indices = [Index("deletedAt")])
+data class TrashedFinance(
+    /** The movement's or debt's own id. */
+    @PrimaryKey val id: String,
+    val kind: TrashedKind,
+    /** The category or the person, as it was when deleted. */
+    val label: String,
+    val amountCents: Long,
+    val data: String,
+    val deletedAt: Instant,
+)
+
 /** What is left is always computed from the payments, so it can never drift. */
 data class DebtWithPaid(@Embedded val debt: Debt, val paidCents: Long) {
     val remainingCents: Long get() = debt.amountCents - paidCents

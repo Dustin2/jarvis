@@ -6,6 +6,8 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
+import org.json.JSONArray
+import org.json.JSONObject
 import java.time.Instant
 import java.time.LocalDate
 
@@ -98,12 +100,31 @@ interface FinanceDao {
 
     @Query("SELECT * FROM finance_debt_payments WHERE debtId = :debtId") suspend fun getPayments(debtId: String): List<DebtPayment>
 
-    /** Deletes the debt (its payments go with it) and returns both, so "Deshacer" can put them back. */
+    /** Moves the movement to the trash and returns it, for "Deshacer". */
     @Transaction
-    suspend fun takeDebt(id: String): Pair<Debt, List<DebtPayment>>? {
+    suspend fun trashMovement(id: String, now: Instant): Movement? {
+        val movement = getMovement(id) ?: return null
+        val label = getCategory(movement.categoryId)?.name.orEmpty()
+        deleteMovement(id)
+        insertTrashed(TrashedFinance(id, TrashedKind.MOVEMENT, label, movement.amountCents, movement.toJson().toString(), now))
+        return movement
+    }
+
+    /** Back from the trash. */
+    @Transaction
+    suspend fun putMovement(movement: Movement) {
+        insertMovement(movement)
+        deleteTrashed(movement.id)
+    }
+
+    /** Moves the debt to the trash with its payments and returns both, for "Deshacer". */
+    @Transaction
+    suspend fun takeDebt(id: String, now: Instant): Pair<Debt, List<DebtPayment>>? {
         val debt = getDebt(id) ?: return null
         val payments = getPayments(id)
         deleteDebt(id)
+        val data = JSONObject().put("debt", debt.toJson()).put("payments", JSONArray(payments.map { it.toJson() }))
+        insertTrashed(TrashedFinance(id, TrashedKind.DEBT, debt.person, debt.amountCents, data.toString(), now))
         return debt to payments
     }
 
@@ -111,7 +132,13 @@ interface FinanceDao {
     suspend fun putDebt(debt: Debt, payments: List<DebtPayment>) {
         insertDebt(debt)
         insertPayments(payments)
+        deleteTrashed(debt.id)
     }
+
+    @Query("SELECT * FROM finance_trash ORDER BY deletedAt DESC") fun observeTrashed(): Flow<List<TrashedFinance>>
+    @Insert suspend fun insertTrashed(item: TrashedFinance)
+    @Query("DELETE FROM finance_trash WHERE id = :id") suspend fun deleteTrashed(id: String)
+    @Query("DELETE FROM finance_trash WHERE deletedAt < :before") suspend fun deleteTrashedBefore(before: Instant)
 
     /** Rejects an amount below what was already paid; keeps [Debt.settledAt] consistent with the payments. */
     @Transaction
@@ -134,9 +161,11 @@ interface FinanceDao {
         deleteAllMovements()
         deleteAllCategories()
         deleteAllDebts() // payments go with them (ON DELETE CASCADE)
+        deleteAllTrashed() // a backup replaces everything; restoring these later could clash with it
     }
 
     @Query("DELETE FROM finance_movements") suspend fun deleteAllMovements()
     @Query("DELETE FROM finance_categories") suspend fun deleteAllCategories()
     @Query("DELETE FROM finance_debts") suspend fun deleteAllDebts()
+    @Query("DELETE FROM finance_trash") suspend fun deleteAllTrashed()
 }

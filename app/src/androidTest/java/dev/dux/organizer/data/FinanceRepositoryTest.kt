@@ -139,4 +139,43 @@ class FinanceRepositoryTest {
         assertEquals(before, debt())
         assertEquals(listOf(gone), db.finance().getAllPayments())
     }
+
+    @Test fun deletedMovementWaitsInTheTrashAndComesBackAsItWas() = runBlocking {
+        finance.seedIfEmpty()
+        finance.addMovement(2_500, category("Comida").id, LocalDate.of(2026, 10, 5), "tacos")
+        val before = db.finance().getAllMovements().single()
+        finance.deleteMovement(before.id)
+        assertTrue("out of the totals", finance.movements(october).first().isEmpty())
+        val item = finance.trashed.first().single()
+        assertEquals(TrashedKind.MOVEMENT, item.kind)
+        assertEquals("Comida", item.label)
+        assertEquals(2_500L, item.amountCents)
+
+        finance.restoreTrashed(item)
+        assertEquals(before, db.finance().getAllMovements().single())
+        assertTrue(finance.trashed.first().isEmpty())
+    }
+
+    @Test fun deletedDebtComesBackFromTheTrashWithItsPayments() = runBlocking {
+        finance.addDebt("Ana", DebtDirection.I_OWE, 10_000, LocalDate.of(2026, 12, 1), "renta")
+        val id = debt().debt.id
+        finance.addPayment(id, 4_000, LocalDate.of(2026, 10, 27))
+        val before = debt()
+        val payments = db.finance().getAllPayments()
+        finance.deleteDebt(id)
+        assertTrue(finance.debts.first().isEmpty())
+
+        finance.restoreTrashed(finance.trashed.first().single())
+        assertEquals(before, debt())
+        assertEquals(payments, db.finance().getAllPayments())
+        assertTrue(finance.trashed.first().isEmpty())
+    }
+
+    @Test fun undoAlsoTakesItOutOfTheTrash() = runBlocking {
+        finance.seedIfEmpty()
+        finance.addMovement(900, category("Comida").id, LocalDate.of(2026, 10, 5))
+        val gone = finance.deleteMovement(db.finance().getAllMovements().single().id)!!
+        finance.restoreMovement(gone)
+        assertTrue(finance.trashed.first().isEmpty())
+    }
 }

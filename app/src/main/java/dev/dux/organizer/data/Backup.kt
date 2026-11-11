@@ -124,18 +124,18 @@ private fun Category.toJson() = JSONObject()
     .put("sortOrder", sortOrder).put("archived", archived)
     .put("createdAt", createdAt.toString()).put("updatedAt", updatedAt.toString())
 
-private fun Movement.toJson() = JSONObject()
+internal fun Movement.toJson() = JSONObject()
     .put("id", id).put("kind", kind.name).put("amountCents", amountCents).put("categoryId", categoryId)
     .put("date", date.toString()).put("note", note ?: JSONObject.NULL)
     .put("createdAt", createdAt.toString()).put("updatedAt", updatedAt.toString())
 
-private fun Debt.toJson() = JSONObject()
+internal fun Debt.toJson() = JSONObject()
     .put("id", id).put("person", person).put("direction", direction.name).put("amountCents", amountCents)
     .put("dueDate", dueDate?.toString() ?: JSONObject.NULL).put("note", note ?: JSONObject.NULL)
     .put("settledAt", settledAt?.toString() ?: JSONObject.NULL)
     .put("createdAt", createdAt.toString()).put("updatedAt", updatedAt.toString())
 
-private fun DebtPayment.toJson() = JSONObject()
+internal fun DebtPayment.toJson() = JSONObject()
     .put("id", id).put("debtId", debtId).put("amountCents", amountCents)
     .put("date", date.toString()).put("createdAt", createdAt.toString())
 
@@ -205,7 +205,7 @@ private fun JSONObject.toCategory(where: String) = Field(this, where).run {
     )
 }
 
-private fun JSONObject.toMovement(where: String) = Field(this, where).run {
+internal fun JSONObject.toMovement(where: String) = Field(this, where).run {
     Movement(
         id = text("id"),
         kind = enum("kind", MoneyKind.entries),
@@ -218,7 +218,7 @@ private fun JSONObject.toMovement(where: String) = Field(this, where).run {
     )
 }
 
-private fun JSONObject.toDebt(where: String) = Field(this, where).run {
+internal fun JSONObject.toDebt(where: String) = Field(this, where).run {
     Debt(
         id = text("id"),
         person = title("person"),
@@ -232,7 +232,7 @@ private fun JSONObject.toDebt(where: String) = Field(this, where).run {
     )
 }
 
-private fun JSONObject.toDebtPayment(where: String) = Field(this, where).run {
+internal fun JSONObject.toDebtPayment(where: String) = Field(this, where).run {
     DebtPayment(id = text("id"), debtId = text("debtId"), amountCents = amount("amountCents"), date = date("date"), createdAt = instant("createdAt"))
 }
 

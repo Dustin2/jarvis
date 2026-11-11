@@ -7,6 +7,8 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import kotlinx.coroutines.flow.first
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.time.LocalDate
@@ -123,5 +125,21 @@ class MigrationTest {
         assertEquals(listOf("t1"), tasks.map { it.id })
         assertNull(tasks.single().deletedAt)
         assertNull(projects.single().deletedAt)
+    }
+
+    @Test fun v6ToV7KeepsFinancesAndStartsWithAnEmptyTrash() {
+        helper.createDatabase(dbName, 6).apply {
+            execSQL("INSERT INTO finance_debts (id, person, direction, amountCents, dueDate, note, settledAt, createdAt, updatedAt) VALUES ('d1', 'Ana', 'I_OWE', 10000, NULL, NULL, NULL, 0, 0)")
+            close()
+        }
+
+        helper.runMigrationsAndValidate(dbName, 7, true).close()
+
+        val db = Room.databaseBuilder(context, AppDatabase::class.java, dbName).build()
+        val debts = runBlocking { db.finance().getAllDebts() }
+        val trashed = runBlocking { db.finance().observeTrashed().first() }
+        db.close()
+        assertEquals(listOf("Ana"), debts.map { it.person })
+        assertTrue(trashed.isEmpty())
     }
 }

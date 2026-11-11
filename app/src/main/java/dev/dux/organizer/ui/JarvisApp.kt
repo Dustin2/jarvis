@@ -368,7 +368,7 @@ private fun MainScreen(
             Tab.Tasks -> TasksScreen(tasksVm, onOpenTask, onSearch, offerUndo, modifier)
             Tab.Projects -> ProjectsScreen(projectsVm, onOpenProject, onSearch, onOpenArchive, onOpenTrash, offerUndo, modifier)
             Tab.Shopping -> ShoppingScreen(shoppingVm, offerUndo, onSearch, modifier, shoppingAdds)
-            Tab.Finances -> FinancesScreen(financesVm, onOpenDebt, onSearch, onBack = null, modifier = modifier)
+            Tab.Finances -> FinancesScreen(financesVm, onOpenDebt, onSearch, onBack = null, modifier = modifier, onOpenTrash = onOpenTrash)
         } }
     }
 
