@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
@@ -43,6 +44,19 @@ interface ShoppingDao {
     @Insert suspend fun insertList(list: ShoppingList)
     @Insert suspend fun insertLists(lists: List<ShoppingList>)
     @Insert suspend fun insertItem(item: ShoppingItem)
+
+    @Query("SELECT * FROM shopping_history") fun observeHistory(): Flow<List<ShoppingHistory>>
+    @Query("SELECT * FROM shopping_history WHERE nameKey = :key") suspend fun getHistory(key: String): ShoppingHistory?
+    @Upsert suspend fun upsertHistory(entry: ShoppingHistory)
+
+    /** Adds it and remembers it for the suggestions. */
+    @Transaction
+    suspend fun insertItemRemembered(item: ShoppingItem) {
+        insertItem(item)
+        val key = itemKey(item.name)
+        val seen = getHistory(key)
+        upsertHistory(seen?.copy(name = item.name, timesAdded = seen.timesAdded + 1, lastAddedAt = item.createdAt) ?: ShoppingHistory(key, item.name, 1, item.createdAt))
+    }
     @Insert suspend fun insertItems(items: List<ShoppingItem>)
     @Update suspend fun updateList(list: ShoppingList)
     @Update suspend fun updateItem(item: ShoppingItem)
