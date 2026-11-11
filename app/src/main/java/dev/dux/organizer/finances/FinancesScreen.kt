@@ -104,6 +104,7 @@ fun FinancesScreen(
     initialMovement: String? = null,
     pendingUndo: PendingUndo? = null,
     onUndoShown: () -> Unit = {},
+    onOpenTrash: () -> Unit = {},
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
     // Opened from the search: straight to that movement.
@@ -126,8 +127,9 @@ fun FinancesScreen(
     OfferPendingUndo(pendingUndo, onUndoShown, offerUndo)
     val drafts = rememberDrafts()
 
-    val newCategory: @Composable ColumnScope.(() -> Unit) -> Unit = { close ->
+    val menu: @Composable ColumnScope.(() -> Unit) -> Unit = { close ->
         DropdownMenuItem(text = { Text(stringResource(R.string.new_category)) }, onClick = { close(); category = NEW })
+        DropdownMenuItem(text = { Text(stringResource(R.string.trash)) }, onClick = { close(); onOpenTrash() })
     }
     Scaffold(
         modifier = modifier,
@@ -154,7 +156,7 @@ fun FinancesScreen(
     ) { padding ->
         val s = state ?: return@Scaffold
         Column(Modifier.padding(padding)) {
-            if (onBack == null) ScreenHeader(R.string.finances, onSearch, menu = newCategory)
+            if (onBack == null) ScreenHeader(R.string.finances, onSearch, menu = menu)
             // Chips, not tabs: at large font sizes they wrap instead of cutting "Movimientos".
             Box(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)) {
                 ChoiceChips(FinanceTab.entries, tab, { stringResource(it.label) }) { tab = it }

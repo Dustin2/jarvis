@@ -9,21 +9,26 @@ import kotlinx.coroutines.flow.combine
 /** A deleted project with the tasks that went to the trash with it. */
 data class TrashedProject(val project: Project, val tasks: List<Task>)
 
-data class Trash(val projects: List<TrashedProject>, val tasks: List<Task>) {
-    val isEmpty get() = projects.isEmpty() && tasks.isEmpty()
+data class Trash(val projects: List<TrashedProject>, val tasks: List<Task>, val finance: List<TrashedFinance> = emptyList()) {
+    val isEmpty get() = projects.isEmpty() && tasks.isEmpty() && finance.isEmpty()
 }
 
 /**
  * Deleted projects and tasks: they wait here [KEEP_DAYS] days, can be restored, or deleted for good.
  * A project takes its tasks along (same deletedAt), so restoring it brings them all back.
  */
-class TrashRepository(private val db: AppDatabase, private val tasks: TaskRepository, private val clock: Clock = Clock.systemUTC()) {
+class TrashRepository(
+    private val db: AppDatabase,
+    private val tasks: TaskRepository,
+    private val finance: FinanceRepository,
+    private val clock: Clock = Clock.systemUTC(),
+) {
     private val taskDao = db.tasks()
     private val projectDao = db.projects()
 
-    val trash: Flow<Trash> = combine(projectDao.observeTrashed(), taskDao.observeTrashed()) { projects, trashed ->
+    val trash: Flow<Trash> = combine(projectDao.observeTrashed(), taskDao.observeTrashed(), finance.trashed) { projects, trashed, money ->
         val bundled = projects.associate { p -> p.id to trashed.filter { it.projectId == p.id && it.deletedAt == p.deletedAt } }
-        Trash(projects.map { TrashedProject(it, bundled[it.id].orEmpty()) }, trashed - bundled.values.flatten().toSet())
+        Trash(projects.map { TrashedProject(it, bundled[it.id].orEmpty()) }, trashed - bundled.values.flatten().toSet(), money)
     }
 
     suspend fun deleteProject(id: String) = db.withTransaction {
@@ -54,6 +59,10 @@ class TrashRepository(private val db: AppDatabase, private val tasks: TaskReposi
 
     suspend fun deleteTaskForever(id: String) = tasks.deleteForever(id)
 
+    suspend fun restoreFinance(item: TrashedFinance) = finance.restoreTrashed(item)
+
+    suspend fun deleteFinanceForever(id: String) = finance.deleteTrashedForever(id)
+
     /** "Vaciar papelera". */
     suspend fun empty() = purgeBefore(clock.instant().plusSeconds(1))
 
@@ -64,6 +73,7 @@ class TrashRepository(private val db: AppDatabase, private val tasks: TaskReposi
     private suspend fun purgeBefore(before: java.time.Instant) = db.withTransaction {
         taskDao.deleteTrashedBefore(before)
         projectDao.deleteTrashedBefore(before)
+        finance.purgeTrashedBefore(before)
     }
 
     companion object {

@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,6 +40,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -55,7 +57,12 @@ import dev.dux.organizer.ui.asHeading
 // ModalBottomSheet has been marked experimental for years, but it is the official M3 pattern for this.
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun AddItemsSheet(listName: String, onAdd: (List<String>, String, (String, Boolean) -> Unit) -> Unit, onDismiss: () -> Unit) {
+fun AddItemsSheet(
+    listName: String,
+    onAdd: (List<String>, String, (String, Boolean) -> Unit) -> Unit,
+    onDismiss: () -> Unit,
+    suggest: (String) -> List<String> = { emptyList() },
+) {
     var name by rememberSaveable { mutableStateOf("") }
     var quantity by rememberSaveable { mutableStateOf("") }
     var withQuantity by rememberSaveable { mutableStateOf(false) }
@@ -63,19 +70,24 @@ fun AddItemsSheet(listName: String, onAdd: (List<String>, String, (String, Boole
     val added = remember { mutableStateListOf<String>() }
     val focus = remember { FocusRequester() }
 
-    val add: () -> Unit = {
-        val names = splitItems(name)
+    /** Adds [names] and leaves [rest] in the field. */
+    fun addNames(names: List<String>, rest: String = "") {
         // A quantity only makes sense for one item.
         val qty = if (names.size == 1) quantity else ""
         if (names.isEmpty()) error = true
-        if (names.isNotEmpty()) onAdd(names, qty) { item, ok -> if (ok) added += item else error = true }
         if (names.isNotEmpty()) {
-            name = ""
+            onAdd(names, qty) { item, ok -> if (ok) added += item else error = true }
+            name = rest
             quantity = ""
             withQuantity = false
         }
         focus.requestFocus()
     }
+    val add: () -> Unit = { addNames(splitItems(name)) }
+    // Suggestions follow what is being written after the last comma: "pan, le" suggests "Leche".
+    val typing = name.substringAfterLast(',')
+    val suggestions = suggest(typing)
+    val addLabel = stringResource(R.string.add)
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberBottomSheetState(SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))) {
         Column(
@@ -96,6 +108,18 @@ fun AddItemsSheet(listName: String, onAdd: (List<String>, String, (String, Boole
                 keyboardActions = KeyboardActions(onDone = { add() }),
                 modifier = Modifier.fillMaxWidth().focusRequester(focus),
             )
+            if (suggestions.isNotEmpty()) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    suggestions.forEach { suggestion ->
+                        SuggestionChip(
+                            onClick = { addNames(listOf(suggestion), name.dropLast(typing.length)) },
+                            label = { Text(suggestion) },
+                            icon = { Icon(painterResource(R.drawable.ic_add), contentDescription = null, Modifier.size(18.dp)) },
+                            modifier = Modifier.semantics { contentDescription = "$addLabel $suggestion" },
+                        )
+                    }
+                }
+            }
             if (withQuantity) {
                 TextField(
                     value = quantity,

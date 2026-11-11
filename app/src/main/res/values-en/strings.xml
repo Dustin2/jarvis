@@ -498,7 +498,7 @@
     <string name="add_items_tip">Several at once: milk, bread and eggs</string>
     <string name="done">Done</string>
     <string name="add">Add</string>
-    <string name="movement_deleted">%1$s movement deleted</string>
-    <string name="debt_deleted">Debt with %1$s deleted</string>
+    <string name="movement_deleted">%1$s movement moved to the trash</string>
+    <string name="debt_deleted">Debt with %1$s moved to the trash</string>
     <string name="payment_deleted">%1$s payment deleted</string>
 </resources>

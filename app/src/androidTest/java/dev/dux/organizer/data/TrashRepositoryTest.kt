@@ -24,7 +24,8 @@ class TrashRepositoryTest {
     }
     private val tasks = TaskRepository(db.tasks(), clock)
     private val projects = ProjectRepository(db.projects(), clock)
-    private val trash = TrashRepository(db, tasks, clock)
+    private val finance = FinanceRepository(db.finance(), clock)
+    private val trash = TrashRepository(db, tasks, finance, clock)
 
     @After fun tearDown() = db.close()
 
@@ -97,5 +98,25 @@ class TrashRepositoryTest {
 
         trash.empty()
         assertTrue(trash.trash.first().isEmpty)
+    }
+
+    @Test fun financeSitsInTheSameTrashAndIsPurgedWithIt() = runBlocking {
+        finance.addDebt("Luis", DebtDirection.OWED_TO_ME, 5_000, null)
+        finance.deleteDebt(finance.debts.first().single().debt.id)
+        tasks.capture("Pagar la luz", id = "t")
+        tasks.delete("t")
+        assertEquals(listOf("Luis"), trash.trash.first().finance.map { it.label })
+
+        now = now.plusSeconds(TrashRepository.KEEP_DAYS * 86_400 + 60)
+        trash.purgeOld()
+        assertTrue(trash.trash.first().isEmpty)
+    }
+
+    @Test fun emptyingTheTrashTakesFinanceToo() = runBlocking {
+        finance.addDebt("Luis", DebtDirection.OWED_TO_ME, 5_000, null)
+        finance.deleteDebt(finance.debts.first().single().debt.id)
+        trash.empty()
+        assertTrue(trash.trash.first().isEmpty)
+        assertTrue(finance.debts.first().isEmpty())
     }
 }

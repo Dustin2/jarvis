@@ -102,4 +102,18 @@ class ShoppingRepositoryTest {
         assertEquals(listOf("Leche", "Pan", "Huevo"), items(id).map { it.name })
         assertTrue(items(id).first().checked)
     }
+
+    @Test fun everyAddIsRememberedEvenAfterTheItemIsGone() = runBlocking {
+        shopping.seedIfEmpty()
+        val list = firstListId()
+        shopping.addItem(list, "Leche")
+        shopping.setChecked(items(list).single().id, true)
+        shopping.removeChecked(list)
+        shopping.addItem(list, " leché")
+
+        val entry = shopping.history.first().single()
+        assertEquals("leche", entry.nameKey)
+        assertEquals("leché", entry.name)
+        assertEquals(2, entry.timesAdded)
+    }
 }

@@ -10,6 +10,8 @@ class ShoppingRepository(private val dao: ShoppingDao, private val clock: Clock 
 
     val allItems: Flow<List<ShoppingItem>> = dao.observeAllItems()
 
+    val history: Flow<List<ShoppingHistory>> = dao.observeHistory()
+
     fun items(listId: String): Flow<List<ShoppingItem>> = dao.observeItems(listId)
 
     // "Empty table" = first run: holds because the last list cannot be deleted. An old backup without
@@ -43,7 +45,7 @@ class ShoppingRepository(private val dao: ShoppingDao, private val clock: Clock 
         val amount = quantity.trim().ifEmpty { null }
         if (amount != null && amount.length > MAX_QUANTITY_LENGTH) return false
         val now = clock.instant()
-        dao.insertItem(
+        dao.insertItemRemembered(
             ShoppingItem(id = id, listId = listId, name = clean, quantity = amount, sortOrder = dao.nextItemSortOrder(listId), createdAt = now, updatedAt = now)
         )
         return true

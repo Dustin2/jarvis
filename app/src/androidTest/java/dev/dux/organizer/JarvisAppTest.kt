@@ -111,4 +111,36 @@ class JarvisAppTest {
         compose.waitUntil(5_000) { !shown(message) && shown(person) }
         runBlocking { finance.debts.first().first { it.debt.person == person }.let { finance.deleteDebt(it.debt.id) } }
     }
+
+    @Test
+    fun comprasSuggestsWhatWasBoughtBefore() {
+        val shopping = compose.activity.app.shopping
+        val item = "Kiwi " + System.nanoTime().toString().takeLast(5)
+        // Added once and then removed: only the history remembers it.
+        runBlocking {
+            shopping.seedIfEmpty()
+            val list = shopping.lists.first().first().id
+            val id = java.util.UUID.randomUUID().toString()
+            shopping.addItem(list, item, id = id)
+            shopping.deleteItem(id)
+        }
+        compose.setContent { JarvisTheme { JarvisApp() } }
+        fun text(id: Int) = compose.activity.getString(id)
+
+        compose.onNode(hasText(text(R.string.tab_shopping)) and isSelectable()).performClick()
+        compose.onNodeWithContentDescription(text(R.string.add_item)).performClick()
+        val focused = hasText(text(R.string.add_item_hint)) and isFocused()
+        compose.waitUntil(5_000) { compose.onAllNodes(focused).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNode(focused).performTextInput(item.take(7).lowercase())
+        val chip = "${text(R.string.add)} $item"
+        compose.waitUntil(5_000) { compose.onAllNodesWithContentDescription(chip).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithContentDescription(chip).performClick()
+        // Added (its check chip shows), and no longer suggested.
+        compose.waitUntil(5_000) { compose.onAllNodesWithContentDescription(chip).fetchSemanticsNodes().isEmpty() }
+        compose.waitUntil(5_000) { compose.onAllNodesWithText(item).fetchSemanticsNodes().isNotEmpty() }
+        runBlocking {
+            val list = shopping.lists.first().first().id
+            shopping.items(list).first().filter { it.name == item }.forEach { shopping.deleteItem(it.id) }
+        }
+    }
 }
